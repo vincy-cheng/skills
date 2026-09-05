@@ -16,6 +16,12 @@ Run each step before the next. Pause at the natural checkpoints (after spec, aft
 
 Invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development` as sub-steps; runs its own `dev-flow:execute-tasks`, `dev-flow:review`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the three `superpowers:*` skills. If a `superpowers:*` skill is missing, stop and tell the user to install it.
 
+**Superpowers defaults lose to dev-flow.** Superpowers' SessionStart injection urges invoking its skills before any response, and its skills carry their own defaults (`docs/superpowers/` save paths, design-doc commits, "Execution Handoff"). Inside this workflow those defaults **do not apply**:
+
+- Before writing any file for this run, verify the target is under `docs/features/` — never `docs/superpowers/`. If a superpowers sub-skill already wrote there, move the file (step 2 does this).
+- Never commit specs, plans, or state files (see *Commit guard*). Superpowers' "commit the design document" instruction does not override this.
+- A sub-skill's handoff never advances, skips, or reorders steps — see *The hard gate*.
+
 ## The hard gate
 
 Steps 1 and 3 invoke superpowers skills with their **own** handoff instructions (brainstorming → writing-plans; writing-plans → "Execution Handoff"). Left unchecked, those handoffs **will** skip or reorder this workflow. The gate prevents it **structurally**: the state file's **Goal status** is the only thing that advances a step.
