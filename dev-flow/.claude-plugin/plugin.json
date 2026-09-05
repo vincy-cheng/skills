@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "description": "Drives a dev workflow end-to-end (features or fixes): brainstorm → spec → plan → create GitHub issue → execute (TDD) → PR → manual merge. Provides the create-github-issue skill and a /new-feature command. Depends on the superpowers plugin for brainstorming, planning, and execution skills.",
-  "version": "2.0.0",
+  "description": "Drives a dev workflow end-to-end (features or fixes): brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge. Own execute-tasks, review, create-github-issue, and commit skills plus a /new-feature command. Depends on superpowers for brainstorming, writing-plans, and test-driven-development.",
+  "version": "2.1.0",
   "author": {
     "name": "Vincy-Cheng"
   },

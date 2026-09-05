@@ -6,16 +6,18 @@ AI coding-agent plugins published from this repo. Each top-level directory is on
 
 ### `dev-flow`
 
-Drives a feature **or fix** end-to-end: brainstorm → spec → plan → create GitHub issue → execute (TDD) → PR → manual merge. Keeps a gitignored state file so work resumes across sessions, and uses a **hard gate** so invoked sub-skills can't skip or reorder steps.
+Drives a feature **or fix** end-to-end: brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge. Keeps a gitignored state file so work resumes across sessions, and uses a **hard gate** so invoked sub-skills can't skip or reorder steps.
 
 Provides:
-- `/new-feature` command — the 7-step pipeline of record.
+- `/new-feature` command — the pipeline of record.
 - `create-github-issue` skill — step 4 (draft → confirm → `gh issue create`).
+- `execute-tasks` skill — step 5: own TDD loop, progress in the state file, commit per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). No `.superpowers/` workspace — all under `docs/features/`.
+- `review` skill — step 5.5: pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
 - `commit` skill — Conventional Commits messages from the diff, with **no AI attribution** in the message or trailers. Runs standalone or per-task during step 5.
 
 #### Requires: the `superpowers` plugin
 
-`dev-flow` invokes `superpowers:brainstorming`, `superpowers:writing-plans`, `superpowers:subagent-driven-development`, `superpowers:test-driven-development`, and `superpowers:finishing-a-development-branch`. Install superpowers first.
+`dev-flow` invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`. Install superpowers first.
 
 ## Install
 
@@ -42,10 +44,13 @@ This repo can be **private** — an installing account only needs git read acces
 
 ```
 dev-flow/
-├── .claude-plugin/plugin.json   # metadata + peerDependencies.superpowers
-├── commands/new-feature.md      # /new-feature — the 7-step pipeline + hard gate
+├── .claude-plugin/plugin.json      # metadata + peerDependencies.superpowers
+├── commands/new-feature.md         # /new-feature — pipeline + hard gate
 └── skills/
-    └── create-github-issue/SKILL.md
+    ├── commit/SKILL.md             # Conventional Commits, no AI attribution
+    ├── create-github-issue/SKILL.md
+    ├── execute-tasks/SKILL.md      # step 5: inline TDD loop
+    └── review/SKILL.md             # step 5.5: pre-PR self-review gate
 ```
 
 `AGENTS.md` is the agent guidance for this repo; `CLAUDE.md` is a symlink to it so Claude Code, Copilot, and others read the same file.
