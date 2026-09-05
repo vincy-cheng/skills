@@ -19,7 +19,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## Choose a mode
 
-Ask the user which mode (unless they already specified):
+Ask the user which mode (unless they already specified). Ask on **every** entry — including when step 4 was skipped, the plan is small, or the run resumed mid-execute. A small or markdown-only plan is not an exemption:
 
 - **Inline (default)** — you run the TDD loop directly in this session. Simplest; best for small/medium work and when you want to stay in the loop.
 - **Subagent** — for each task, dispatch a fresh implementer subagent with only that task's brief, then review its work yourself before committing. Best for larger work where per-task context isolation helps; preserves your session context for coordination.
