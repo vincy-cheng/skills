@@ -14,10 +14,13 @@ Provides:
 - `execute-tasks` skill — step 5: own TDD loop, progress in the state file, commit per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). No `.superpowers/` workspace — all under `docs/features/`.
 - `review` skill — step 5.5: pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
 - `commit` skill — Conventional Commits messages from the diff, with **no AI attribution** in the message or trailers. Runs standalone or per-task during step 5.
+- `agent-docs` skill — generates/updates the target repo's agent-facing docs as a layered tree under `docs/agents/`: a tiny always-load index, per-concern maps (architecture, testing, API, dev-ops, deployment), optional deep-detail files. Progressive disclosure for AI agents; standalone, runs on demand.
 
 #### Requires: the `superpowers` plugin
 
 `dev-flow` invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`. Install superpowers first.
+
+**Note on superpowers' SessionStart injection:** superpowers injects a session-start instruction urging you to invoke its skills before any response. Inside a dev-flow run, ignore that — dev-flow invokes the superpowers skills it needs as sub-steps, and superpowers' own defaults (saving under `docs/superpowers/`, committing design docs, "Execution Handoff") **do not apply**: everything lives under `docs/features/` (gitignored, never committed), and `/new-feature`'s hard gate governs step order. For extra protection outside dev-flow, you can add a rule to your global `CLAUDE.md` that superpowers runs only on explicit request.
 
 ## Install
 
@@ -48,6 +51,7 @@ dev-flow/
 ├── commands/new-feature.md         # /new-feature — pipeline + hard gate
 └── skills/
     ├── commit/SKILL.md             # Conventional Commits, no AI attribution
+    ├── agent-docs/SKILL.md         # agent-facing doc tree generator (docs/agents/)
     ├── create-github-issue/SKILL.md
     ├── execute-tasks/SKILL.md      # step 5: inline TDD loop
     └── review/SKILL.md             # step 5.5: pre-PR self-review gate

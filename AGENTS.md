@@ -21,11 +21,14 @@ brainstorm → spec → plan → create GitHub issue → execute (TDD) → revie
 - `skills/execute-tasks/SKILL.md` — step 5. Own TDD loop; progress in the state file; commits per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). All artifacts under `docs/features/` — no `.superpowers/` workspace.
 - `skills/review/SKILL.md` — step 5.5. Pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
 - `skills/commit/SKILL.md` — Conventional Commits messages from the diff with **no AI attribution** in the message or trailers. Runs standalone ("commit this") or per-task during step 5.
+- `skills/agent-docs/SKILL.md` — generates/maintains the **target repo's** agent-facing docs as a layered progressive-disclosure tree under `docs/agents/`: a tiny always-load index, per-concern maps (architecture, testing, API, dev-ops, deployment), optional deep-detail files. Runs standalone in any repo; not part of the step sequence.
 - **Step 8 distill** — after merge, review the completed work and update docs (this plugin's, the target repo's, or persisted memory) if it revealed a gap, pattern, or correction worth keeping. Guided: proposed edits shown to the user before applying; `docs:` commit separate from code. No edits needed → mark the run done.
 
 ### Peer dependency: `superpowers`
 
 `dev-flow` invokes three skills from the **superpowers** plugin: `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`. Per-task execution and review are dev-flow's own (`execute-tasks` — with an inline mode and a subagent mode — and `review`), so all artifacts stay under `docs/features/` with no `.superpowers/` workspace. Superpowers must be installed alongside dev-flow. This is declared in `dev-flow/.claude-plugin/plugin.json` as a `peerDependency` and documented in the README.
+
+**Superpowers defaults lose to dev-flow.** Superpowers' SessionStart injection urges invoking its skills before any response, and its skills carry their own defaults (`docs/superpowers/` save paths, design-doc commits, "Execution Handoff"). Inside a dev-flow run those defaults do not apply: files go under `docs/features/` (never `docs/superpowers/`), specs/plans/state are never committed, and step order is governed solely by the hard gate in `commands/new-feature.md`.
 
 ### How the pieces fit together
 
