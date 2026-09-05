@@ -1,12 +1,14 @@
 ---
-description: Start a new feature or fix through the full workflow — brainstorm → spec → plan → create issue → execute (TDD) → review → PR → manual merge. Pass the idea as arguments. Maintains a gitignored state file so work can resume. Requires the superpowers plugin (brainstorming, writing-plans, test-driven-development).
+description: Start a new feature or fix through the full workflow — brainstorm → spec → plan → create issue → execute (TDD) → review → PR → manual merge. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans, test-driven-development).
 ---
 
 # New feature or fix — full workflow
 
-Drive this work through all steps, in order. Do not skip steps "because it's simple" — the user wants the full pipeline every time. Works for features **and** fixes. Arguments: $ARGUMENTS
+Drive this work through all steps, in order. Do not skip steps "because it's simple" — the user wants the full pipeline every time. Works for features **and** fixes. Arguments: $ARGUMENTS.
 
 Run each step before the next. Pause at the natural checkpoints (after spec, after plan, after issue draft, before PR). State which step you're on as you begin it.
+
+**Resume:** if $ARGUMENTS is empty, a feat-name, or the word "resume", go to **Resume** below and discover/continue existing work before starting anything fresh.
 
 ## Peer dependency — superpowers
 
@@ -14,13 +16,13 @@ Invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowe
 
 ## The hard gate
 
-Steps 3 and 1 invoke superpowers skills that have their **own** handoff instructions (writing-plans → "Execution Handoff"; brainstorming → hands off to writing-plans). Left unchecked, those handoffs **will** skip or reorder this workflow's steps. The gate prevents that **structurally** — the state file's **Goal status** is the only thing that advances a step.
+Steps 1 and 3 invoke superpowers skills with their **own** handoff instructions (brainstorming → writing-plans; writing-plans → "Execution Handoff"). Left unchecked, those handoffs **will** skip or reorder this workflow. The gate prevents it **structurally**: the state file's **Goal status** is the only thing that advances a step.
 
 **Gate check — run at the start of every step:**
 1. Read `docs/features/.feature-states/<feat-name>.state.md`.
 2. Compare **Goal status** to the status this step requires (table below).
 3. Match → proceed. No match → STOP; tell the user the current status and the step it maps to, and resume from there. Do **not** do the current step's work.
-4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step.
+4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step. **Also update the index file** (see *Index file*): add or update the feat's row with the new status + timestamp, re-sort newest-first. Step 1 adds the row; later steps update it.
 
 Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `pr-review` → `merged`. A step runs only on the immediately preceding status and advances only to the next when done.
 
@@ -36,18 +38,20 @@ Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → 
 | 7 merge | `pr-review` | `merged` |
 
 **Sub-skill handoffs — ignore them; return to the next dev-flow step:**
-- `writing-plans` finishes → **step 4 (create issue)**, not its Execution Handoff. The issue must exist first (the branch is named `feature/<n>-<name>` or `fix/<n>-<name>`).
 - `brainstorming` finishes → **step 2 (spec)**, not its handoff to writing-plans.
+- `writing-plans` finishes → **step 4 (create issue)**, not its Execution Handoff. The issue must exist first (the branch is named `feature/<n>-<name>` or `fix/<n>-<name>`).
 - Gate check fails → STOP and resume from the status the state file names. Don't "helpfully" follow the sub-skill.
 
 The state file is the single source of truth for "what step am I on." On any doubt or ambiguity: run the gate check.
 
-## The state file
+## State files
 
-Kept so any session can resume and so the gate has something to read. Create in step 1; update on every status change.
+Two gitignored files under `docs/features/.feature-states/` (the whole `docs/features/` folder is gitignored — never commit; add to `.gitignore` on first use if missing):
 
-- **Location:** `docs/features/.feature-states/<feat-name>.state.md`. The entire `docs/features/` folder is gitignored — never commit. Add it to `.gitignore` on first use if the repo doesn't already.
-- **`<feat-name>`**: kebab-case, matching spec/plan filenames and the branch name.
+- **Per-feature state file** — `<feat-name>.state.md`. `<feat-name>` is kebab-case, matching spec/plan filenames and the branch name. Created in step 1; updated on every status change. The source of truth.
+- **Index file** — `state.md`. Mirrors all runs so you can see the current/last one at a glance. A convenience, not a second source of truth; if it disagrees with the state files, rebuild it from them.
+
+### Per-feature state file
 
 ```markdown
 # <feat-name> — dev-flow state
@@ -70,19 +74,36 @@ Kept so any session can resume and so the gate has something to read. Create in 
 - PR: <#NN or _(pending)_>
 ```
 
-Rules:
+Field rules:
 - **Created** — set once in step 1, never changes.
 - **Updated** — current timestamp on *every* write.
 - **Goal status** — the gate's input; set to the current step *before* the work.
 - **Kind** — `feature` or `fix`, set in step 1 from intent. Drives the branch prefix and issue framing. Ambiguous → ask; default `feature`.
-- **Last verification** — most recent test + lint result during execute (the repo's commands). The global resume signal — "was it green when I stopped?" `_(not run yet)_` until first run.
-- **Tasks** — mirrors the plan's task list as `- [ ]` / `- [x]`; flip on every status change. Live progress; the plan doc is static design.
-  - Annotate a task `— ⚠ test failing: <reason>` only when its test exists and is currently red. Don't annotate passing/pending tasks — a `[x]` already means its test passed. Clear when green.
+- **Last verification** — most recent test + lint result during execute (the repo's commands). The resume signal: "was it green when I stopped?" `_(not run yet)_` until first run.
+- **Tasks** — mirrors the plan's task list as `- [ ]` / `- [x]`; flip on every status change. Live progress; the plan doc is static design. Annotate a task `— ⚠ test failing: <reason>` only when its test exists and is currently red; clear when green. Don't annotate passing/pending tasks — a `[x]` already means its test passed.
 - **References** — spec (step 2), plan (step 3), issue (step 4), PR (step 6). Review (step 5.5) adds no reference. Replace `_(pending)_` with the real value when it exists.
+
+### Index file
+
+```markdown
+# dev-flow runs
+
+| Feat-name | Kind | Status | Updated | Branch |
+|-----------|------|--------|---------|--------|
+| <feat-name> | feature | execute | YYYY-MM-DD HH:MM | feature/42-x |
+| <feat-name> | fix | merged | YYYY-MM-DD HH:MM | fix/17-y |
+```
+
+One row per feat; newest **Updated** first (re-sort on every write). The top non-`merged` row is the current run; `merged` rows stay as history — don't delete them. Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
 
 ## Resume
 
-If a state file exists for a feat-name, **run the gate check first**: read it, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `pr-review` → open the PR and stop at the manual merge gate (step 7). No state file → start fresh from step 1.
+You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/state.md` and the current/last run is the top non-`merged` row.
+
+- **No feat-name in $ARGUMENTS (or "resume"):** read the index; present the active (non-`merged`) rows numbered; resume the topmost unless the user picks another. Index missing → fall back to scanning `docs/features/.feature-states/*.state.md`, sort by **Updated**, rebuild the index. Zero state files → start fresh from step 1.
+- **Feat-name given in $ARGUMENTS:** use it directly. State file missing for it → tell the user; don't silently start fresh.
+
+Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `pr-review` → open the PR and stop at the manual merge gate (step 7).
 
 ## Preflight — `docs/features/` is gitignored
 
@@ -108,7 +129,7 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 - Before pushing in step 6, confirm `git status --porcelain docs/features/` is empty. If not, stop and fix.
 
 ## Step 1 — Brainstorm
-**Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch). Set **Kind** from intent (ask if ambiguous). Invoke `superpowers:brainstorming` to explore intent, requirements, design. Don't write code. Brainstorming will hand off to `writing-plans` — **don't follow it**; advance to step 2.
+**Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch) and add the index row. Set **Kind** from intent (ask if ambiguous). Invoke `superpowers:brainstorming` to explore intent, requirements, design. Don't write code. Brainstorming will hand off to `writing-plans` — **don't follow it**; advance to step 2.
 
 ## Step 2 — Spec (local only)
 **Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. **If `superpowers:brainstorming` already wrote a design doc under `docs/superpowers/specs/`, move it to `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md`** (brainstorming defaults to `docs/superpowers/specs/`; dev-flow keeps everything under `docs/features/`). If not yet written, write it there directly. Local reference, not published. Add the path to References; show the user. Verify it's gitignored before moving on.
@@ -161,5 +182,5 @@ This is the gate that makes the PR worth a human's review — it does not replac
 ## Notes
 - No `dev` branch → fall back to the default base for steps 4 and 6.
 - Keep the user in the loop at each checkpoint; this is guided, not fire-and-forget.
-- The state file is the source of truth for resuming — keep it honest. A stale state file is worse than none.
+- The state files are the source of truth for resuming — keep them honest. A stale state file is worse than none.
 - The hard gate is the backbone. If you're doing step N's work while the state file is at a different status, stop and fix the state file first.

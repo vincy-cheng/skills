@@ -32,6 +32,7 @@ On every task start and complete, and every test run:
 - Flip the task's checkbox (`[ ]` → `[x]` on complete); bump **Updated**.
 - Refresh **Last verification** with the latest test + lint result. A green run clears any `⚠ test failing` annotation on that task.
 - If a task's test is currently red, annotate its line `— ⚠ test failing: <one-line reason>`; clear when green. Leave passing/pending un-annotated.
+- **Bump the index file row** — update the feat's row in `docs/features/.feature-states/state.md` with the new **Updated** timestamp and re-sort newest-first. Status stays `execute`; just keep the row's timestamp honest so the index's "current/last run" stays accurate during a long execute.
 
 Never stage or commit `docs/features/` (state, spec, plan, briefs). Stage the task's source files explicitly.
 

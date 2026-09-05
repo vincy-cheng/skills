@@ -16,7 +16,7 @@ These skill files are Markdown consumed by AI coding agents (Claude Code, Copilo
 `dev-flow` drives a feature **or fix** end-to-end:
 brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge.
 
-- `commands/new-feature.md` — the `/new-feature` command and the pipeline of record. It defines the step sequence, the state-file format, the commit guard, and the **hard gate** that prevents invoked sub-skills from skipping or reordering dev-flow steps.
+- `commands/new-feature.md` — the `/new-feature` command and the pipeline of record. It defines the step sequence, the state-file format, the commit guard, and the **hard gate** that prevents invoked sub-skills from skipping or reordering dev-flow steps. Maintains an **index file** (`docs/features/.feature-states/state.md`) mirroring all runs — current/last at a glance. Called with no args (or "resume"), it reads the index and resumes the newest active run — so you don't have to remember the feat-name to continue.
 - `skills/create-github-issue/SKILL.md` — step 4. Drafts a GitHub issue from a spec/plan, shows the draft for user confirmation, then publishes via `gh issue create`. Branch naming: `feature/<issue-number>-<name>` or `fix/<issue-number>-<name>` off `dev` (falls back to default branch if no `dev`).
 - `skills/execute-tasks/SKILL.md` — step 5. Own TDD loop; progress in the state file; commits per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). All artifacts under `docs/features/` — no `.superpowers/` workspace.
 - `skills/review/SKILL.md` — step 5.5. Pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
