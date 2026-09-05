@@ -14,13 +14,14 @@ These skill files are Markdown consumed by AI coding agents (Claude Code, Copilo
 ## Current plugin: `dev-flow`
 
 `dev-flow` drives a feature **or fix** end-to-end:
-brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge.
+brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge → distill (update docs if needed).
 
 - `commands/new-feature.md` — the `/new-feature` command and the pipeline of record. It defines the step sequence, the state-file format, the commit guard, and the **hard gate** that prevents invoked sub-skills from skipping or reordering dev-flow steps. Maintains an **index file** (`docs/features/.feature-states/state.md`) mirroring all runs — current/last at a glance. Called with no args (or "resume"), it reads the index and resumes the newest active run — so you don't have to remember the feat-name to continue.
 - `skills/create-github-issue/SKILL.md` — step 4. Drafts a GitHub issue from a spec/plan, shows the draft for user confirmation, then publishes via `gh issue create`. Branch naming: `feature/<issue-number>-<name>` or `fix/<issue-number>-<name>` off `dev` (falls back to default branch if no `dev`).
 - `skills/execute-tasks/SKILL.md` — step 5. Own TDD loop; progress in the state file; commits per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). All artifacts under `docs/features/` — no `.superpowers/` workspace.
 - `skills/review/SKILL.md` — step 5.5. Pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
 - `skills/commit/SKILL.md` — Conventional Commits messages from the diff with **no AI attribution** in the message or trailers. Runs standalone ("commit this") or per-task during step 5.
+- **Step 8 distill** — after merge, review the completed work and update docs (this plugin's, the target repo's, or persisted memory) if it revealed a gap, pattern, or correction worth keeping. Guided: proposed edits shown to the user before applying; `docs:` commit separate from code. No edits needed → mark the run done.
 
 ### Peer dependency: `superpowers`
 
@@ -38,7 +39,7 @@ Preserve:
 - The exact YAML frontmatter (`---` fences) at the top of each file — the `description` field drives skill triggering and must stay accurate.
 - The hard gate in `commands/new-feature.md` — the step→incoming-status→sets-status mapping and the gate check that runs on every step entry. This is the workflow's backbone.
 - The Mermaid flow-chart requirement in `commands/new-feature.md` (step 3 mandates a `## Flow Chart` block in every generated plan).
-- The state-file template and lifecycle (`brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `pr-review` → `merged`).
+- The state-file template and lifecycle (`brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `pr-review` → `merged` → `distill`).
 
 When changing one step's behavior, update both `commands/new-feature.md` (the step description and gate) and the relevant sub-skill (`skills/.../SKILL.md`) so the two stay consistent.
 

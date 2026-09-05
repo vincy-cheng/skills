@@ -1,10 +1,12 @@
 ---
-description: Start a new feature or fix through the full workflow — brainstorm → spec → plan → create issue → execute (TDD) → review → PR → manual merge. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans, test-driven-development).
+description: Start a new feature or fix through the full workflow — brainstorm → spec → plan → create issue → execute (TDD) → review → PR → manual merge → distill (update docs if needed). Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans, test-driven-development).
 ---
 
 # New feature or fix — full workflow
 
 Drive this work through all steps, in order. Do not skip steps "because it's simple" — the user wants the full pipeline every time. Works for features **and** fixes. Arguments: $ARGUMENTS.
+
+Steps: 1 brainstorm → 2 spec → 3 plan → 4 create issue → 5 execute (TDD) → 5.5 review → 6 PR → 7 merge (manual) → 8 distill (update docs if needed).
 
 Run each step before the next. Pause at the natural checkpoints (after spec, after plan, after issue draft, before PR). State which step you're on as you begin it.
 
@@ -24,7 +26,7 @@ Steps 1 and 3 invoke superpowers skills with their **own** handoff instructions 
 3. Match → proceed. No match → STOP; tell the user the current status and the step it maps to, and resume from there. Do **not** do the current step's work.
 4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step. **Also update the index file** (see *Index file*): add or update the feat's row with the new status + timestamp, re-sort newest-first. Step 1 adds the row; later steps update it.
 
-Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `pr-review` → `merged`. A step runs only on the immediately preceding status and advances only to the next when done.
+Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `pr-review` → `merged` → `distill`. A step runs only on the immediately preceding status and advances only to the next when done. `merged` means "shipped, distill pending"; `distill` means fully closed.
 
 | Step | Requires incoming | Sets |
 |------|------------------|------|
@@ -36,6 +38,7 @@ Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → 
 | 5.5 review | `execute` | `review` |
 | 6 PR | `review` | `pr-review` |
 | 7 merge | `pr-review` | `merged` |
+| 8 distill | `merged` | `distill` |
 
 **Sub-skill handoffs — ignore them; return to the next dev-flow step:**
 - `brainstorming` finishes → **step 2 (spec)**, not its handoff to writing-plans.
@@ -94,16 +97,18 @@ Field rules:
 | <feat-name> | fix | merged | YYYY-MM-DD HH:MM | fix/17-y |
 ```
 
-One row per feat; newest **Updated** first (re-sort on every write). The top non-`merged` row is the current run; `merged` rows stay as history — don't delete them. Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
+One row per feat; newest **Updated** first (re-sort on every write). The top non-`distill` row is the current run; `distill` rows stay as history — don't delete them. Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
 
 ## Resume
 
-You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/state.md` and the current/last run is the top non-`merged` row.
+You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/state.md` and the current/last run is the top non-`distill` row.
 
-- **No feat-name in $ARGUMENTS (or "resume"):** read the index; present the active (non-`merged`) rows numbered; resume the topmost unless the user picks another. Index missing → fall back to scanning `docs/features/.feature-states/*.state.md`, sort by **Updated**, rebuild the index. Zero state files → start fresh from step 1.
+- **No feat-name in $ARGUMENTS (or "resume"):** read the index; present the active rows numbered; resume the topmost unless the user picks another. Index missing → fall back to scanning `docs/features/.feature-states/*.state.md`, sort by **Updated**, rebuild the index. Zero state files → start fresh from step 1.
 - **Feat-name given in $ARGUMENTS:** use it directly. State file missing for it → tell the user; don't silently start fresh.
 
-Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `pr-review` → open the PR and stop at the manual merge gate (step 7).
+Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `pr-review` → open the PR and stop at the manual merge gate (step 7). `merged` → run step 8 (distill).
+
+Only `distill` is "finished" — `merged` still has distill pending. Treat `distill` rows as history; resume any non-`distill` row.
 
 ## Preflight — `docs/features/` is gitignored
 
@@ -177,7 +182,23 @@ This is the gate that makes the PR worth a human's review — it does not replac
 **Gate:** `review` → set `pr-review`. Branch flow `main` → `dev` → `feature/<n>-<name>` (or `fix/...`); PR targets `dev`, never `main`. Push and open with `gh pr create`, body summarizing the issue link, spec, and plan. Record the PR number in References; surface the URL. Step 7 is manual — do not merge here.
 
 ## Step 7 — Merge (manual)
-**Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the final state.
+**Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 8.
+
+## Step 8 — Distill (update docs if needed)
+**Gate:** `merged` → set `distill`. The work is shipped; now close the loop. Review what the completed feature/fix revealed, and update docs if it surfaced a gap, a pattern, or a correction worth keeping. If the docs are already accurate, do nothing and mark the run done.
+
+Look at, in order of likelihood of needing an update:
+1. **This plugin's docs** — `AGENTS.md`, `README.md`, and any `dev-flow/skills/*/SKILL.md` touched by the work. Did the workflow itself need a tweak? Did a step's wording prove wrong in practice? Did a new convention emerge (e.g. the state index this run relied on)?
+2. **The target repo's docs** — `AGENTS.md`/`README`/arch docs in the repo the feature landed in. Did the change add a new module, command, or convention the docs should mention?
+3. **Persisted agent memory** (if the harness keeps it) — only durable, cross-session facts (a user preference confirmed this run, a project constraint discovered). Skip ephemeral task state — that's the state file's job.
+
+Rules:
+- **Show the user the proposed doc edits before applying** — distill is guided, not fire-and-forget. They decide what's worth keeping.
+- **Commit doc updates separately** (`docs:` type) from any code the feature shipped — keep history clean.
+- **Never commit `docs/features/`** (spec, plan, state, index) — still gitignored.
+- **If nothing needs updating**, say so plainly and mark the run `distill` (done). Don't invent edits to justify the step.
+
+When done, the run is `distill` — fully closed. The state file and index row stay as history.
 
 ## Notes
 - No `dev` branch → fall back to the default base for steps 4 and 6.

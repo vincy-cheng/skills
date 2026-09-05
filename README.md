@@ -6,7 +6,7 @@ AI coding-agent plugins published from this repo. Each top-level directory is on
 
 ### `dev-flow`
 
-Drives a feature **or fix** end-to-end: brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge. Keeps gitignored state files so work resumes across sessions, and uses a **hard gate** so invoked sub-skills can't skip or reorder steps. An **index file** (`docs/features/.feature-states/state.md`) mirrors all runs — open it to see the current/last task at a glance.
+Drives a feature **or fix** end-to-end: brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge → distill (update docs if needed). Keeps gitignored state files so work resumes across sessions, and uses a **hard gate** so invoked sub-skills can't skip or reorder steps. An **index file** (`docs/features/.feature-states/state.md`) mirrors all runs — open it to see the current/last task at a glance.
 
 Provides:
 - `/new-feature` command — the pipeline of record.
