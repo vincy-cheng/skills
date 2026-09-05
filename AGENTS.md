@@ -21,7 +21,7 @@ brainstorm → spec → plan → create GitHub issue → execute (TDD) → revie
 - `skills/execute-tasks/SKILL.md` — step 5. Own TDD loop; progress in the state file; commits per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). All artifacts under `docs/features/` — no `.superpowers/` workspace.
 - `skills/review/SKILL.md` — step 5.5. Pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
 - `skills/commit/SKILL.md` — Conventional Commits messages from the diff with **no AI attribution** in the message or trailers. Runs standalone ("commit this") or per-task during step 5.
-- `skills/agent-docs/SKILL.md` — generates/maintains the **target repo's** agent-facing docs as a layered progressive-disclosure tree under `docs/agents/`: a tiny always-load index, per-concern maps (architecture, testing, API, dev-ops, deployment), optional deep-detail files. Runs standalone in any repo; not part of the step sequence.
+- `skills/agent-docs/SKILL.md` — generates/maintains the **target repo's** agent-facing docs as a layered progressive-disclosure tree under `docs/agents/`: a tiny always-load index, core maps (architecture, dev-ops), plus dynamic concern maps discovered from the project (testing, API, deployment, database, auth, …), optional deep-detail files. Runs standalone in any repo; not part of the step sequence.
 - **Step 8 distill** — after merge, review the completed work and update docs (this plugin's, the target repo's, or persisted memory) if it revealed a gap, pattern, or correction worth keeping. Guided: proposed edits shown to the user before applying; `docs:` commit separate from code. No edits needed → mark the run done.
 
 ### Peer dependency: `superpowers`

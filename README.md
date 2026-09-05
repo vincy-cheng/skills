@@ -14,7 +14,7 @@ Provides:
 - `execute-tasks` skill — step 5: own TDD loop, progress in the state file, commit per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). No `.superpowers/` workspace — all under `docs/features/`.
 - `review` skill — step 5.5: pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
 - `commit` skill — Conventional Commits messages from the diff, with **no AI attribution** in the message or trailers. Runs standalone or per-task during step 5.
-- `agent-docs` skill — generates/updates the target repo's agent-facing docs as a layered tree under `docs/agents/`: a tiny always-load index, per-concern maps (architecture, testing, API, dev-ops, deployment), optional deep-detail files. Progressive disclosure for AI agents; standalone, runs on demand.
+- `agent-docs` skill — generates/updates the target repo's agent-facing docs as a layered tree under `docs/agents/`: a tiny always-load index, core maps (architecture, dev-ops), plus dynamic concern maps discovered from the project (testing, API, deployment, database, auth, …), optional deep-detail files. Progressive disclosure for AI agents; standalone, runs on demand.
 
 #### Requires: the `superpowers` plugin
 
