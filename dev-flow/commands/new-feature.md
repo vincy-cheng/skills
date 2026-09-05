@@ -30,7 +30,7 @@ Steps 1 and 3 invoke superpowers skills with their **own** handoff instructions 
 1. Read `docs/features/.feature-states/<feat-name>.state.md`.
 2. Compare **Goal status** to the status this step requires (table below).
 3. Match → proceed. No match → STOP; tell the user the current status and the step it maps to, and resume from there. Do **not** do the current step's work.
-4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step. **Also update the index file** (see *Index file*): add or update the feat's row with the new status + timestamp, re-sort newest-first. Step 1 adds the row; later steps update it.
+4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step. **A status change is two writes, done together in one breath: the state file's Goal status and the index row** (see *Index file*) — add or update the feat's row with the new status + timestamp, re-sort newest-first. One without the other is an incomplete step. Step 1 adds the row; later steps update it.
 
 Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `pr-review` → `merged` → `distill`. A step runs only on the immediately preceding status and advances only to the next when done. `merged` means "shipped, distill pending"; `distill` means fully closed.
 
