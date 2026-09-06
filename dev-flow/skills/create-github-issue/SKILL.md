@@ -36,7 +36,7 @@ The specific changes / surface area. Be concrete: components, files, modules, en
 The observable end state once done — what the user sees or the system does. For a bug, the *correct* behavior contrasting the broken one. Behavioral, not implementation.
 
 ## References
-Prior context: related issues (`#NN`), relevant commits, external links. **Do NOT link `docs/features/specs/` or `docs/features/plans/`** — that folder is gitignored and exists only on the author's machine; a GitHub reader finds nothing. The spec's substance belongs in the body, not behind a dead local path. If none yet, write `_(none yet — add links as they're created)_`.
+Prior context: related issues (`#NN`), relevant commits, external links. **Do NOT link `docs/features/specs/` or `docs/features/plans/`** — that folder is gitignored and exists only on the author's machine; a GitHub reader finds nothing. The spec's substance belongs in the body, not behind a dead local path. If none yet, write `_(none yet — add links as they're created)_`. **Exception — idea folders link fine:** if the state file's References record an idea folder (`ideas/[<project>/]<slug>/`, committed and visible on GitHub in the same repo), link it — it's the durable research/cost record behind the issue.
 ```
 
 ### Suggested sections (use when they add signal)

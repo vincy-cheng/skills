@@ -10,8 +10,8 @@
     {
       "name": "dev-flow",
       "source": "./dev-flow",
-      "description": "End-to-end feature/fix workflow: brainstorm → spec → plan → issue → execute (TDD) → review → PR → merge → distill. Depends on superpowers.",
-      "version": "2.2.0",
+      "description": "End-to-end feature/fix workflow: brainstorm → spec → plan → issue → execute (TDD) → review → PR → merge → distill. Also ships /new-idea for structured brainstorm folders. Depends on superpowers.",
+      "version": "2.3.0",
       "author": {
         "name": "Vincy-Cheng"
       },
