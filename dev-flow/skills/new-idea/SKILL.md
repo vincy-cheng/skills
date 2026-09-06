@@ -49,12 +49,29 @@ The five non-cost files are **required slots**; `cost.md` is optional-by-user-ch
 1. **Two questions before anything else.** Before deriving a slug, before any research, ask the user (one AskUserQuestion, two questions, when not already stated):
    - **Where should this idea live?** Propose **project (default)** — Case B: `ideas/<slug>/`, the idea lives in the project's own repo, no project layer. Alternative — **brainstorm only** — Case A: `ideas/<project>/<slug>/`, one ideas repo holds ideas for many projects; project name comes from the user, ask if unclear. The user still confirms; never silently pick one.
    - **Include cost research (`cost.md`)?** Propose **include** (default) — it's what makes the folder buildable and may involve live pricing verification (WebFetch/WebSearch → `curl -sL` → ask user). The user can decline — a purely local/offline idea, or one where pricing simply doesn't matter yet, gets a five-file folder. Never include or skip it silently.
-2. **Slug:** lowercase kebab-case English (`expense-tracker`, `db-schema-diff-cli`). No spaces, no underscores, no date prefixes, no Chinese in the folder name.
-3. **Files:** the five required slots, plus `cost.md` when the user opted in — every one present, no more. Reuse content the user already provided rather than inventing facts.
-4. **Self-contained:** each file stands alone for a reader with no prior context. `tl-dr.md` in particular must be shareable on its own.
-5. **Language:** match the repo's default output language (follow the repo's CLAUDE.md / AGENTS.md instruction). Don't force English.
-6. **Scratch files are not a source of truth** (e.g. an `options.md`) — ignore scratch material unless the user explicitly points at it.
-7. **Extra reference files** (e.g. an `api-links.md` appendix of registration/pricing links) may be added **only** when the user asks for them or the idea clearly needs a link cheat-sheet. They are appendices — they supplement the required slots, never replace one.
+2. **Grill before writing.** Don't turn the first prompt straight into files — discuss the idea with the user first (see the next section). One focused round, a synthesis, an explicit go-ahead — only then create the folder. If the user arrived with a fully-formed brief or says "just write it", skip the grill — never force it on someone who's already decided.
+3. **Slug:** lowercase kebab-case English (`expense-tracker`, `db-schema-diff-cli`). No spaces, no underscores, no date prefixes, no Chinese in the folder name.
+4. **Files:** the five required slots, plus `cost.md` when the user opted in — every one present, no more. Reuse content the user already provided rather than inventing facts.
+5. **Self-contained:** each file stands alone for a reader with no prior context. `tl-dr.md` in particular must be shareable on its own.
+6. **Language:** match the repo's default output language (follow the repo's CLAUDE.md / AGENTS.md instruction). Don't force English.
+7. **Scratch files are not a source of truth** (e.g. an `options.md`) — ignore scratch material unless the user explicitly points at it.
+8. **Extra reference files** (e.g. an `api-links.md` appendix of registration/pricing links) may be added **only** when the user asks for them or the idea clearly needs a link cheat-sheet. They are appendices — they supplement the required slots, never replace one.
+
+## Grill the idea before writing anything
+
+The user's first prompt is a raw idea, not a brief. Turn it into one through discussion **before** creating files — the docs should record the *settled* idea, not open questions you could have resolved in one conversation:
+
+1. **Restate the idea** in one or two sentences — goal, user, rough shape. If you can't state it crisply, that's the first question to ask.
+2. **Grill — one focused round.** Challenge the idea where it's weak, in the user's terms:
+   - **Who is this for, and what breaks their current workaround?** (the problem behind the idea)
+   - **What's the smallest version that proves it?** (scope discipline — kills feature-creep early)
+   - **What's the hard part?** (the risky/unknown bit — technical or otherwise)
+   - **Why now / why you?** (when it's a product rather than a tool)
+   - Ask only the questions whose answers change the docs — 3–6 targeted beats 20 generic. Use AskUserQuestion for the choice-shaped ones (approach A vs B, MVP scope, target user).
+3. **Synthesize.** Present what you now believe — the sharpened pitch, the scope that survived the grilling, settled choices, and the open questions that remain. Short and concrete.
+4. **Get an explicit go-ahead.** "Write the folder now?" — the user confirms (or redirects) before any file is created. Their corrections from this exchange are the most valuable input the docs will get.
+
+Keep it to one round by default: grill → synthesize → write. If the user wants to iterate more, they'll keep talking — follow their lead. If the synthesis reveals the idea is fundamentally shaky, say so honestly; a folder for a bad idea is not the goal.
 
 ### Depth by nesting case
 
@@ -200,6 +217,7 @@ When the folder is complete, tell the user:
 ## Common mistakes
 
 - **Folder in project root** instead of `ideas/`. Always nest.
+- **Writing straight from the first prompt.** The user gave you a raw idea — grill it (one round), synthesize, get an explicit go-ahead before creating files. The docs record the settled idea, not the first draft of it. Equally wrong: forcing the grill on a user who arrived decided or said "just write it".
 - **Silently picking a nesting level or cost inclusion.** Ask both questions up front (Rules §1) — they're the user's call, not an inference. Creating `cost.md` after a decline is as wrong as omitting it after an opt-in.
 - **Inventing file names** (`features.md`, `tech-notes.md`). Use the fixed files — map your content into them.
 - **Dropping `tl-dr.md`** because "the idea isn't fleshed out yet." Write a short summary anyway; it's a required slot.

@@ -66,7 +66,7 @@ ideas/<slug>/ — README · research · (cost) · design · plan · tl-dr
 
 Five self-contained docs by default, no ad-hoc file names; a sixth, `cost.md`, when you opt in — the skill asks up front whether to include cost research (live pricing verification). `cost.md` captures pricing/quotas/limits, and `plan.md` is a milestone-draft plan you can hand straight to `/new-feature` when you're ready to build.
 
-Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by project (ideas repo: `ideas/<project>/<slug>/`) or sits flat (project repo: `ideas/<slug>/`). It pairs with the pipeline: brainstorm with `/new-idea`, then build with `/new-feature ideas/<slug>` — step 1 ingests the folder's docs as its brief, and the GitHub issue links back to the folder.
+Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by project (ideas repo: `ideas/<project>/<slug>/`) or sits flat (project repo: `ideas/<slug>/`), and whether to include a `cost.md`. Before writing anything it **discusses the idea with you** — one grill round (who's it for, smallest version, hard part), a synthesis, and an explicit go-ahead — so the docs record the settled idea, not your first prompt. It pairs with the pipeline: brainstorm with `/new-idea`, then build with `/new-feature ideas/<slug>` — step 1 ingests the folder's docs as its brief, and the GitHub issue links back to the folder.
 
 ## Acknowledgements
 
