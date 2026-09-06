@@ -14,7 +14,17 @@ Run each step before the next. Pause at the natural checkpoints (after spec, aft
 
 ## Peer dependency — superpowers
 
-Invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development` as sub-steps; runs its own `dev-flow:execute-tasks`, `dev-flow:review`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the three `superpowers:*` skills. If a `superpowers:*` skill is missing, stop and tell the user to install it.
+Invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development` as sub-steps; runs its own `dev-flow:execute-tasks`, `dev-flow:review`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the three `superpowers:*` skills.
+
+**Missing-superpowers check — run at the start of every step that invokes a `superpowers:*` skill (steps 1, 3, 5):** if the skill is unavailable, **stop before doing any other work** and tell the user, in plain language:
+
+> dev-flow needs the `superpowers` plugin for this step, but it isn't installed. Install it and retry:
+> - `/plugin install superpowers` (from the official marketplace), or
+> - `claude plugin install https://github.com/obra/superpowers.git`
+>
+> Then run `/new-feature` again — your state file is intact and you'll resume right here.
+
+Don't dump the rest of the step or attempt a fallback. The run pauses cleanly; once superpowers is present, resume picks up from the state file's **Goal status**.
 
 **Superpowers defaults lose to dev-flow.** Superpowers' SessionStart injection urges invoking its skills before any response, and its skills carry their own defaults (`docs/superpowers/` save paths, design-doc commits, "Execution Handoff"). Inside this workflow those defaults **do not apply**:
 

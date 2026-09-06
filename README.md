@@ -4,18 +4,23 @@ AI coding-agent plugins published from this repo. Each top-level directory is on
 
 ## Install
 
+`dev-flow` depends on the `superpowers` plugin (it calls `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`). Install superpowers first, then dev-flow:
+
 ```
 /plugin install superpowers
 /plugin install vincy-cheng/skills
 ```
 
-Or from a git URL (works for private repos — your git/SSH auth provides access):
+Or from a git URL:
 
 ```
+claude plugin install https://github.com/obra/superpowers.git
 claude plugin install https://github.com/vincy-cheng/skills.git
 ```
 
 Then run `/new-feature <your idea>` in any repo with the `gh` CLI. Run `/new-feature` with no args to **resume** — it finds your last run for you.
+
+> If you see a "missing peer dependency: superpowers" prompt, run `/plugin install superpowers` and retry — dev-flow can't run its brainstorm/plan/TDD steps without it.
 
 ## Plugin: `dev-flow`
 
@@ -48,9 +53,9 @@ Three guarantees:
 
 **One thing to know:** superpowers injects a session-start instruction urging skill use before any response. Inside a dev-flow run, ignore it — dev-flow calls the superpowers skills it needs as sub-steps, and superpowers' defaults (`docs/superpowers/` paths, design-doc commits, "Execution Handoff") **don't apply**. Everything lives under `docs/features/` (gitignored, never committed).
 
-## Private vs public
+## Acknowledgements
 
-This repo can be **private** — an installing account only needs git read access (collaborator invite, SSH key, or PAT). Make it public only if you want open installs.
+`dev-flow` builds on [obra/superpowers](https://github.com/obra/superpowers) (available in Claude Code's official plugin marketplace). Dev-flow reuses three of its skills — `brainstorming`, `writing-plans`, and `test-driven-development` — as sub-steps inside its own pipeline, and adds its own `execute-tasks`, `review`, `create-github-issue`, and `commit` skills so all artifacts stay under `docs/features/` with no `.superpowers/` workspace. Many thanks to the creator and maintainers of superpowers — dev-flow leans on their work for brainstorming, planning, and TDD.
 
 ## Repo layout
 
