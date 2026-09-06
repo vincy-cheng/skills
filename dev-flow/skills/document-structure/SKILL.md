@@ -76,6 +76,7 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 ## Phase 3 — Verify
 
 - Spot-check every claim against code: do the named files, commands, and symbols exist?
+- Verify every pointer both ways: each `index.md` row names a file that exists, and each agent-instruction file's `docs/agents/index.md` pointer has a live target. Fix in the same pass — a dangling pointer is worse than no pointer.
 - Run the listed commands where safe (`--help` counts; full runs only if quick and side-effect-free).
 - Fix or mark drift in the same pass — don't leave a "TODO verify" behind.
 - End with a run summary: layers written, drift found/fixed, L2 files created.
@@ -90,12 +91,14 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 ## Edge cases
 
 - **Monorepo:** `index.md` lists sub-areas; per-area L1 maps only if the repo is genuinely large.
-- **Existing docs:** never overwrite human docs (README, anything under `docs/` outside `docs/agents/`). If the repo has a CLAUDE.md/AGENTS.md, add a one-line pointer to `docs/agents/index.md` — nothing more.
+- **Existing docs:** never overwrite human docs (README, anything under `docs/` outside `docs/agents/`). For each agent-instruction file the repo already has, add a one-line pointer to `docs/agents/index.md` — nothing more. Agent-instruction files include: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `QWEN.md`, `COPILOT.md` / `.github/copilot-instructions.md`, `.cursorrules` / `.cursor/rules/`, `.windsurfrules`. Only add the pointer to files that exist — never create one; never modify any other content in them.
+- **Pointer ordering — never point at nothing.** Write the `docs/agents/` tree first, pointers last: only add pointer lines to agent-instruction files after `docs/agents/index.md` exists on disk. If a generate run fails midway, the pointer step is skipped — no dangling pointers.
+- **Dangling pointers (update mode — and generate mode too):** check the reverse direction too — every agent-instruction file that contains a `docs/agents/index.md` pointer must have a live target. If `docs/agents/index.md` is missing but pointers exist, either regenerate the tree or remove the pointers — ask the user which; never leave a pointer pointing at nothing. Conversely, if the tree exists but a concern map referenced by `index.md` is missing, that's drift: rebuild the row or restore the file in this pass. In generate mode this case self-heals — but before writing, note any existing pointers: the rebuilt tree must land at the path they name.
 
 ## What not to do
 
 - **Don't write for humans** — no narrative, no "welcome to", no marketing prose.
 - **Don't blow budgets** — if the index exceeds ~500 tokens, the mid maps are leaking upward; split detail down into L1/L2.
 - **Don't fabricate** to fill a template.
-- **Don't touch anything outside `docs/agents/`** except the one-line CLAUDE.md pointer.
+- **Don't touch anything outside `docs/agents/`** except the one-line pointer per existing agent-instruction file (see *Edge cases*).
 - **Don't create L2 files by default.**
