@@ -1,6 +1,11 @@
 ---
 name: execute-tasks
-description: Use to execute a dev-flow plan task by task. This is step 5 of the dev-flow workflow — work the plan's tasks with TDD (failing test → implement → green → commit per task), updating the state file as you go. Two modes: inline (default, runs in this session) or subagent (dispatches a fresh implementer subagent per task, for isolation on larger work). Can be invoked standalone if a plan and state file already exist.
+description: >-
+  Use to execute a dev-flow plan task by task. This is step 5 of the dev-flow workflow — work the
+  plan's tasks with TDD (failing test → implement → green → commit per task), updating the state file
+  as you go. Two modes: inline (default, runs in this session) or subagent (dispatches a fresh
+  implementer subagent per task, for isolation on larger work). Can be invoked standalone if a plan
+  and state file already exist.
 ---
 
 # Execute tasks

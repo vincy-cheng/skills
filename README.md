@@ -7,14 +7,14 @@ AI coding-agent plugins published from this repo. Each top-level directory is on
 `dev-flow` depends on the `superpowers` plugin (it calls `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`). Install superpowers first, then dev-flow:
 
 ```
+/plugin marketplace add vincy-cheng/skills
 /plugin install superpowers
-/plugin install vincy-cheng/skills
+/plugin install dev-flow@vincy-skills
 ```
 
-Or from a git URL:
+Alternatively, install dev-flow directly from the git URL:
 
 ```
-claude plugin install https://github.com/obra/superpowers.git
 claude plugin install https://github.com/vincy-cheng/skills.git
 ```
 

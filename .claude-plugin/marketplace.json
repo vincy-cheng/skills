@@ -1,0 +1,31 @@
+{
+  "name": "vincy-skills",
+  "owner": {
+    "name": "Vincy-Cheng",
+    "url": "https://github.com/vincy-cheng"
+  },
+  "description": "Claude Code plugins by Vincy Cheng",
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "dev-flow",
+      "source": "./dev-flow",
+      "description": "End-to-end feature/fix workflow: brainstorm → spec → plan → issue → execute (TDD) → review → PR → merge → distill. Depends on superpowers.",
+      "version": "2.2.0",
+      "author": {
+        "name": "Vincy-Cheng"
+      },
+      "homepage": "https://github.com/vincy-cheng/skills",
+      "repository": "https://github.com/vincy-cheng/skills",
+      "keywords": [
+        "workflow",
+        "github-issues",
+        "feature",
+        "fix",
+        "git",
+        "pr",
+        "tdd"
+      ]
+    }
+  ]
+}

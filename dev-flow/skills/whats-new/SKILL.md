@@ -1,6 +1,10 @@
 ---
 name: whats-new
-description: Use to summarize what's new in a repo — recent shipped work AND current codebase state vs. its docs. Triggers on "what's new", "what changed recently", "summarize recent work", "catch me up on this repo". Returns a view (nothing written): history from git log + gh PRs/issues, plus a doc-drift check (do the docs match the code). Not a changelog file — an on-demand summary.
+description: >-
+  Use to summarize what's new in a repo — recent shipped work AND current codebase state vs. its docs.
+  Triggers on "what's new", "what changed recently", "summarize recent work", "catch me up on this
+  repo". Returns a view (nothing written): history from git log + gh PRs/issues, plus a doc-drift
+  check (do the docs match the code). Not a changelog file — an on-demand summary.
 ---
 
 # What's new
