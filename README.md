@@ -2,47 +2,55 @@
 
 AI coding-agent plugins published from this repo. Each top-level directory is one Claude Code plugin.
 
-## Plugins
-
-### `dev-flow`
-
-Drives a feature **or fix** end-to-end: brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → PR → manual merge → distill (update docs if needed). Keeps gitignored state files so work resumes across sessions, and uses a **hard gate** so invoked sub-skills can't skip or reorder steps. An **index file** (`docs/features/.feature-states/state.md`) mirrors all runs — open it to see the current/last task at a glance.
-
-Provides:
-- `/new-feature` command — the pipeline of record.
-- `create-github-issue` skill — step 4 (draft → confirm → `gh issue create`).
-- `execute-tasks` skill — step 5: own TDD loop, progress in the state file, commit per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). No `.superpowers/` workspace — all under `docs/features/`.
-- `review` skill — step 5.5: pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
-- `commit` skill — Conventional Commits messages from the diff, with **no AI attribution** in the message or trailers. Runs standalone or per-task during step 5.
-- `document-structure` skill — generates/updates the target repo's agent-facing docs as a layered tree under `docs/agents/`: a tiny always-load index, core maps (architecture, dev-ops), plus dynamic concern maps discovered from the project (testing, API, deployment, database, auth, …), optional deep-detail files. Progressive disclosure for AI agents; standalone, runs on demand. Update mode scopes by what changed since the maps' footers.
-- `whats-new` skill — asks "what's new in this repo?" and gets a summary: shipped work from git + PRs/issues, plus doc-vs-code drift findings. A view, not a record — never writes a changelog file.
-
-#### Requires: the `superpowers` plugin
-
-`dev-flow` invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`. Install superpowers first.
-
-**Note on superpowers' SessionStart injection:** superpowers injects a session-start instruction urging you to invoke its skills before any response. Inside a dev-flow run, ignore that — dev-flow invokes the superpowers skills it needs as sub-steps, and superpowers' own defaults (saving under `docs/superpowers/`, committing design docs, "Execution Handoff") **do not apply**: everything lives under `docs/features/` (gitignored, never committed), and `/new-feature`'s hard gate governs step order. For extra protection outside dev-flow, you can add a rule to your global `CLAUDE.md` that superpowers runs only on explicit request.
-
 ## Install
-
-Install superpowers, then dev-flow:
 
 ```
 /plugin install superpowers
 /plugin install vincy-cheng/skills
 ```
 
-Or, from a git URL (works for private repos too — your git/SSH auth provides access):
+Or from a git URL (works for private repos — your git/SSH auth provides access):
 
 ```
 claude plugin install https://github.com/vincy-cheng/skills.git
 ```
 
-After installing, run `/new-feature <your idea>` in any repo that uses the `gh` CLI. Run `/new-feature` with no args (or `/new-feature resume`) to **resume** — it reads the index file, lists your runs by last-updated, and continues the newest active one, so you don't have to remember the task name.
+Then run `/new-feature <your idea>` in any repo with the `gh` CLI. Run `/new-feature` with no args to **resume** — it finds your last run for you.
 
-### Private vs public
+## Plugin: `dev-flow`
 
-This repo can be **private** — an installing account only needs git read access (GitHub collaborator invite, SSH key, or a PAT). No need to make it public to share with specific accounts. Make it public if you want anyone to install it without granting access.
+Drives a feature **or fix** end-to-end:
+
+```
+brainstorm → spec → plan → issue → execute (TDD) → review → PR → merge → distill
+```
+
+Three guarantees:
+- **Hard gate** — sub-skills can't skip or reorder steps.
+- **Resumable** — gitignored state files + an index file (`docs/features/.feature-states/state.md`) track every run.
+- **Local artifacts** — specs/plans/state live under `docs/features/`, never committed.
+
+### What it provides
+
+| Piece | What it does | When |
+|-------|--------------|------|
+| `/new-feature` command | The pipeline of record — runs all 9 steps in order | Start or resume any feature/fix |
+| `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
+| `execute-tasks` skill | Step 5 — TDD loop, commit per task. Inline or subagent mode | Inside the flow |
+| `review` skill | Step 5.5 — pre-PR gate: tests green, spec covered, obvious issues | Inside the flow, or standalone |
+| `commit` skill | Conventional Commits from the diff, **no AI attribution** | Standalone, or per-task in step 5 |
+| `document-structure` skill | Builds/updates the target repo's agent docs under `docs/agents/` — tiny index + architecture/dev-ops maps + dynamic concern maps (testing, API, deployment, database, …) | Any repo, on demand |
+| `whats-new` skill | Summarizes what's new in a repo: shipped work (git + PRs/issues) + doc-vs-code drift. Never writes a changelog file | Any repo, on demand |
+
+### Requires: the `superpowers` plugin
+
+`dev-flow` invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`. Install superpowers first.
+
+**One thing to know:** superpowers injects a session-start instruction urging skill use before any response. Inside a dev-flow run, ignore it — dev-flow calls the superpowers skills it needs as sub-steps, and superpowers' defaults (`docs/superpowers/` paths, design-doc commits, "Execution Handoff") **don't apply**. Everything lives under `docs/features/` (gitignored, never committed).
+
+## Private vs public
+
+This repo can be **private** — an installing account only needs git read access (collaborator invite, SSH key, or PAT). Make it public only if you want open installs.
 
 ## Repo layout
 
@@ -52,11 +60,11 @@ dev-flow/
 ├── commands/new-feature.md         # /new-feature — pipeline + hard gate
 └── skills/
     ├── commit/SKILL.md             # Conventional Commits, no AI attribution
-    ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
-    ├── whats-new/SKILL.md          # "what's new" summary: history + doc-drift check
     ├── create-github-issue/SKILL.md
-    ├── execute-tasks/SKILL.md      # step 5: inline TDD loop
-    └── review/SKILL.md             # step 5.5: pre-PR self-review gate
+    ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
+    ├── execute-tasks/SKILL.md      # step 5: TDD loop, inline or subagent
+    ├── review/SKILL.md             # step 5.5: pre-PR self-review gate
+    └── whats-new/SKILL.md          # "what's new" summary: history + doc-drift check
 ```
 
 `AGENTS.md` is the agent guidance for this repo; `CLAUDE.md` is a symlink to it so Claude Code, Copilot, and others read the same file.
