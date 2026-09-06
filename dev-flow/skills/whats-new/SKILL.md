@@ -26,7 +26,7 @@ Spot-check the repo's doc claims against the code — the part a raw git summary
 - Read `README.md`, `AGENTS.md`/`CLAUDE.md`, and `docs/` (including `docs/agents/` if present).
 - Verify the checkable claims: do named files/modules/commands exist? Do documented run/build/test commands match config (package.json, Makefile, etc.)?
 - Look for the undocumented: new modules, commands, or conventions that exist in code but no doc mentions.
-- Keep this a **spot-check** (minutes, not a full audit). If `dev-flow:agent-docs` generated the `docs/agents/` tree, its `last updated` footers show which maps might be stale.
+- Keep this a **spot-check** (minutes, not a full audit). If `dev-flow:document-structure` generated the `docs/agents/` tree, its `last updated` footers show which maps might be stale.
 
 ## Phase 3 — Summarize
 
@@ -34,7 +34,7 @@ Return a compact summary, newest first, grouped by feature/PR — not a commit d
 
 - **Shipped** — merged features/fixes, one line each: what + why (from PR/issue), with `#number` references.
 - **Docs updated** — doc changes in the window, one line each.
-- **Doc drift found** — claims that don't match the code (phase 2 findings), each with the doc location and the mismatch. Suggest `agent-docs` update mode when the `docs/agents/` tree is the stale surface.
+- **Doc drift found** — claims that don't match the code (phase 2 findings), each with the doc location and the mismatch. Suggest `document-structure` update mode when the `docs/agents/` tree is the stale surface.
 - **Open threads** — open PRs, unmerged branches worth knowing about.
 
 Plain declarative sentences; link numbers (`#12`) where the user can act on them. End with the window used (e.g. "since tag v2.3.0 / last 14 days") so the summary is reproducible.
@@ -43,5 +43,5 @@ Plain declarative sentences; link numbers (`#12`) where the user can act on them
 
 - **Don't write files** — no changelog, no notes; this is a view, not a record.
 - **Don't dump raw git log** — group and summarize; the value is compression.
-- **Don't deep-audit** — the drift check is a spot-check; agent-docs owns full doc generation.
+- **Don't deep-audit** — the drift check is a spot-check; document-structure owns full doc generation.
 - **Don't invent** — a section with no findings is omitted, not padded.

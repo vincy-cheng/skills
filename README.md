@@ -14,7 +14,7 @@ Provides:
 - `execute-tasks` skill — step 5: own TDD loop, progress in the state file, commit per task. Two modes: inline (default) or subagent (fresh implementer per task for isolation). No `.superpowers/` workspace — all under `docs/features/`.
 - `review` skill — step 5.5: pre-PR self-review gate (test green, spec coverage, obvious issues). Also runs standalone.
 - `commit` skill — Conventional Commits messages from the diff, with **no AI attribution** in the message or trailers. Runs standalone or per-task during step 5.
-- `agent-docs` skill — generates/updates the target repo's agent-facing docs as a layered tree under `docs/agents/`: a tiny always-load index, core maps (architecture, dev-ops), plus dynamic concern maps discovered from the project (testing, API, deployment, database, auth, …), optional deep-detail files. Progressive disclosure for AI agents; standalone, runs on demand. Update mode scopes by what changed since the maps' footers.
+- `document-structure` skill — generates/updates the target repo's agent-facing docs as a layered tree under `docs/agents/`: a tiny always-load index, core maps (architecture, dev-ops), plus dynamic concern maps discovered from the project (testing, API, deployment, database, auth, …), optional deep-detail files. Progressive disclosure for AI agents; standalone, runs on demand. Update mode scopes by what changed since the maps' footers.
 - `whats-new` skill — asks "what's new in this repo?" and gets a summary: shipped work from git + PRs/issues, plus doc-vs-code drift findings. A view, not a record — never writes a changelog file.
 
 #### Requires: the `superpowers` plugin
@@ -52,7 +52,7 @@ dev-flow/
 ├── commands/new-feature.md         # /new-feature — pipeline + hard gate
 └── skills/
     ├── commit/SKILL.md             # Conventional Commits, no AI attribution
-    ├── agent-docs/SKILL.md         # agent-facing doc tree generator (docs/agents/)
+    ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
     ├── whats-new/SKILL.md          # "what's new" summary: history + doc-drift check
     ├── create-github-issue/SKILL.md
     ├── execute-tasks/SKILL.md      # step 5: inline TDD loop
