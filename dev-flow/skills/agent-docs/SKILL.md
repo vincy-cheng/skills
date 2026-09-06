@@ -60,6 +60,8 @@ Before writing a word, scan the repo and build a scratch inventory:
 
 In **update mode**, diff this inventory against the existing docs to find drift before writing anything. This includes the file list itself: a new concern earns a new map file; a concern that no longer exists gets its file removed (or reduced to "none found").
 
+**Update-mode shortcut — scope by what changed.** Before re-scanning everything: read the newest `last updated` footer across the maps, then check what changed since (`git log --since=<date>`, or invoke `dev-flow:whats-new` — it gathers the same history + doc-drift check). If nothing in the window touches an area a map covers, that map is verified-current; scope Phase 1 to the changed areas only.
+
 If something is genuinely ambiguous (e.g. no discoverable test command), **ask the user — don't guess**.
 
 ## Phase 2 — Layer write
