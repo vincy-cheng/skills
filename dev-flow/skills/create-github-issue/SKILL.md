@@ -74,7 +74,7 @@ EOF
 
 ## Branches
 
-Step 6's PR is on `main` → `dev` → `feature/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off `dev`, not `main`. Use `fix/` when the state file's **Kind** is `fix`, else `feature/`. After publishing, offer:
+Step 6's PR is on `main` → `dev` → `feature/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off `dev`, not `main`. Use `fix/` when the state file's **Kind** is `fix`, else `feature/`. If `dev` doesn't exist, ask before doing anything: create it off the default branch (`git checkout -b dev && git push -u origin dev`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
 
 > "Issue #NN created. Want me to create a `feature/NN-<name>` (or `fix/NN-<name>`) branch off `dev` and switch to it?"
 
