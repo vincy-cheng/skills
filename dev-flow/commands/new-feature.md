@@ -205,7 +205,7 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 This is the gate that makes the PR worth a human's review — it does not replace human review at the PR.
 
 ## Step 6 — Open PR
-**Gate:** `review` → set `pr-review`. Branch flow `main` → `dev` → `feature/<n>-<name>` (or `fix/...`); PR targets `dev`, never `main`. Push and open with `gh pr create`, body summarizing the issue link, spec, and plan. Record the PR number in References; surface the URL. Step 7 is manual — do not merge here.
+**Gate:** `review` → set `pr-review`. Branch flow `main` → `dev` → `feature/<n>-<name>` (or `fix/...`); PR targets `dev`, never `main`. Push and open with `gh pr create`, body summarizing the issue link, spec, and plan. Reference the issue with a closing keyword (e.g. `Closes #N`) so merge auto-closes it; if the PR only partially resolves the issue, use a plain reference and say so. Record the PR number in References; surface the URL. Step 7 is manual — do not merge here.
 
 ## Step 7 — Merge (manual)
 **Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 8.
