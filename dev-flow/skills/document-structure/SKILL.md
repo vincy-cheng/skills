@@ -22,6 +22,8 @@ Two tiers: **core maps** (always written) and **concern maps** (written only whe
 
 Map filenames are **ALL-CAPS** (`INDEX.md`, `ARCHITECTURE.md`, …), README.md-style.
 
+The `docs/agents/` subdirectory is load-bearing, not cosmetic — keep it mandatory, never flatten to `docs/`. It does double duty: (1) **mode detection** — entry logic checks for `docs/agents/` existence to choose generate vs update; a flat `docs/` layout breaks that. (2) **scope boundary** — "never touch anything outside `docs/agents/`" relies on the directory edge; a flat layout mixes agent maps with human docs and pollutes the agent tree on every update run.
+
 ```
 docs/agents/
 ├── INDEX.md          ← L0: always-load map (~500 tokens, ≈2 KB — verify with wc -c) — always
@@ -40,6 +42,18 @@ The tree above shows examples, not a fixed list. **Discover concern maps from th
 - **Thin but real** (one consumed API, a lint-only "testing" story): fold into `ARCHITECTURE.md`/`DEVOPS.md` as a section; don't create a near-empty dedicated file.
 - **Absent concern** (no tests, no DB): omit the file, or leave a one-line "none found" if it previously existed — never fabricate.
 
+Canonical concern→filename mapping (ALL-CAPS):
+
+| Concern | File |
+| --- | --- |
+| build/run/lint/setup | DEVOPS.md |
+| shipping/CI-CD | DEPLOYMENT.md |
+| tests | TESTING.md |
+| serves HTTP | API.md |
+| DB/ORM/migrations | DATABASE.md |
+
+Unlisted concerns: `<CONCERN>.md`, ALL-CAPS from the concern name.
+
 Core concern boundaries:
 - **dev-ops** = local developer workflow: build, run, lint, env setup, verification commands.
 - **deployment** = shipping to production: CI/CD, release process, environments.
@@ -53,6 +67,7 @@ Budget rules:
 
 Before writing a word, scan the repo and build a scratch inventory:
 
+- **README** — read it first; it is often the best evidence for commands and intended workflow.
 - **Entry points** — main/module/index files; where execution starts.
 - **Test layout** — test directories, framework, how to run them.
 - **Commands** — build, test, lint, run, deploy. Read from config files (package.json, Makefile, pyproject.toml, Cargo.toml, etc.); run `--help` where cheap and safe. Never guess a command the config files don't evidence.
@@ -80,7 +95,7 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 - Spot-check every claim against code: do the named files, commands, and symbols exist?
 - Verify every pointer both ways: each `INDEX.md` row names a file that exists, and each agent-instruction file's `docs/agents/INDEX.md` pointer has a live target. Fix in the same pass — a dangling pointer is worse than no pointer.
 - **Duplication and contradiction review — after fixing facts and pointers:** for each fact that appears in more than one file, keep exactly one canonical copy (per the single-source rule) and reduce the others to a pointer; remove anything that contradicts a decision already recorded elsewhere (e.g. agent-instruction files). This review runs on every write, in both generate and update mode — update mode's "touch only what drifted" does not exempt it, because a freshly patched section can introduce duplication the drift diff won't reveal.
-- Run the listed commands where safe (`--help` counts; full runs only if quick and side-effect-free).
+- **Verification allowlist:** build/test/lint type commands may be run in full. Side-effectful commands (seed, migrate, deploy, anything writing to external state) get `--help` only. If a command is ambiguous, do not run it — spot-check its evidence in config files instead.
 - Fix or mark drift in the same pass — don't leave a "TODO verify" behind.
 - End with a run summary: layers written, drift found/fixed, L2 files created.
 
