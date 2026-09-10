@@ -79,6 +79,7 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 
 - Spot-check every claim against code: do the named files, commands, and symbols exist?
 - Verify every pointer both ways: each `INDEX.md` row names a file that exists, and each agent-instruction file's `docs/agents/INDEX.md` pointer has a live target. Fix in the same pass — a dangling pointer is worse than no pointer.
+- **Duplication and contradiction review — after fixing facts and pointers:** for each fact that appears in more than one file, keep exactly one canonical copy (per the single-source rule) and reduce the others to a pointer; remove anything that contradicts a decision already recorded elsewhere (e.g. agent-instruction files). This review runs on every write, in both generate and update mode — update mode's "touch only what drifted" does not exempt it, because a freshly patched section can introduce duplication the drift diff won't reveal.
 - Run the listed commands where safe (`--help` counts; full runs only if quick and side-effect-free).
 - Fix or mark drift in the same pass — don't leave a "TODO verify" behind.
 - End with a run summary: layers written, drift found/fixed, L2 files created.
