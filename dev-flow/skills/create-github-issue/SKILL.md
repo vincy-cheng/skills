@@ -85,7 +85,7 @@ git checkout dev && git pull --ff-only origin dev && git checkout -b feature/NN-
 git checkout dev && git pull --ff-only origin dev && git checkout -b fix/NN-<name>
 ```
 
-`pull --ff-only` keeps `dev` current. If rejected (local `dev` diverged), surface it — don't force. Don't commit anything; the branch is just scaffolding for step 5. No `dev` branch → fall back to the default base.
+`pull --ff-only` keeps `dev` current. If rejected (local `dev` diverged), surface it — don't force. Don't commit anything; the branch is just scaffolding for step 5.
 
 ## State file (dev-flow only)
 
