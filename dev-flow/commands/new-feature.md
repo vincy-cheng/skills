@@ -76,13 +76,13 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 ```markdown
 # <feat-name> — dev-flow state
 
-- **Created:** YYYY-MM-DD HH:MM
-- **Updated:** YYYY-MM-DD HH:MM
+- **Created:** YYYY-MM-DD HH:MM±HH:MM
+- **Updated:** YYYY-MM-DD HH:MM±HH:MM
 - **Base branch:** <branch>
 - **Target branch:** <branch>
 - **Goal status:** <status>
 - **Kind:** feature | fix
-- **Last verification:** YYYY-MM-DD HH:MM — <test cmd> <passed|failed>, <lint cmd> <clean|warnings>
+- **Last verification:** YYYY-MM-DD HH:MM±HH:MM — <test cmd> <passed|failed>, <lint cmd> <clean|warnings>
 
 ## Tasks
 - [ ] <task description>
@@ -95,8 +95,8 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 ```
 
 Field rules:
-- **Created** — set once in step 1, never changes.
-- **Updated** — current timestamp on *every* write.
+- **Created** — set once in step 1, never changes. Carries local time + UTC offset (e.g. `2026-09-10 14:45+08:00`), so a reader never has to guess the zone.
+- **Updated** — current timestamp on *every* write. Local time + UTC offset (e.g. `2026-09-10 14:45+08:00`).
 - **Goal status** — the gate's input; set to the current step *before* the work.
 - **Kind** — `feature` or `fix`, set in step 1 from intent. Drives the branch prefix and issue framing. Ambiguous → ask; default `feature`.
 - **Last verification** — most recent test + lint result during execute (the repo's commands). The resume signal: "was it green when I stopped?" `_(not run yet)_` until first run.
@@ -108,13 +108,13 @@ Field rules:
 ```markdown
 # dev-flow runs
 
-| Feat-name | Kind | Status | Updated | Branch |
-|-----------|------|--------|---------|--------|
-| <feat-name> | feature | execute | YYYY-MM-DD HH:MM | feature/42-x |
-| <feat-name> | fix | merged | YYYY-MM-DD HH:MM | fix/17-y |
+| Feat-name | Kind | Status | Issue | Updated | Branch |
+|-----------|------|--------|-------|---------|--------|
+| <feat-name> | feature | execute | — | YYYY-MM-DD HH:MM±HH:MM | feature/42-x |
+| <feat-name> | fix | done | #17 | YYYY-MM-DD HH:MM±HH:MM | fix/17-y |
 ```
 
-One row per feat; newest **Updated** first (re-sort on every write). The top non-`done` row is the current run; `done` rows stay as history — don't delete them. Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
+One row per feat; newest **Updated** first (re-sort on every write). The top non-`done` row is the current run; `done` rows stay as history — don't delete them. The **Issue** column is `—` until step 4 creates the issue, then `#NN` for the row's life (set in step 4's two-writes-in-one-breath, never changes after). Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
 
 ## Resume
 
