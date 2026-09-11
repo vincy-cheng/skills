@@ -24,10 +24,15 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## Choose a mode
 
-Ask the user which mode (unless they already specified). Ask on **every** entry — including when step 4 was skipped, the plan is small, or the run resumed mid-execute. A small or markdown-only plan is not an exemption:
+Read the plan's signal first, **recommend** a mode with one line of reasoning, then offer the user an override. Don't punt the choice unguided — but still ask on **every** entry (including when step 4 was skipped, the plan is small, or the run resumed mid-execute; a small or markdown-only plan is not an exemption). Lead with the recommendation, not a bare "which mode?".
 
-- **Inline (default)** — you run the TDD loop directly in this session. Simplest; best for small/medium work and when you want to stay in the loop.
-- **Subagent** — for each task, dispatch a fresh implementer subagent with only that task's brief, then review its work yourself before committing. Best for larger work where per-task context isolation helps; preserves your session context for coordination.
+Signal to read: **task count**, **file spread** (how many files the tasks touch), **task coupling** (do later tasks depend on earlier tasks' exact symbols/wording?).
+
+- **Inline** when: ≤3 tasks, docs-only/markdown edits (no test cycle to isolate), or tightly-coupled tasks (later tasks depend on an earlier task's exact structure — subagent isolation *hurts* here). You run the TDD loop directly in this session; simplest, and you stay in the loop.
+- **Subagent** when: ≥5 tasks, many files, or genuinely independent tasks (each self-contained — per-task context isolation is a feature). For each task, dispatch a fresh implementer with only that task's brief, then review its work yourself before committing; preserves your session context for coordination.
+- **The 4-task / moderate-spread / mixed-coupling middle ground** → recommend **inline** (staying in the loop wins when the signal is ambiguous) but name the tradeoff: subagent would buy isolation at the cost of context handoff overhead.
+
+Example recommendation: "4 tasks, all in `new-feature.md` (one file, tightly coupled — each edit builds on the prior's wording) → inline. Override to subagent?" Then honor the user's choice.
 
 The rest of this skill has a shared core (state-file updates, stuck handling, after-all-tasks) plus a per-task loop that differs by mode.
 
