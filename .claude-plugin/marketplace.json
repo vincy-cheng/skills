@@ -11,7 +11,7 @@
       "name": "dev-flow",
       "source": "./dev-flow",
       "description": "End-to-end feature/fix workflow: brainstorm → spec → plan → issue → execute (TDD) → review → doc-fix → PR → merge → close-out. Also ships /new-idea for structured brainstorm folders. Depends on superpowers.",
-      "version": "2.3.0",
+      "version": "2.3.1",
       "author": {
         "name": "Vincy-Cheng"
       },
