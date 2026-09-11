@@ -1,12 +1,12 @@
 ---
-description: Start a new feature or fix through the full workflow — brainstorm → spec → plan → create issue → execute (TDD) → review → PR → manual merge → distill (update docs if needed). Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans, test-driven-development).
+description: Start a new feature or fix through the full workflow — brainstorm → spec → plan → create issue → execute (TDD) → review → doc-fix → PR → manual merge → close-out. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans, test-driven-development).
 ---
 
 # New feature or fix — full workflow
 
 Drive this work through all steps, in order. Do not skip steps "because it's simple" — the user wants the full pipeline every time. Works for features **and** fixes. Arguments: $ARGUMENTS.
 
-Steps: 1 brainstorm → 2 spec → 3 plan → 4 create issue → 5 execute (TDD) → 5.5 review → 6 PR → 7 merge (manual) → 8 distill (update docs if needed).
+Steps: 1 brainstorm → 2 spec → 3 plan → 4 create issue → 5 execute (TDD) → 5.5 review → 5.6 doc-fix → 6 PR → 7 merge (manual) → 8 close-out.
 
 Run each step before the next. Pause at the natural checkpoints (after spec, after plan, after issue draft, before PR). State which step you're on as you begin it.
 
@@ -42,7 +42,7 @@ Steps 1 and 3 invoke superpowers skills with their **own** handoff instructions 
 3. Match → proceed. No match → STOP; tell the user the current status and the step it maps to, and resume from there. Do **not** do the current step's work.
 4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step. **A status change is two writes, done together in one breath: the state file's Goal status and the index row** (see *Index file*) — add or update the feat's row with the new status + timestamp, re-sort newest-first. One without the other is an incomplete step. Step 1 adds the row; later steps update it.
 
-Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `pr-review` → `merged` → `distill`. A step runs only on the immediately preceding status and advances only to the next when done. `merged` means "shipped, distill pending"; `distill` means fully closed.
+Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `doc-fix` → `pr-review` → `merged` → `done`. A step runs only on the immediately preceding status and advances only to the next when done. `doc-fix` is the pre-PR doc-fix (step 5.6); `merged` means "shipped, close-out pending" — the crash-resume safety net between "user confirmed merge" and "close-out complete"; `done` means fully closed.
 
 | Step | Requires incoming | Sets |
 |------|------------------|------|
@@ -52,9 +52,10 @@ Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → 
 | 4 issue | `planning` | `issue` |
 | 5 execute | `issue` | `execute` |
 | 5.5 review | `execute` | `review` |
-| 6 PR | `review` | `pr-review` |
+| 5.6 doc-fix | `review` | `doc-fix` |
+| 6 PR | `doc-fix` | `pr-review` |
 | 7 merge | `pr-review` | `merged` |
-| 8 distill | `merged` | `distill` |
+| 8 close-out | `merged` | `done` |
 
 **Sub-skill handoffs — ignore them; return to the next dev-flow step:**
 - `brainstorming` finishes → **step 2 (spec)**, not its handoff to writing-plans.
@@ -113,18 +114,18 @@ Field rules:
 | <feat-name> | fix | merged | YYYY-MM-DD HH:MM | fix/17-y |
 ```
 
-One row per feat; newest **Updated** first (re-sort on every write). The top non-`distill` row is the current run; `distill` rows stay as history — don't delete them. Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
+One row per feat; newest **Updated** first (re-sort on every write). The top non-`done` row is the current run; `done` rows stay as history — don't delete them. Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
 
 ## Resume
 
-You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/state.md` and the current/last run is the top non-`distill` row.
+You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/state.md` and the current/last run is the top non-`done` row.
 
 - **No feat-name in $ARGUMENTS (or "resume"):** read the index; present the active rows numbered; resume the topmost unless the user picks another. Index missing → fall back to scanning `docs/features/.feature-states/*.state.md`, sort by **Updated**, rebuild the index. Zero state files → start fresh from step 1.
 - **Feat-name given in $ARGUMENTS:** use it directly. State file missing for it → tell the user; don't silently start fresh.
 
-Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `pr-review` → open the PR and stop at the manual merge gate (step 7). `merged` → run step 8 (distill).
+Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `doc-fix` → re-run step 5.6 (idempotent: re-scan for drift, re-apply). `pr-review` → open the PR and stop at the manual merge gate (step 7). `merged` → run step 8 (close-out).
 
-Only `distill` is "finished" — `merged` still has distill pending. Treat `distill` rows as history; resume any non-`distill` row.
+Only `done` is "finished" — `merged` still has close-out pending. Treat `done` rows as history; resume any non-`done` row.
 
 ## Preflight — `docs/features/` is gitignored
 
@@ -204,27 +205,39 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 
 This is the gate that makes the PR worth a human's review — it does not replace human review at the PR.
 
-## Step 6 — Open PR
-**Gate:** `review` → set `pr-review`. Branch flow `main` → `dev` → `feature/<n>-<name>` (or `fix/...`); PR targets `dev`, never `main`. Push and open with `gh pr create`, body summarizing the issue link, spec, and plan. Reference the issue with a closing keyword (e.g. `Closes #N`) so merge auto-closes it; if the PR only partially resolves the issue, use a plain reference and say so. Record the PR number in References; surface the URL. Step 7 is manual — do not merge here.
+## Step 5.6 — Doc-fix (pre-PR)
+**Gate:** `review` → set `doc-fix`. The work is done and reviewed; before opening the PR, close the loop on docs the run itself may have invalidated. Find doc drift caused by *this* run — not a general audit.
 
-## Step 7 — Merge (manual)
-**Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 8.
-
-## Step 8 — Distill (update docs if needed)
-**Gate:** `merged` → set `distill`. The work is shipped; now close the loop. Review what the completed feature/fix revealed, and update docs if it surfaced a gap, a pattern, or a correction worth keeping. If the docs are already accurate, do nothing and mark the run done.
-
-Look at, in order of likelihood of needing an update:
-1. **This plugin's docs** — `AGENTS.md`, `README.md`, and any `dev-flow/skills/*/SKILL.md` touched by the work. Did the workflow itself need a tweak? Did a step's wording prove wrong in practice? Did a new convention emerge (e.g. the state index this run relied on)?
+Look at, in order of likelihood of drift:
+1. **This plugin's docs** — `AGENTS.md`/`CLAUDE.md`, `README.md`, and any `dev-flow/skills/*/SKILL.md` touched by the work. Did the run change behavior a doc still describes the old way? Did a new convention emerge (e.g. a new state-file column this run added)?
 2. **The target repo's docs** — `AGENTS.md`/`README`/arch docs in the repo the feature landed in. Did the change add a new module, command, or convention the docs should mention?
-3. **Persisted agent memory** (if the harness keeps it) — only durable, cross-session facts (a user preference confirmed this run, a project constraint discovered). Skip ephemeral task state — that's the state file's job.
 
 Rules:
-- **Show the user the proposed doc edits before applying** — distill is guided, not fire-and-forget. They decide what's worth keeping.
-- **Commit doc updates separately** (`docs:` type) from any code the feature shipped — keep history clean.
+- **Show the user the proposed doc edits before applying** — guided, not fire-and-forget (same rule the old post-merge distill used).
+- **Commit doc updates as `docs:`-type commits**, riding in the PR alongside the code commits — a run's own drift should ship in the same PR, not surface after merge.
 - **Never commit `docs/features/`** (spec, plan, state, index) — still gitignored.
-- **If nothing needs updating**, say so plainly and mark the run `distill` (done). Don't invent edits to justify the step.
+- **No drift found** → quick no-op pass; say so plainly and advance to step 6. Don't invent edits.
 
-When done, the run is `distill` — fully closed. The state file and index row stay as history.
+If 5.6 finds drift it can't safely fix (e.g. reveals a deeper code issue), STOP and surface to the user — don't open a PR with known-bad docs (mirrors review's red). Return to step 5 if the drift reveals a real code issue. **Green** → advance to step 6.
+
+## Step 6 — Open PR
+**Gate:** `doc-fix` → set `pr-review`. Branch flow `main` → `dev` → `feature/<n>-<name>` (or `fix/...`); PR targets `dev`, never `main`. Push and open with `gh pr create`, body summarizing the issue link, spec, and plan. Reference the issue with a closing keyword (e.g. `Closes #N`) so merge auto-closes it; if the PR only partially resolves the issue, use a plain reference and say so. Record the PR number in References; surface the URL. Step 7 is manual — do not merge here.
+
+## Step 7 — Merge (manual)
+**Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 8 (close-out). `merged` is the intermediate — a crash here lands back on `merged` and re-runs step 8.
+
+## Step 8 — Close-out
+**Gate:** `merged` → set `done`. The work is shipped and the doc-fix already happened in step 5.6; step 8 is **close-out only** — no doc edits here.
+
+Look at:
+- **Persisted agent memory** (if the harness keeps it) — only durable, cross-session facts (a user preference confirmed this run, a project constraint discovered). Skip ephemeral task state — that's the state file's job.
+
+Rules:
+- **Show the user any proposed memory update before applying** — close-out is guided, not fire-and-forget.
+- **No memory update needed** → say so plainly and mark the run `done`. Don't invent edits to justify the step.
+- **Never commit `docs/features/`** — still gitignored.
+
+When done, the run is `done` — fully closed. The state file and index row stay as history.
 
 ## Notes
 - No `dev` branch → ask the user: create `dev` off the default branch (push it, then branch `feature/...`/`fix/...` off it), or run everything off the default branch. Don't silently pick.
