@@ -22,10 +22,12 @@ Two tiers: **core maps** (always written) and **concern maps** (written only whe
 
 Map filenames are **ALL-CAPS** (`INDEX.md`, `ARCHITECTURE.md`, …), README.md-style.
 
+The `docs/agents/` subdirectory is load-bearing, not cosmetic — keep it mandatory, never flatten to `docs/`. It does double duty: (1) **mode detection** — entry logic checks for `docs/agents/` existence to choose generate vs update; a flat `docs/` layout breaks that. (2) **scope boundary** — "never touch anything outside `docs/agents/`" relies on the directory edge; a flat layout mixes agent maps with human docs and pollutes the agent tree on every update run.
+
 ```
 docs/agents/
-├── INDEX.md          ← L0: always-load map (~500 tokens max) — always
-├── ARCHITECTURE.md   ← L1: mid map (~800 tokens max) — always
+├── INDEX.md          ← L0: always-load map (~500 tokens, ≈2 KB — verify with wc -c) — always
+├── ARCHITECTURE.md   ← L1: mid map (~800 tokens, ≈3 KB — verify with wc -c) — always
 ├── DEVOPS.md        ← L1 — always (build/run/lint, setup, verification)
 ├── TESTING.md       ← L1 — concern map: only if tests exist
 ├── API.md           ← L1 — concern map: only if the project has/serves a non-trivial API
@@ -40,19 +42,32 @@ The tree above shows examples, not a fixed list. **Discover concern maps from th
 - **Thin but real** (one consumed API, a lint-only "testing" story): fold into `ARCHITECTURE.md`/`DEVOPS.md` as a section; don't create a near-empty dedicated file.
 - **Absent concern** (no tests, no DB): omit the file, or leave a one-line "none found" if it previously existed — never fabricate.
 
+Canonical concern→filename mapping (ALL-CAPS):
+
+| Concern | File |
+| --- | --- |
+| build/run/lint/setup | DEVOPS.md |
+| shipping/CI-CD | DEPLOYMENT.md |
+| tests | TESTING.md |
+| serves HTTP | API.md |
+| DB/ORM/migrations | DATABASE.md |
+
+Unlisted concerns: `<CONCERN>.md`, ALL-CAPS from the concern name.
+
 Core concern boundaries:
 - **dev-ops** = local developer workflow: build, run, lint, env setup, verification commands.
 - **deployment** = shipping to production: CI/CD, release process, environments.
 
 Budget rules:
-- **INDEX.md** must stand alone: an agent reading only it can still run and test the repo. One line per area, key commands, a pointer to each existing map file.
-- Each L1 map covers one concern at the "map" altitude: where things live, how they connect, key commands — not full reference detail.
+- **INDEX.md** must stand alone: an agent reading only it can still run and test the repo. Budget: ~500 tokens (≈2 KB — verify with `wc -c`). A line that serves only one area belongs in that area's L1 map, not here. If it does not fit that shape, move the detail down a level — that is the design working, not a failure. One line per area, key commands, a pointer to each existing map file.
+- Each L1 map covers one concern at the "map" altitude: where things live, how they connect, key commands — not full reference detail. Budget: ~800 tokens (≈3 KB — verify with `wc -c`). Detail that exceeds it points to `DEEP/` (next bullet).
 - An L1 section that can't fit its detail within budget points to `DEEP/<TOPIC>.md`: "details: `DEEP/<TOPIC>.md`". **Default: no L2 files** — create one only when the detail is genuinely needed and genuinely too big.
 
 ## Phase 1 — Inventory
 
 Before writing a word, scan the repo and build a scratch inventory:
 
+- **README** — read it first; it is often the best evidence for commands and intended workflow.
 - **Entry points** — main/module/index files; where execution starts.
 - **Test layout** — test directories, framework, how to run them.
 - **Commands** — build, test, lint, run, deploy. Read from config files (package.json, Makefile, pyproject.toml, Cargo.toml, etc.); run `--help` where cheap and safe. Never guess a command the config files don't evidence.
@@ -79,16 +94,19 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 
 - Spot-check every claim against code: do the named files, commands, and symbols exist?
 - Verify every pointer both ways: each `INDEX.md` row names a file that exists, and each agent-instruction file's `docs/agents/INDEX.md` pointer has a live target. Fix in the same pass — a dangling pointer is worse than no pointer.
-- Run the listed commands where safe (`--help` counts; full runs only if quick and side-effect-free).
+- **Duplication and contradiction review — after fixing facts and pointers:** for each fact that appears in more than one file, keep exactly one canonical copy (per the single-source rule) and reduce the others to a pointer; remove anything that contradicts a decision already recorded elsewhere (e.g. agent-instruction files). This review runs on every write, in both generate and update mode — update mode's "touch only what drifted" does not exempt it, because a freshly patched section can introduce duplication the drift diff won't reveal.
+- **Verification allowlist:** build/test/lint type commands may be run in full. Side-effectful commands (seed, migrate, deploy, anything writing to external state) get `--help` only. If a command is ambiguous, do not run it — spot-check its evidence in config files instead.
 - Fix or mark drift in the same pass — don't leave a "TODO verify" behind.
 - End with a run summary: layers written, drift found/fixed, L2 files created.
 
 ## Writing rules
 
-- **Structural diagrams are Mermaid, never ASCII art.** Any architecture/flow/data-flow diagram goes in a fenced `​```mermaid` code block (`flowchart`, `sequenceDiagram`, `C4Context`, … — pick the type that fits). No box-drawing ASCII, no aligned columns of `┌─┐`/`▲`/`│` — they only read in the exact font that drew them and break everywhere else. Mermaid renders in chat, GitHub, and editors, and survives reflow. A diagram must still be **accurate before pretty**: nodes are real files/modules/services with stable names (paths over `file:line`), edges are actual call/data flow — never invent an edge the code doesn't have. Keep charts small: a diagram a reader can't take in at one glance belongs split per concern or expressed as a table. **Avoid long linear chains** (`A --> B --> C --> D --> E …`) — they render as one skinny hard-to-read line. Prefer shape over sequence: branch into parallel lanes where the flow genuinely branches, group related nodes with `subgraph`, and if a chain has more than ~4 hops, either compress intermediate hops into one labeled edge (`A -->|build + deploy| D`) or split the diagram per concern. In **update mode**, an existing ASCII-art diagram counts as drift — replace it with Mermaid in the same pass.
+- **Mermaid is for files humans will open (README, `docs/<topic>.md`), never `docs/agents/`.** An agent pays raw-source token cost and parse noise for a rendering it never sees — in `docs/agents/`, prefer an indented text module list (~1 line per edge). The README is the canonical home for the rendered architecture graph when one is warranted: it's the only page humans reliably open, already exists, and GitHub renders Mermaid there for free. When you do render Mermaid, it goes in a fenced `​```mermaid` code block (`flowchart`, `sequenceDiagram`, `C4Context`, … — pick the type that fits). No box-drawing ASCII, no aligned columns of `┌─┐`/`▲`/`│` — they only read in the exact font that drew them and break everywhere else. Mermaid renders in chat, GitHub, and editors, and survives reflow. A diagram must still be **accurate before pretty**: nodes are real files/modules/services with stable names (paths over `file:line`), edges are actual call/data flow — never invent an edge the code doesn't have. Keep charts small: a diagram a reader can't take in at one glance belongs split per concern or expressed as a table. **Avoid long linear chains** (`A --> B --> C --> D --> E …`) — they render as one skinny hard-to-read line. Prefer shape over sequence: branch into parallel lanes where the flow genuinely branches, group related nodes with `subgraph`, and if a chain has more than ~4 hops, either compress intermediate hops into one labeled edge (`A -->|build + deploy| D`) or split the diagram per concern. In **update mode**, an existing ASCII-art diagram counts as drift — replace it with Mermaid in the same pass. Same for any human-useful artifact (long examples, visual references) — README or `docs/`, never `docs/agents/`.
 - Plain declarative sentences — token-efficient but human-legible; no cryptic shorthand.
 - Tables for signatures and command lists; stable file paths over `file:line` (lines rot).
 - **Never invent.** A fact Phase 1 couldn't verify is omitted, not guessed.
+- **Each fact has exactly one canonical home** — the most relevant map. Other files may carry at most one line plus a pointer to it. When distilling INDEX, summarize the pointer, never restate the fact.
+- **Record the why next to the what.** Decisions discovered during inventory (auth model choices, deliberate omissions/known-broken states, config sourced from secrets rather than env, non-obvious constraints) go into the most relevant map, marked as a decision — not into a separate ADR directory. Format: the decision + one line of why. Example in ARCHITECTURE.md: "DB password is overridden from Secret Manager — the DB password never lives in `.env`." A decision that can't fit any existing map earns a new concern map (e.g. `DECISIONS.md`) only when there are several; one or two live in the nearest map.
 - Every L1 file ends with a footer: `---\nlast updated YYYY-MM-DD — generated by the document-structure skill`. Update mode uses this to spot stale layers.
 
 ## Edge cases
@@ -101,7 +119,7 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 ## What not to do
 
 - **Don't write for humans** — no narrative, no "welcome to", no marketing prose.
-- **Don't blow budgets** — if the index exceeds ~500 tokens, the mid maps are leaking upward; split detail down into L1/L2.
+- **Don't blow budgets** — see the `wc -c` proxy at the budget definition site.
 - **Don't fabricate** to fill a template.
 - **Don't touch anything outside `docs/agents/`** except the one-line pointer per existing agent-instruction file (see *Edge cases*).
 - **Don't create L2 files by default.**
