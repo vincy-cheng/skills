@@ -223,6 +223,11 @@ If 5.6 finds drift it can't safely fix (e.g. reveals a deeper code issue), STOP 
 ## Step 6 — Open PR
 **Gate:** `doc-fix` → set `pr-review`. Branch flow `main` → `dev` → `feature/<n>-<name>` (or `fix/...`); PR targets `dev`, never `main`. Push and open with `gh pr create`, body summarizing the issue link, spec, and plan. Reference the issue with a closing keyword (e.g. `Closes #N`) so merge auto-closes it; if the PR only partially resolves the issue, use a plain reference and say so. Record the PR number in References; surface the URL. Step 7 is manual — do not merge here.
 
+**Auto-update the issue todo (no manual nudge):** by step 6 the work is done and reviewed, so the issue should reflect that automatically. After `gh pr create` returns the PR number:
+- **Check the issue's acceptance-criteria boxes** that the work satisfied — flip `[ ]` → `[x]` for completed criteria. Fetch the issue body (`gh issue view <N> --json body -q .body`), check the boxes for criteria the PR completed, and write it back with `gh issue edit <N> --body ...`. Leave unchecked any criterion that isn't done. If the issue has no acceptance-criteria checklist, skip this part.
+- **Add the PR link to the issue's References** — append `- PR: #NN` to the issue body's References block (create one if absent), again via `gh issue edit <N> --body ...`.
+- Do both as part of step 6; don't ask the user to nudge them separately.
+
 ## Step 7 — Merge (manual)
 **Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 8 (close-out). `merged` is the intermediate — a crash here lands back on `merged` and re-runs step 8.
 
