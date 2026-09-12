@@ -135,7 +135,7 @@ The orchestrating session receives the verdict and acts — it does **not** seco
 - **Yellow** → surface the findings list (from the report file) to the user; let them decide fix-now vs. note-in-PR. Update **Last verification**. Still hand back to step 6.
 - **Red** → surface the blockers. Do **not** advance. Return to step 5 with the specific findings; the user fixes and re-runs review (a fresh reviewer subagent again).
 
-Then clean up: delete `docs/features/.review/<feat-name>/` once the verdict is acted on — the verdict has been delivered, the report isn't needed long-term.
+Keep the report at `docs/features/.review/<feat-name>/review-report.md` — it's the run's review record (gitignored, local only, like the spec and plan). Don't delete it; a later run or the user may want to look back at what the fresh reviewer found.
 
 ## Standalone mode (outside dev-flow)
 
