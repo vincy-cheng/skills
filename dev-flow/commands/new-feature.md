@@ -123,7 +123,7 @@ You may not remember the feat-name you were on. The index file records it — op
 - **No feat-name in $ARGUMENTS (or "resume"):** read the index; present the active rows numbered; resume the topmost unless the user picks another. Index missing → fall back to scanning `docs/features/.feature-states/*.state.md`, sort by **Updated**, rebuild the index. Zero state files → start fresh from step 1.
 - **Feat-name given in $ARGUMENTS:** use it directly. State file missing for it → tell the user; don't silently start fresh.
 
-Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `doc-fix` → re-run step 5.6 (idempotent: re-scan for drift, re-apply). `pr-review` → open the PR and stop at the manual merge gate (step 7). `merged` → run step 8 (close-out).
+Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `review` → re-run `dev-flow:review`. `doc-fix` → re-run step 5.6 via `dev-flow:doc-fix` (idempotent: re-scan for drift, re-apply). `pr-review` → open the PR and stop at the manual merge gate (step 7). `merged` → run step 8 (close-out).
 
 Only `done` is "finished" — `merged` still has close-out pending. Treat `done` rows as history; resume any non-`done` row.
 
@@ -144,10 +144,9 @@ If `docs/features/` is already tracked, surface it and stop — don't silently `
 
 ## Commit guard — never commit specs, plans, or state
 
-Three local-only artifacts under `docs/features/` (spec, plan, state) must never be committed or pushed.
+Three local-only artifacts under `docs/features/` (spec, plan, state) must never be committed or pushed. The preflight (run every invocation) already guarantees the gitignore; two checks carry the rest:
 
-- After a step writes a file there, spot-check `git check-ignore docs/features/specs/<file>.md` returns the path before moving on.
-- In step 5, stage explicitly (`git add <specific files>`), never `git add -A` / `git add .` — guards against leaking if gitignore drifts.
+- Stage explicitly (`git add <specific files>`), never `git add -A` / `git add .` — guards against leaking if gitignore drifts.
 - Before pushing in step 6, confirm `git status --porcelain docs/features/` is empty. If not, stop and fix.
 
 ## Step 1 — Brainstorm
@@ -198,34 +197,25 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 **Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (following `superpowers:test-driven-development`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 5.5.
 
 ## Step 5.5 — Review (gate before PR)
-**Gate:** `execute` → set `review`. Invoke `dev-flow:review` to run a pre-PR self-review: full test + lint gate, spec coverage, plan coverage, obvious-issue scan. It returns **green / yellow / red**:
+**Gate:** `execute` → set `review`. Invoke `dev-flow:review` to run a pre-PR review via a **fresh independent reviewer subagent** (fresh eyes, no author bias): it dispatches one subagent — asking the user for the reviewer model (default same as the orchestrator) — that runs the full test + lint gate, spec coverage, plan coverage, and obvious-issue scan, writes findings to a color-coded report file, and returns **green / yellow / red**:
 - **Green** → advance to step 6.
 - **Yellow** (minor findings, non-blocking) → surface the list; let the user decide fix-now vs. note-in-PR. Still advance to step 6.
-- **Red** (suite red, spec gap, real bug) → do **not** open the PR. Return to step 5 with the specific findings; fix and re-run review.
+- **Red** (suite red, spec gap, real bug) → do **not** open the PR. Return to step 5 with the specific findings; fix and re-run review (a fresh reviewer subagent again).
 
-This is the gate that makes the PR worth a human's review — it does not replace human review at the PR.
+This is the gate that makes the PR worth a human's review — it does not replace human review at the PR. The orchestrator acts on the reviewer's verdict; it does not re-do the review inline.
 
 ## Step 5.6 — Doc-fix (pre-PR)
-**Gate:** `review` → set `doc-fix`. The work is done and reviewed; before opening the PR, close the loop on docs the run itself may have invalidated. Find doc drift caused by *this* run — not a general audit.
-
-Look at, in order of likelihood of drift:
-1. **This plugin's docs** — `AGENTS.md`/`CLAUDE.md`, `README.md`, and any `dev-flow/skills/*/SKILL.md` touched by the work. Did the run change behavior a doc still describes the old way? Did a new convention emerge (e.g. a new state-file column this run added)?
-2. **The target repo's docs** — `AGENTS.md`/`README`/arch docs in the repo the feature landed in. Did the change add a new module, command, or convention the docs should mention?
-
-Rules:
-- **Show the user the proposed doc edits before applying** — guided, not fire-and-forget (same rule the old post-merge distill used).
-- **Commit doc updates as `docs:`-type commits**, riding in the PR alongside the code commits — a run's own drift should ship in the same PR, not surface after merge.
-- **Never commit `docs/features/`** (spec, plan, state, index) — still gitignored.
-- **No drift found** → quick no-op pass; say so plainly and advance to step 6. Don't invent edits.
-
-If 5.6 finds drift it can't safely fix (e.g. reveals a deeper code issue), STOP and surface to the user — don't open a PR with known-bad docs (mirrors review's red). Return to step 5 if the drift reveals a real code issue. **Green** → advance to step 6.
+**Gate:** `review` → set `doc-fix`. Invoke `dev-flow:doc-fix` to scan for doc drift caused by *this* run — this plugin's docs and the target repo's docs — guided (edits shown before applying), committed as `docs:` so they ride in the PR. It returns a verdict:
+- **No drift** → no-op pass; advance to step 6.
+- **Drift found** → show the proposed edits; on confirmation, apply and commit as `docs:`; advance to step 6.
+- **Drift reveals a deeper code issue** → STOP; don't open a PR with known-bad docs (mirrors review's red). Return to step 5.
 
 ## Step 6 — Open PR
 **Gate:** `doc-fix` → set `pr-review`. Branch flow `main` → `dev` → `feature/<n>-<name>` (or `fix/...`); PR targets `dev`, never `main`. Push and open with `gh pr create`, body summarizing the issue link, spec, and plan. Reference the issue with a closing keyword (e.g. `Closes #N`); if the PR only partially resolves the issue, use a plain reference and say so. Record the PR number in References; surface the URL. Step 7 is manual — do not merge here.
 
 After `gh pr create` returns the PR number, do both of the following automatically — no manual nudge:
 
-**1. Link the issue (GitHub sidebar).** A `Closes #N` keyword in the PR body creates a cross-reference the moment the PR opens, so the issue↔PR link shows in both timelines immediately — no extra API call needed. Caveat: GitHub evaluates closing keywords only on the **default branch**. Because this PR targets `dev`, merging it does **not** auto-close the issue — the close fires when `dev` reaches the default branch, or you close it explicitly. If the issue should close on *this* PR's merge, close it in step 7 or 8 (`gh issue close <N>`) rather than relying on the keyword. (This sidebar cross-reference is a separate mechanism from the text line in bullet 2.)
+**1. Link the issue (GitHub sidebar).** A `Closes #N` keyword in the PR body creates the sidebar cross-reference the moment the PR opens — no extra API call. Because this PR targets `dev` (not the default branch), GitHub won't auto-close the issue on merge; if it should close on this merge, close it explicitly in step 7 or 8 (`gh issue close <N>`).
 
 **2. Sync the issue body to the PR.** The work is done and reviewed, so the issue should reflect that:
 - **Check the acceptance-criteria boxes** the PR satisfied — flip `[ ]` → `[x]` for completed criteria via `gh issue edit <N> --body ...` (fetch first with `gh issue view <N> --json body -q .body`). Leave unchecked any criterion not done. No checklist → skip.
