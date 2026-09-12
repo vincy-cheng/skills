@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "description": "Drives a dev workflow end-to-end (features or fixes): brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → doc-fix → PR → manual merge → close-out. Own execute-tasks, review, create-github-issue, commit, and new-idea skills plus /new-feature and /new-idea commands. Depends on superpowers for brainstorming, writing-plans, and test-driven-development.",
-  "version": "2.3.1",
+  "description": "Drives a dev workflow end-to-end (features or fixes): brainstorm → spec → plan → create GitHub issue → execute (TDD) → review → doc-fix → PR → manual merge → close-out. Own execute-tasks, review, doc-fix, create-github-issue, commit, and new-idea skills plus /new-feature and /new-idea commands. Depends on superpowers for brainstorming, writing-plans, and test-driven-development.",
+  "version": "2.3.3",
   "author": {
     "name": "Vincy-Cheng"
   },

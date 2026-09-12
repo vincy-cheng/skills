@@ -29,7 +29,7 @@ The same install also gives you `/new-idea` — dev-flow's structured brainstorm
 Drives a feature **or fix** end-to-end:
 
 ```
-brainstorm → spec → plan → issue → execute (TDD) → review → PR → merge → distill
+brainstorm → spec → plan → issue → execute (TDD) → review → doc-fix → PR → merge → close-out
 ```
 
 Three guarantees:
@@ -45,7 +45,8 @@ Three guarantees:
 | `/new-idea` command | Scaffolds `ideas/<slug>/` with five docs (README, research, design, plan, tl-dr) + optional `cost.md` | Brainstorm an idea before committing to build it |
 | `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
 | `execute-tasks` skill | Step 5 — TDD loop, commit per task. Inline or subagent mode | Inside the flow |
-| `review` skill | Step 5.5 — pre-PR gate: tests green, spec covered, obvious issues | Inside the flow, or standalone |
+| `review` skill | Step 5.5 — pre-PR gate via a fresh reviewer subagent: tests green, spec covered, obvious issues | Inside the flow, or standalone |
+| `doc-fix` skill | Step 5.6 — pre-PR doc drift scan caused by this run; guided edits, ride in the PR as `docs:` commits | Inside the flow, or standalone |
 | `commit` skill | Conventional Commits from the diff, **no AI attribution** | Standalone, or per-task in step 5 |
 | `document-structure` skill | Builds/updates the target repo's agent docs under `docs/agents/` — tiny index + architecture/dev-ops maps + dynamic concern maps (testing, API, deployment, database, …) | Any repo, on demand |
 | `whats-new` skill | Summarizes what's new in a repo: shipped work (git + PRs/issues) + doc-vs-code drift. Never writes a changelog file | Any repo, on demand |
@@ -85,7 +86,8 @@ dev-flow/
     ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
     ├── execute-tasks/SKILL.md      # step 5: TDD loop, inline or subagent
     ├── new-idea/SKILL.md           # idea-folder scaffold: fixed slots + optional cost.md + draft plan
-    ├── review/SKILL.md             # step 5.5: pre-PR self-review gate
+    ├── review/SKILL.md             # step 5.5: pre-PR review via fresh subagent
+    ├── doc-fix/SKILL.md            # step 5.6: pre-PR doc-drift scan for this run's changes
     └── whats-new/SKILL.md          # "what's new" summary: history + doc-drift check
 ```
 
