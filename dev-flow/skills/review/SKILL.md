@@ -37,6 +37,8 @@ Spawn **one** fresh reviewer subagent (Agent tool) with the chosen model. It has
 5. **The review checklist** (steps 1–4 below) and the **verdict contract** (step 5) — paste them into the dispatch so the reviewer knows exactly what to check and what to return.
 6. **The report contract** — the reviewer writes its full findings to `docs/features/.review/<feat-name>/review-report.md` (gitignored, same folder as everything else) and **returns only**: the verdict (`green` / `yellow` / `red`), a one-line summary, and the counts (e.g. "2 yellow findings"). The orchestrator reads the report file if it needs the detail. Keeps the orchestrator's context clean — verdict and summary inline, detail in the file.
 
+**Re-review: archive, never overwrite.** Before dispatching, if `review-report.md` already exists (a prior round — a yellow/red verdict sent the run back to step 5, or a standalone re-run), rename it to `review-report-<n>.md` (increment: `-1`, `-2`, …). Each review round keeps its own record; `review-report.md` is always the latest.
+
 The reviewer subagent runs steps 1–5 below and returns the verdict. The orchestrator does **not** re-do the review — it trusts the verdict and acts on it.
 
 ## The review (run by the reviewer subagent)
@@ -135,11 +137,13 @@ The orchestrating session receives the verdict and acts — it does **not** seco
 - **Yellow** → surface the findings list (from the report file) to the user; let them decide fix-now vs. note-in-PR. Update **Last verification**. Still hand back to step 6.
 - **Red** → surface the blockers. Do **not** advance. Return to step 5 with the specific findings; the user fixes and re-runs review (a fresh reviewer subagent again).
 
-Keep the report at `docs/features/.review/<feat-name>/review-report.md` — it's the run's review record (gitignored, local only, like the spec and plan). Don't delete it; a later run or the user may want to look back at what the fresh reviewer found.
+Keep the report at `docs/features/.review/<feat-name>/review-report.md` — it's the run's review record (gitignored, local only, like the spec and plan). Don't delete it; a later run or the user may want to look back at what the fresh reviewer found. The next review round archives this one to `review-report-<n>.md` (see the report contract above) — never overwritten, never deleted.
 
 ## Standalone mode (outside dev-flow)
 
 When invoked without a state file: ask for the base branch (or infer from `git merge-base`), read the spec/plan if the user points to them, and dispatch the same fresh reviewer subagent (still ask for the model). Skip the gate. The orchestrator reports the verdict; the user decides what to do next.
+
+The report still needs a home with no feat-name to key it. Use the **branch name** as the report folder: `docs/features/.review/<branch-name>/review-report.md` (e.g. `feature/9-fix-crash` → `.review/feature-9-fix-crash/`, slashes flattened to dashes). If the report file already exists, archive it per the re-review rule above.
 
 ## What not to do
 
