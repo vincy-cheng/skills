@@ -198,12 +198,12 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 **Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (following `superpowers:test-driven-development`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 5.5.
 
 ## Step 5.5 — Review (gate before PR)
-**Gate:** `execute` → set `review`. Invoke `dev-flow:review` to run a pre-PR self-review: full test + lint gate, spec coverage, plan coverage, obvious-issue scan. It returns **green / yellow / red**:
+**Gate:** `execute` → set `review`. Invoke `dev-flow:review` to run a pre-PR review via a **fresh independent reviewer subagent** (fresh eyes, no author bias): it dispatches one subagent — asking the user for the reviewer model (default same as the orchestrator) — that runs the full test + lint gate, spec coverage, plan coverage, and obvious-issue scan, writes findings to a color-coded report file, and returns **green / yellow / red**:
 - **Green** → advance to step 6.
 - **Yellow** (minor findings, non-blocking) → surface the list; let the user decide fix-now vs. note-in-PR. Still advance to step 6.
-- **Red** (suite red, spec gap, real bug) → do **not** open the PR. Return to step 5 with the specific findings; fix and re-run review.
+- **Red** (suite red, spec gap, real bug) → do **not** open the PR. Return to step 5 with the specific findings; fix and re-run review (a fresh reviewer subagent again).
 
-This is the gate that makes the PR worth a human's review — it does not replace human review at the PR.
+This is the gate that makes the PR worth a human's review — it does not replace human review at the PR. The orchestrator acts on the reviewer's verdict; it does not re-do the review inline.
 
 ## Step 5.6 — Doc-fix (pre-PR)
 **Gate:** `review` → set `doc-fix`. The work is done and reviewed; before opening the PR, close the loop on docs the run itself may have invalidated. Find doc drift caused by *this* run — not a general audit.
