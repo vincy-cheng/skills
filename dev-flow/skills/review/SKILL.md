@@ -11,7 +11,7 @@ A pre-PR review gate: does the branch actually do what the spec said, are all te
 
 ## Gate (dev-flow, between step 5 and 6)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `execute` before reviewing. Don't advance the status here — step 6 sets `pr-review`. If the status isn't `execute`, stop — a step was skipped — and tell the user which step to run. No state file (standalone) → proceed without the gate; ask for the base branch if unclear.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `execute` before reviewing. Don't advance the status here — step 6 sets `pr-review`. If the status isn't `execute`, stop — a step was skipped — and tell the user which step to run. No state file (standalone) → see *Standalone mode* below.
 
 ## What you need
 
