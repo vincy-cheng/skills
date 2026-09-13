@@ -45,7 +45,7 @@ Three guarantees:
 | `/new-idea` command | Scaffolds `ideas/<slug>/` with five docs (README, research, design, plan, tl-dr) + optional `cost.md` | Brainstorm an idea before committing to build it |
 | `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
 | `execute-tasks` skill | Step 5 — TDD loop, commit per task. Inline or subagent mode | Inside the flow |
-| `review` skill | Step 5.5 — pre-PR gate via a fresh reviewer subagent: tests green, spec covered, obvious issues | Inside the flow, or standalone |
+| `review` skill | Step 5.5 — pre-PR gate via a fresh reviewer subagent: tests green, spec covered, obvious issues (bugs, security smells, test honesty), maintainability (structure, coupling, naming, complexity, duplication) | Inside the flow, or standalone |
 | `doc-fix` skill | Step 5.6 — pre-PR doc drift scan caused by this run; guided edits, ride in the PR as `docs:` commits | Inside the flow, or standalone |
 | `commit` skill | Conventional Commits from the diff, **no AI attribution** | Standalone, or per-task in step 5 |
 | `document-structure` skill | Builds/updates the target repo's agent docs under `docs/agents/` — tiny index + architecture/dev-ops maps + dynamic concern maps (testing, API, deployment, database, …) | Any repo, on demand |
