@@ -49,6 +49,8 @@ Add as top-level `##` sections, in this order:
 
 When in doubt, prefer a tight issue over a complete-looking one. Short and honest triages better than long and padded.
 
+**No AI attribution.** The issue title and body read as if the human author wrote them: no model names, no "generated with", no AI attribution trailers. Same policy as the `commit` skill.
+
 ## Labels
 
 Let the user pick — don't assume. After showing the draft, fetch the repo's current labels (hardcoding goes stale):
@@ -103,3 +105,4 @@ You don't create the state file (step 1 does). Touch it only if it exists, and o
 - Don't invent references; if no spec/plan exists, say so rather than linking a dead path.
 - Don't add suggested sections reflexively — a section that says "N/A" is noise that trains readers to skip sections.
 - Don't hardcode the label list — fetch it. Repos drift.
+- Don't mention or attribute any AI model, assistant, or tool in the issue title or body — it reads as if the human author wrote it (same policy as commit).
