@@ -253,6 +253,7 @@ Look at:
 Rules:
 - **Show the user any proposed memory update before applying** — close-out is guided, not fire-and-forget.
 - **No memory update needed** → say so plainly and mark the run `done`. Don't invent edits to justify the step.
+- **Ask before deleting the branch** — after the merge, offer to clean up: `git branch -d <branch>` locally (safe post-merge) and `git push origin --delete <branch>` for the remote. Only with the user's yes; a declined offer is a normal outcome, not a failure.
 - **Never commit `docs/features/`** — still gitignored.
 
 When done, the run is `done` — fully closed. The state file and index row stay as history.
