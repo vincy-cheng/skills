@@ -26,10 +26,10 @@ The same install also gives you `/new-idea` — dev-flow's structured brainstorm
 
 ## Plugin: `dev-flow`
 
-Drives a feature **or fix** end-to-end:
+Drives a feat **or fix** end-to-end:
 
 ```
-brainstorm → spec → plan → issue → execute (TDD) → review → doc-fix → PR → merge → close-out
+brainstorm → spec → plan → issue → execute (TDD) → test → review → doc-fix → PR → merge → close-out
 ```
 
 Three guarantees:
@@ -73,7 +73,7 @@ Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by 
 
 ## Acknowledgements
 
-`dev-flow` builds on [obra/superpowers](https://github.com/obra/superpowers) (available in Claude Code's official plugin marketplace). Dev-flow reuses three of its skills — `brainstorming`, `writing-plans`, and `test-driven-development` — as sub-steps inside its own pipeline, and adds its own `execute-tasks`, `review`, `create-github-issue`, and `commit` skills so all artifacts stay under `docs/features/` with no `.superpowers/` workspace. Many thanks to the creator and maintainers of superpowers — dev-flow leans on their work for brainstorming, planning, and TDD.
+`dev-flow` builds on [obra/superpowers](https://github.com/obra/superpowers) (available in Claude Code's official plugin marketplace). Dev-flow reuses three of its skills — `brainstorming`, `writing-plans`, and `test-driven-development` — as sub-steps inside its own pipeline, and adds its own `execute-tasks`, `test`, `review`, `doc-fix`, `open-pr`, `create-github-issue`, and `commit` skills so all artifacts stay under `docs/features/` with no `.superpowers/` workspace. Many thanks to the creator and maintainers of superpowers — dev-flow leans on their work for brainstorming, planning, and TDD.
 
 ## Repo layout
 

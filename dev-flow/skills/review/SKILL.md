@@ -18,7 +18,6 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 - The **spec** at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — source of truth.
 - The **plan** at `docs/features/plans/YYYY-MM-DD-<feat-name>.md` — task breakdown.
 - The **base branch** (usually `dev`). If unclear, ask — reviewing against the wrong base makes the diff meaningless.
-- The repo's test + lint commands.
 
 ## The verifier model (mode-split)
 
@@ -37,7 +36,7 @@ Spawn **one** fresh reviewer subagent (Agent tool) with the chosen model. It has
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
 
-The reviewer runs steps 1–6 and returns the verdict. The orchestrator does **not** re-do the review — it trusts the verdict and acts on it.
+The reviewer runs steps 1–4 and the verdict contract (step 5), then returns the verdict. The orchestrator does **not** re-do the review — it trusts the verdict and acts on it.
 
 ## The review (run by the reviewer subagent)
 

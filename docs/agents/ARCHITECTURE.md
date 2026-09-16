@@ -1,10 +1,10 @@
 # Architecture
 
-One Claude Code plugin — `dev-flow` — a workflow orchestrator driving a feature or fix end-to-end. No app code: every file is Markdown for AI agents. `CLAUDE.md` is a symlink to `AGENTS.md`.
+One Claude Code plugin — `dev-flow` — a workflow orchestrator driving a feat or fix end-to-end. No app code: every file is Markdown for AI agents. `CLAUDE.md` is a symlink to `AGENTS.md`.
 
 ## Plugin layout
 
-- `dev-flow/.claude-plugin/plugin.json` — metadata (version `2.3.0`, `peerDependencies: superpowers`).
+- `dev-flow/.claude-plugin/plugin.json` — metadata (version `0.1.0`, `peerDependencies: superpowers`).
 - `dev-flow/commands/` — slash commands (YAML `description` + body, `$ARGUMENTS`): `new-feature.md` (`/new-feature`, the orchestrator), `new-idea.md` (`/new-idea`).
 - `dev-flow/skills/` — skills (YAML `name`/`description` + body): `commit/` (Conventional Commits, no AI attribution), `create-github-issue/` (step 4), `execute-tasks/` (step 5, TDD loop — inline or subagent), `test/` (step 6), `review/` (step 7), `doc-fix/` (step 8), `open-pr/` (step 9), `document-structure/` + `whats-new/` + `new-idea/` (standalone).
 

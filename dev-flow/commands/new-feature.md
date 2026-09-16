@@ -21,7 +21,7 @@ Run each step before the next. Pause at the natural checkpoints (after spec, aft
 
 ## Peer dependency — superpowers
 
-Invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development` as sub-steps; runs its own `dev-flow:execute-tasks`, `dev-flow:review`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the three `superpowers:*` skills.
+Invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development` as sub-steps; runs its own `dev-flow:execute-tasks`, `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the three `superpowers:*` skills.
 
 **Missing-superpowers check — run at the start of every step that invokes a `superpowers:*` skill (steps 1, 3, 5):** if the skill is unavailable, **stop before doing any other work** and tell the user, in plain language:
 
