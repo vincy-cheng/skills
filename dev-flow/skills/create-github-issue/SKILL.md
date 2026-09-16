@@ -5,7 +5,7 @@ description: Use whenever the user wants to create, open, file, or draft a GitHu
 
 # Create a GitHub issue
 
-**Step 4 of dev-flow.** Turns the spec + plan into a tracked GitHub issue, published with `gh`. Steps 1–3 may have produced `docs/features/specs/` and `docs/features/plans/`; this skill translates that material into a self-contained issue. Branch for step 5 is `feature/<n>-<name>` (or `fix/<n>-<name>` off `dev`).
+**Step 4 of dev-flow.** Turns the spec + plan into a tracked GitHub issue, published with `gh`. Steps 1–3 may have produced `docs/features/specs/` and `docs/features/plans/`; this skill translates that material into a self-contained issue. Branch for step 5 is `feat/<n>-<name>` (or `fix/<n>-<name>` off `dev`).
 
 ## Gate check
 
@@ -76,13 +76,13 @@ EOF
 
 ## Branches
 
-Step 9's PR is on `main` → `dev` → `feature/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off `dev`, not `main`. Use `fix/` when the state file's **Kind** is `fix`, else `feature/`. If `dev` doesn't exist, ask before doing anything: create it off the default branch (`git checkout -b dev && git push -u origin dev`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
+Step 9's PR is on `main` → `dev` → `feat/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off `dev`, not `main`. Use `fix/` when the state file's **Kind** is `fix`, else `feat/`. If `dev` doesn't exist, ask before doing anything: create it off the default branch (`git checkout -b dev && git push -u origin dev`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
 
-> "Issue #NN created. Want me to create a `feature/NN-<name>` (or `fix/NN-<name>`) branch off `dev` and switch to it?"
+> "Issue #NN created. Want me to create a `feat/NN-<name>` (or `fix/NN-<name>`) branch off `dev` and switch to it?"
 
 If accepted:
 ```bash
-git checkout dev && git pull --ff-only origin dev && git checkout -b feature/NN-<name>
+git checkout dev && git pull --ff-only origin dev && git checkout -b feat/NN-<name>
 # or, for a fix:
 git checkout dev && git pull --ff-only origin dev && git checkout -b fix/NN-<name>
 ```
@@ -94,7 +94,7 @@ git checkout dev && git pull --ff-only origin dev && git checkout -b fix/NN-<nam
 If a state file exists, update it as part of step 4:
 - Set **Goal status** to `issue`; leave it for step 5 to advance.
 - Record `Issue: #NN` in References (replace `_(pending)_`).
-- If the user accepts the branch, set **Base branch** to `feature/NN-<name>` or `fix/NN-<name>`; **Target branch** stays `dev`.
+- If the user accepts the branch, set **Base branch** to `feat/NN-<name>` or `fix/NN-<name>`; **Target branch** stays `dev`.
 - Bump **Updated**.
 
 You don't create the state file (step 1 does). Touch it only if it exists, and only the fields above.

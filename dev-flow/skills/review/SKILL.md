@@ -137,7 +137,7 @@ Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the 
 
 No state file: ask for the base branch (or infer from `git merge-base`), read the spec/plan if the user points to them, dispatch the same fresh reviewer subagent (still ask for the model). Skip the gate. Report the verdict; the user decides next steps.
 
-Report home without a feat-name: the **branch name** — `docs/features/.review/<branch-name>/review-report.md` (slashes flattened to dashes: `feature/9-fix-crash` → `.review/feature-9-fix-crash/`). Archive existing reports per the re-review rule.
+Report home without a feat-name: the **branch name** — `docs/features/.review/<branch-name>/review-report.md` (slashes flattened to dashes: `feat/9-fix-crash` → `.review/feat-9-fix-crash/`). Archive existing reports per the re-review rule.
 
 ## What not to do
 

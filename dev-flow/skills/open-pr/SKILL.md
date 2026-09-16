@@ -14,7 +14,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 ## What you need
 
 - The **base branch** — `dev` (the PR target; never `main`).
-- The **branch name** — `feature/<n>-<name>` / `fix/<n>-<name>`.
+- The **branch name** — `feat/<n>-<name>` / `fix/<n>-<name>`.
 - The **issue number** — from the state file's References.
 - The state file's **References** — spec/plan paths are local-only (`docs/features/` is gitignored); their substance is summarized into the PR body, never linked.
 
@@ -84,7 +84,7 @@ No state file → open a PR for the current branch against its base (ask which b
 
 - **Don't merge** — step 10 is manual, by the human. This skill opens PRs; it never merges.
 - **Don't open before the user confirms the body** — a PR is outward-facing.
-- **Don't target `main`** — PRs target `dev` (branch flow `main` → `dev` → `feature/<n>-<name>`).
+- **Don't target `main`** — PRs target `dev` (branch flow `main` → `dev` → `feat/<n>-<name>`).
 - **Don't commit `docs/features/`** — gitignored; the commit guard checks before pushing.
 - **No AI attribution** in the PR body — no model names, no "generated with", no trailers.
 - **Don't auto-close the issue** — the PR targets `dev`, so closing keywords don't auto-close on merge; close explicitly in step 10 or 11 if intended.

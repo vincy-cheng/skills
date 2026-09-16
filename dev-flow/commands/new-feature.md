@@ -69,7 +69,7 @@ Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → 
 
 **Sub-skill handoffs — ignore them; return to the next dev-flow step:**
 - `brainstorming` finishes → **step 2 (spec)**, not its handoff to writing-plans.
-- `writing-plans` finishes → **step 4 (create issue)**, not its Execution Handoff. The issue must exist first (the branch is named `feature/<n>-<name>` or `fix/<n>-<name>`).
+- `writing-plans` finishes → **step 4 (create issue)**, not its Execution Handoff. The issue must exist first (the branch is named `feat/<n>-<name>` or `fix/<n>-<name>`).
 - Gate check fails → STOP and resume from the status the state file names. Don't "helpfully" follow the sub-skill.
 
 The state file is the single source of truth for "what step am I on." On any doubt or ambiguity: run the gate check.
@@ -123,7 +123,7 @@ Field rules:
 
 | Feat-name | Kind | Status | Issue | Updated | Branch |
 |-----------|------|--------|-------|---------|--------|
-| <feat-name> | feature | execute | — | YYYY-MM-DD HH:MM±HH:MM | feature/42-x |
+| <feat-name> | feature | execute | — | YYYY-MM-DD HH:MM±HH:MM | feat/42-x |
 | <feat-name> | fix | done | #17 | YYYY-MM-DD HH:MM±HH:MM | fix/17-y |
 ```
 
@@ -214,7 +214,7 @@ flowchart TD
 Keep it honest: every task node matches a `### Task N` heading, every file under a node appears in that task's `**Files:**` block. Update the chart in the same edit if a task is added/removed. A stale flow chart is worse than none.
 
 ## Step 4 — Create issue
-**Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feature/<n>-<name>` (or `fix/<n>-<name>`) branch off `dev`; update the state file's base branch and record the issue number in References.
+**Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feat/<n>-<name>` (or `fix/<n>-<name>`) branch off `dev`; update the state file's base branch and record the issue number in References.
 
 ## Step 5 — Execute tasks (TDD)
 **Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (following `superpowers:test-driven-development`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 6.
@@ -259,7 +259,7 @@ Rules:
 When done, the run is `done` — fully closed. The state file and index row stay as history.
 
 ## Notes
-- No `dev` branch → ask the user: create `dev` off the default branch (push it, then branch `feature/...`/`fix/...` off it), or run everything off the default branch. Don't silently pick.
+- No `dev` branch → ask the user: create `dev` off the default branch (push it, then branch `feat/...`/`fix/...` off it), or run everything off the default branch. Don't silently pick.
 - Keep the user in the loop at each checkpoint; this is guided, not fire-and-forget.
 - The state files are the source of truth for resuming — keep them honest. A stale state file is worse than none.
 - The hard gate is the backbone. If you're doing step N's work while the state file is at a different status, stop and fix the state file first.
