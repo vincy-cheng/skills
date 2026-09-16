@@ -73,4 +73,4 @@ Strip any AI attribution another process injected. Don't add trailers unless the
 - **No process narration** ("wrote tests then implemented") — describe the change ("add retry with backoff to upload client").
 - **No staging `docs/features/`** — if it appears untracked, gitignore drifted; fix the ignore, don't commit the file.
 - **No empty commits** unless the user asks.
-- **No pushing** — this skill commits only. Push is dev-flow step 6, separately gated.
+- **No pushing** — this skill commits only. Push is dev-flow step 9, separately gated.

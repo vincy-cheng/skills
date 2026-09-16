@@ -36,6 +36,8 @@ Signal to read: **task count**, **file spread** (how many files the tasks touch)
 
 Example recommendation: "4 tasks, all in `new-feature.md` (one file, tightly coupled — each edit builds on the prior's wording) → inline. Override to subagent?" Then honor the user's choice.
 
+**Implementer model (subagent mode only).** When the user picks **subagent mode**, also ask the **Implementer model** (default: same as the current session) and write it to the state file's **Model picks** block — one pick for all per-task implementer subagents. Inline mode → write `_(inline — not asked)_` to the **Model picks** block. This is the Build phase's one model pick; the Verify phase's **Verifier model** is asked separately at step 6.
+
 The rest of this skill has a shared core (state-file updates, stuck handling, after-all-tasks) plus a per-task loop that differs by mode.
 
 ## Shared: state-file updates (both modes)
@@ -89,8 +91,8 @@ Keep your own context clean: everything you paste into a dispatch and everything
 
 - Run the **full test + lint suite** one more time. Update **Last verification** — this is the green signal the next step (review → PR) relies on.
 - In subagent mode: delete `docs/features/.sdd/<feat-name>/` — the git history is the record now.
-- Do **not** open the PR here — that's dev-flow step 6. Do **not** invoke `superpowers:finishing-a-development-branch` — this workflow's merge is manual (step 7), not a local merge.
-- Hand back to `/new-feature`: it invokes `dev-flow:review` next, then advances to step 6.
+- Do **not** open the PR here — that's dev-flow step 9. Do **not** invoke `superpowers:finishing-a-development-branch` — this workflow's merge is manual (step 10), not a local merge.
+- Hand back to `/new-feature`: it invokes `dev-flow:test` (step 6) next, then `dev-flow:review` (step 7), then advances to step 8.
 
 ## What not to do
 
@@ -98,5 +100,5 @@ Keep your own context clean: everything you paste into a dispatch and everything
 - **No staging or committing `docs/features/`** — state, spec, plan, and subagent briefs/reports are gitignored; if untracked shows, gitignore drifted — fix the ignore, don't commit.
 - **No skipping verify-RED** — if you didn't watch the test fail (inline) or the implementer's report doesn't show it failing first (subagent), you don't know it tests the right thing.
 - **No committing a red task** — tests must be green before the commit.
-- **No pushing** — this skill commits only. Push is step 6.
+- **No pushing** — this skill commits only. Push is step 9.
 - **No parallel implementers** (subagent mode) — one task at a time; they'd conflict.
