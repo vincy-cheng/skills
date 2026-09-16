@@ -1,16 +1,16 @@
 # Architecture
 
-One Claude Code plugin — `dev-flow` — a workflow orchestrator driving a feature or fix end-to-end. No app code: every file is Markdown for AI agents. `CLAUDE.md` is a symlink to `AGENTS.md`.
+One Claude Code plugin — `dev-flow` — a workflow orchestrator driving a feat or fix end-to-end. No app code: every file is Markdown for AI agents. `CLAUDE.md` is a symlink to `AGENTS.md`.
 
 ## Plugin layout
 
-- `dev-flow/.claude-plugin/plugin.json` — metadata (version `2.3.0`, `peerDependencies: superpowers`).
+- `dev-flow/.claude-plugin/plugin.json` — metadata (version `0.1.0`, `peerDependencies: superpowers`).
 - `dev-flow/commands/` — slash commands (YAML `description` + body, `$ARGUMENTS`): `new-feature.md` (`/new-feature`, the orchestrator), `new-idea.md` (`/new-idea`).
-- `dev-flow/skills/` — skills (YAML `name`/`description` + body): `commit/` (Conventional Commits, no AI attribution), `create-github-issue/` (step 4), `execute-tasks/` (step 5, TDD loop — inline or subagent), `review/` (step 5.5), `document-structure/` + `whats-new/` + `new-idea/` (standalone).
+- `dev-flow/skills/` — skills (YAML `name`/`description` + body): `commit/` (Conventional Commits, no AI attribution), `create-github-issue/` (step 4), `execute-tasks/` (step 5, TDD loop — inline or subagent), `test/` (step 6), `review/` (step 7), `doc-fix/` (step 8), `open-pr/` (step 9), `document-structure/` + `whats-new/` + `new-idea/` (standalone).
 
 ## The pipeline
 
-`/new-feature` orchestrates. Steps: 1 brainstorm → 2 spec → 3 plan → 4 create issue → 5 execute (TDD) → 5.5 review → 5.6 doc-fix → 6 PR → 7 merge (manual) → 8 close-out. Status lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `review` → `doc-fix` → `pr-review` → `merged` → `done`.
+`/new-feature` orchestrates 11 steps in 4 phases — plan (1 brainstorm → 2 spec → 3 plan → 4 create issue), build (5 execute TDD), verify (6 test → 7 review → 8 doc-fix), ship (9 PR → 10 merge manual → 11 close-out). Status lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `test` → `review` → `doc-fix` → `pr-review` → `merged` → `done`.
 
 ## The hard gate (backbone)
 

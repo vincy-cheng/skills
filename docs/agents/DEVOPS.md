@@ -8,7 +8,7 @@ No dependencies to install. To use the plugin (separate from editing it): instal
 
 ## Git workflow
 
-- Branches: `dev` is the integration branch; PRs target `dev`, never `main`. Feature/fix branches: `feature/<issue>-<name>` or `fix/<issue>-<name>` off `dev`.
+- Branches: `dev` is the integration branch; PRs target `dev`, never `main`. Feat/fix branches: `feat/<issue>-<name>` or `fix/<issue>-<name>` off `dev`.
 - No `dev` branch → ask the user: create it off the default branch, or run off the default branch. Don't silently pick.
 - Published to `github.com/vincy-cheng/skills`.
 

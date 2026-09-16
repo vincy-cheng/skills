@@ -11,7 +11,7 @@ One Claude Code plugin (`dev-flow`), a workflow orchestrator. No app code — Ma
 
 ## Quick facts
 
-- **Plugin:** `dev-flow` v2.3.0, peer-depends on `superpowers`.
+- **Plugin:** `dev-flow` v0.1.0, peer-depends on `superpowers`.
 - **Orchestrator:** `dev-flow/commands/new-feature.md` (`/new-feature`) — the step sequence and the hard gate.
 - **No test suite / no build / no linter** — verification is read-through + grep.
 - **Commits:** Conventional Commits, **no AI attribution**; docs as separate `docs:` commits. Details: DEVOPS.md.
