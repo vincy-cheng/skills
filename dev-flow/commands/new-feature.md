@@ -93,6 +93,8 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 - **Goal status:** <status>
 - **Kind:** feature | fix
 - **Last verification:** YYYY-MM-DD HH:MM±HH:MM — <test cmd> <passed|failed>, <lint cmd> <clean|warnings>
+- **Implementer model:** <model or _(inline — not asked)_>
+- **Verifier model:** <model or _(not asked yet)_>
 
 ## Tasks
 - [ ] <task description>
@@ -110,6 +112,7 @@ Field rules:
 - **Goal status** — the gate's input; set to the current step *before* the work.
 - **Kind** — `feature` or `fix`, set in step 1 from intent. Drives the branch prefix and issue framing. Ambiguous → ask; default `feature`.
 - **Last verification** — most recent test + lint result during execute (the repo's commands). The resume signal: "was it green when I stopped?" `_(not run yet)_` until first run.
+- **Implementer model** / **Verifier model** — subagent model picks, one per phase that dispatches subagents. **Implementer model** is asked and written by `execute-tasks` (with its mode question, subagent mode only; `_(inline — not asked)_` when execute ran inline). **Verifier model** is asked and written by the orchestrator at step 6 (default: same as orchestrator), shared by tester + reviewer. On resume, read from the state file; if absent, re-ask.
 - **Tasks** — mirrors the plan's task list as `- [ ]` / `- [x]`; flip on every status change. Live progress; the plan doc is static design. Annotate a task `— ⚠ test failing: <reason>` only when its test exists and is currently red; clear when green. Don't annotate passing/pending tasks — a `[x]` already means its test passed.
 - **References** — spec (step 2), plan (step 3), issue (step 4), PR (step 9). Test (step 6) and review (step 7) add no reference. Replace `_(pending)_` with the real value when it exists.
 
@@ -162,6 +165,14 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 ## Step 1 — Brainstorm
 **Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch) and add the index row. Set **Kind** from intent (ask if ambiguous). Invoke `superpowers:brainstorming` to explore intent, requirements, design. Don't write code. Brainstorming will hand off to `writing-plans` — **don't follow it**; advance to step 2.
 
+**Interview before brainstorming (always, except idea-folder ingestion).** After creating the state file, ask the user directly, one question at a time:
+1. What problem are we solving?
+2. Feature or fix? (sets **Kind** — always asked, not just when ambiguous)
+3. Scope boundaries — what's in, what's out?
+4. What does success look like?
+
+Answers become the brief handed to `superpowers:brainstorming` — it refines design against the codebase; the interview anchors it.
+
 **Idea-folder ingestion — run when arguments reference an idea folder.** If `$ARGUMENTS` contains a path to an existing idea folder (`ideas/[<project>/]<slug>/`, from `/new-idea`) or names one that exists, read its docs **before** invoking brainstorming and treat them as the established brief — don't re-derive what's settled (folder has five required docs; a sixth `cost.md` may be present if the user opted into cost research — read it if present, proceed without it if not):
 
 - `README.md` → problem/goal — the starting brief, carried forward.
@@ -171,6 +182,8 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 - `research.md`, `tl-dr.md` → background; load on demand.
 
 Record the folder path in the state file's References. Brainstorming still runs — it validates and refines the draft against the current codebase rather than exploring from zero. If the path doesn't exist, say so and proceed as a normal fresh start.
+
+**Interview trim for idea folders:** when arguments reference an idea folder, its docs are already the brief — the interview is trimmed to confirmation, not fresh questions. Restate the problem/kind/scope/success as read from the folder's README/design/plan and ask only "did I read this right?" plus anything the docs leave genuinely open.
 
 ## Step 2 — Spec (local only)
 **Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. **If `superpowers:brainstorming` already wrote a design doc under `docs/superpowers/specs/`, move it to `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md`** (brainstorming defaults to `docs/superpowers/specs/`; dev-flow keeps everything under `docs/features/`). If not yet written, write it there directly. Local reference, not published. Add the path to References; show the user. Verify it's gitignored before moving on.
