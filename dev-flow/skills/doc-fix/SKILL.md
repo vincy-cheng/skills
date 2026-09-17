@@ -1,6 +1,6 @@
 ---
 name: doc-fix
-description: Use to fix doc drift caused by the current run before opening its PR — dev-flow step 8. Scans this plugin's docs and the target repo's docs for text the run's changes just invalidated (behavior described the old way, a new convention not documented), shows the proposed edits for user confirmation, then commits them as docs: commits riding in the PR. Also runs standalone on any branch ("fix the doc drift", "update the docs for this branch") with the same drift-scan against the branch's diff. No drift → honest no-op pass. Not a general doc audit — only drift this run caused.
+description: Use to fix doc drift caused by the current run before opening its PR — dev-flow step 8. Scans this plugin's docs and the target repo's docs for text the run's changes just invalidated (behavior described the old way, a new convention not documented), shows the proposed edits for user confirmation, then commits them as docs: commits riding in the PR. If the target repo has no docs/agents/ tree, generates one via document-structure (skip if declined). Also runs standalone on any branch ("fix the doc drift", "update the docs for this branch") with the same drift-scan against the branch's diff. No drift → honest no-op pass. Not a general doc audit — only drift this run caused.
 ---
 
 # Doc-fix
@@ -17,6 +17,10 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 2. **The target repo's docs** — `AGENTS.md`/`README`/arch docs in the repo the feature landed in. Did the change add a new module, command, or convention the docs should mention?
 
 The scan scope is the **run's diff** (`git diff <base>...HEAD`), not the whole repo — drift caused by *this* run. If a piece of drift predates the run, note it to the user but don't fix it here; that's the `dev-flow:whats-new`/`document-structure` territory.
+
+## Missing docs/agents/ tree
+
+If the target repo has no `docs/agents/` directory at all, don't treat that as "no drift" — generate the tree once via `dev-flow:document-structure` (index + core maps; deep-detail files optional). The tree ships in this run's PR as `docs:` commits, so the repo's agent-facing docs exist from the first PR onward. Still guided: show the proposed files before writing, and skip the generation if the user declines (then it's an honest no-op for them to run standalone later). If a tree already exists, do not regenerate it — treat it as drift territory only.
 
 ## Rules
 
