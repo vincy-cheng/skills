@@ -61,7 +61,7 @@ Emoji — renders in terminal + GitHub markdown, where ANSI doesn't.
 - 🟫 **4. Maintainability** — structure, coupling, naming, complexity, duplication
 - 🟥 **Findings** (only when blue/yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
 
-Example (yellow):
+Example (blue):
 
 ```markdown
 # Review report — <feat-name>
@@ -116,7 +116,7 @@ Read the changed code in place (open the files, not just the diff hunks) — wha
 - **Complexity** — deep nesting, long functions, branching a simpler shape would kill.
 - **Duplication** — logic copied from elsewhere in the codebase (diff-only reading misses this).
 
-Report findings with file:line and a concrete suggested shape ("extract X into Y") — suggest, don't fix. Can be yellow or red; severity is the reviewer's judgment.
+Report findings with file:line and a concrete suggested shape ("extract X into Y") — suggest, don't fix. Can be blue, yellow, or red; severity is the reviewer's judgment.
 
 ### 5. Verdict
 
