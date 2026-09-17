@@ -48,8 +48,9 @@ Emoji — renders in terminal + GitHub markdown, where ANSI doesn't.
 
 **Verdict header** (one line at the top of the report):
 
-- 🟢 **GREEN** — ready for PR
-- 🟡 **YELLOW** — minor findings, non-blocking
+- 🟢 **GREEN** — clean, ready for PR
+- 🟦 **BLUE** — trivial findings, not worth a loop; noted for the PR, no prompt
+- 🟡 **YELLOW** — findings that should be fixed; pause and ask (fix recommended)
 - 🔴 **RED** — blocker, do not open PR
 
 **Section titles** (distinct color per section):
@@ -58,13 +59,13 @@ Emoji — renders in terminal + GitHub markdown, where ANSI doesn't.
 - 🟪 **2. Plan coverage** — task → matching change; lies flagged
 - 🟧 **3. Obvious-issue scan** — bugs / security / leftover / naming
 - 🟫 **4. Maintainability** — structure, coupling, naming, complexity, duplication
-- 🟥 **Findings** (only when yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
+- 🟥 **Findings** (only when blue/yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
 
-Example (yellow):
+Example (blue):
 
 ```markdown
 # Review report — <feat-name>
-🟡 YELLOW — 2 minor findings, non-blocking
+🟦 BLUE — 2 trivial findings, not worth a loop; noted for the PR
 
 🟦 1. Spec coverage
    - All spec requirements map to tasks + code. No gaps.
@@ -78,6 +79,8 @@ Example (yellow):
 🟥 Findings
    1. [minor] review/SKILL.md:42 — wording says "self-review" in one spot; should say "fresh subagent".
    2. [minor] README.md:48 — stale description; doesn't mention subagent dispatch.
+
+   (Blue advances to doc-fix with no prompt — findings noted for the PR body.)
 ```
 
 ### 1. Spec coverage
@@ -113,14 +116,17 @@ Read the changed code in place (open the files, not just the diff hunks) — wha
 - **Complexity** — deep nesting, long functions, branching a simpler shape would kill.
 - **Duplication** — logic copied from elsewhere in the codebase (diff-only reading misses this).
 
-Report findings with file:line and a concrete suggested shape ("extract X into Y") — suggest, don't fix. Can be yellow or red; severity is the reviewer's judgment.
+Report findings with file:line and a concrete suggested shape ("extract X into Y") — suggest, don't fix. Can be blue, yellow, or red; severity is the reviewer's judgment.
 
 ### 5. Verdict
 
 Return one of (verdict inline, detail in the report file):
 
 - **Green** — step 6's test gate already green; spec covered, no obvious issues. Ready for step 8.
-- **Yellow** — minor, non-blocking findings. List them; recommend fixing before the PR; let the user decide fix-now vs. note-in-PR. Still hand back to step 8.
+- **Blue** — trivial findings, not worth a loop. List them in the report; no prompt. Note the findings for the PR body; advance to step 8.
+- **Yellow** — findings that should be fixed. Surface **all** of them and ask the user: fix now (recommended) vs. note-in-PR.
+  - **Fix now** → orchestrator re-sets the status to `execute` (red-loop rewind); return to step 5 with the findings; fix, then re-run test (step 6) and review (step 7) with fresh subagents.
+  - **Note in PR** → note the findings for the PR body; advance to step 8.
 - **Red** — a blocker (spec gap, missing task, real bug). Do **not** open the PR. Return to step 5 with the findings; fix and re-run review.
 
 ## Act on the verdict (orchestrator)
@@ -128,7 +134,8 @@ Return one of (verdict inline, detail in the report file):
 The orchestrator acts on the verdict — it does not re-run the review:
 
 - **Green** → hand back to `/new-feature` for step 8 (doc-fix).
-- **Yellow** → surface the findings; let the user decide fix-now vs. note-in-PR. Still hand back to step 8.
+- **Blue** → note the findings for the PR body; hand back to step 8. No prompt.
+- **Yellow** → surface the findings; ask the user with **fix now recommended**. Fix now → re-set the status to `execute` (red-loop rewind), return to step 5 with the findings; test (step 6) and review (step 7) re-run with fresh subagents. Note-in-PR → note the findings for the PR body; hand back to step 8.
 - **Red** → surface the blockers. Do not advance. Re-set the status to `execute` (red-loop rewind); return to step 5 with the findings; the user fixes and re-runs test (step 6) then review (step 7) with fresh subagents.
 
 Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule.
