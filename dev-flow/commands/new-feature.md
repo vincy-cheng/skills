@@ -233,7 +233,7 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 This is the gate that makes the PR worth a human's review — it does not replace human review at the PR. The orchestrator acts on the reviewer's verdict; it does not re-do the review inline.
 
 ## Step 8 — Doc-fix (pre-PR)
-**Gate:** `review` → set `doc-fix`. Invoke `dev-flow:doc-fix` to scan for doc drift caused by *this* run — this plugin's docs and the target repo's docs — guided (edits shown before applying), committed as `docs:` so they ride in the PR. It returns a verdict:
+**Gate:** `review` → set `doc-fix`. Invoke `dev-flow:doc-fix` to scan for doc drift caused by *this* run — this plugin's docs and the target repo's docs — guided (edits shown before applying), committed as `docs:` so they ride in the PR. If the target repo has no `docs/agents/` tree at all, doc-fix generates one via `dev-flow:document-structure` (skip if the user declines). It returns a verdict:
 - **No drift** → no-op pass; advance to step 9.
 - **Drift found** → show the proposed edits; on confirmation, apply and commit as `docs:`; advance to step 9.
 - **Drift reveals a deeper code issue** → STOP; don't open a PR with known-bad docs (mirrors review's red). Re-set the status to `execute`; return to step 5.
