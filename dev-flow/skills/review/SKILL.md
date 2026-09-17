@@ -59,7 +59,7 @@ Emoji — renders in terminal + GitHub markdown, where ANSI doesn't.
 - 🟪 **2. Plan coverage** — task → matching change; lies flagged
 - 🟧 **3. Obvious-issue scan** — bugs / security / leftover / naming
 - 🟫 **4. Maintainability** — structure, coupling, naming, complexity, duplication
-- 🟥 **Findings** (only when yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
+- 🟥 **Findings** (only when blue/yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
 
 Example (yellow):
 
