@@ -1,6 +1,6 @@
 {
   "name": "dev-flow",
-  "description": "Drives a dev workflow end-to-end (feats or fixes) in 4 phases — plan, build, verify, ship: brainstorm → spec → plan → create GitHub issue → execute (TDD) → test → review → doc-fix → open PR → manual merge → close-out. Own execute-tasks, test, review, doc-fix, open-pr, create-github-issue, commit, and new-idea skills plus /new-feature and /new-idea commands. Depends on superpowers for brainstorming, writing-plans, and test-driven-development.",
+  "description": "Drives a dev workflow end-to-end (feats or fixes) in 4 phases — plan, build, verify, ship: brainstorm → spec → plan → create GitHub issue → execute (TDD) → test → review → doc-fix → open PR → manual merge → close-out. Own tdd, execute-tasks, test, review, doc-fix, open-pr, create-github-issue, commit, and new-idea skills plus /new-feature and /new-idea commands. Depends on superpowers for brainstorming and writing-plans; TDD loop is dev-flow's own tdd skill.",
   "version": "0.1.0",
   "author": {
     "name": "Vincy-Cheng"
