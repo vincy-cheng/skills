@@ -47,7 +47,8 @@ Steps 1 and 3 invoke superpowers skills with their **own** handoff instructions 
 1. Read `docs/features/.feature-states/<feat-name>.state.md`.
 2. Compare **Goal status** to the status this step requires (table below).
 3. Match → proceed. No match → STOP; tell the user the current status and the step it maps to, and resume from there. Do **not** do the current step's work.
-4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step. **A status change is two writes, done together in one breath: the state file's Goal status and the index row** (see *Index file*) — add or update the feat's row with the new status + timestamp, re-sort newest-first. One without the other is an incomplete step. Step 1 adds the row; later steps update it.
+4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step.
+   A status change is **two writes, done together in one breath**: the state file's Goal status and the index row (see *Index file*) — new status + timestamp, re-sort newest-first. One without the other is an incomplete step. Step 1 adds the row; later steps update it.
 
 Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `test` → `review` → `doc-fix` → `pr-review` → `merged` → `done`. A step runs only on the immediately preceding status and advances only to the next when done. `test` is the fresh-subagent test gate (step 6); `review` the judgment review (step 7); `doc-fix` the pre-PR doc drift gate (step 8). `merged` means "shipped, close-out pending" — the crash-resume safety net between "user confirmed merge" and "close-out complete"; `done` means fully closed.
 
@@ -173,17 +174,7 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 
 Answers become the brief handed to `superpowers:brainstorming` — it refines design against the codebase; the interview anchors it.
 
-**Idea-folder ingestion — run when arguments reference an idea folder.** If `$ARGUMENTS` contains a path to an existing idea folder (`ideas/[<project>/]<slug>/`, from `/new-idea`) or names one that exists, read its docs **before** invoking brainstorming and treat them as the established brief — don't re-derive what's settled (folder has five required docs; a sixth `cost.md` may be present if the user opted into cost research — read it if present, proceed without it if not):
-
-- `README.md` → problem/goal — the starting brief, carried forward.
-- `design.md` → proposed approach — the starting point for design decisions; settled choices aren't re-litigated.
-- `cost.md` → constraints — a decided tier/price is a spec constraint, not an open question.
-- `plan.md` → milestone shape — feeds step 3's plan; still refined there, not copied.
-- `research.md`, `tl-dr.md` → background; load on demand.
-
-Record the folder path in the state file's References. Brainstorming still runs — it validates and refines the draft against the current codebase rather than exploring from zero. If the path doesn't exist, say so and proceed as a normal fresh start.
-
-**Interview trim for idea folders:** when arguments reference an idea folder, its docs are already the brief — the interview is trimmed to confirmation, not fresh questions. Restate the problem/kind/scope/success as read from the folder's README/design/plan and ask only "did I read this right?" plus anything the docs leave genuinely open.
+**Idea-folder ingestion — run when arguments reference an idea folder.** If `$ARGUMENTS` contains a path to an existing idea folder (`ideas/[<project>/]<slug>/`, from `/new-idea`) or names one that exists, read its docs **before** invoking brainstorming and treat them as the established brief — don't re-derive what's settled (the folder's fixed file set and what each file carries are defined in the new-idea skill's recipe). Record the folder path in the state file's References. Brainstorming still runs — it validates and refines the draft against the current codebase rather than exploring from zero. If the path doesn't exist, say so and proceed as a normal fresh start. Because the docs are already the brief, the interview trims to confirmation — restate problem/kind/scope/success as read from the folder and ask only "did I read this right?" plus anything genuinely open.
 
 ## Step 2 — Spec (local only)
 **Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. **If `superpowers:brainstorming` already wrote a design doc under `docs/superpowers/specs/`, move it to `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md`** (brainstorming defaults to `docs/superpowers/specs/`; dev-flow keeps everything under `docs/features/`). If not yet written, write it there directly. Local reference, not published. Add the path to References; show the user. Verify it's gitignored before moving on.
@@ -220,16 +211,12 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 **Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (following `superpowers:test-driven-development`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 6.
 
 ## Step 6 — Test (fresh subagent)
-**Gate:** `execute` → set `test`. Invoke `dev-flow:test`. Ask the user for the **Verifier model** once (default: same as the orchestrator) — the pick is written to the state file's **Model picks** block and reused by the step 7 reviewer; no second prompt. The skill dispatches a fresh tester subagent on that model: it runs the full test suite + lint (hard gate) and a test-honesty scan (tests that assert nothing, mock the thing under test, tautologies, pass regardless of code), writes a color-coded report to `docs/features/.test/<feat-name>/test-report.md`, and returns **green / red**:
+**Gate:** `execute` → set `test`. Invoke `dev-flow:test`. Ask the user for the **Verifier model** once (default: same as the orchestrator) — the pick is written to the state file's **Model picks** block and reused by the step 7 reviewer; no second prompt. The skill dispatches a fresh tester subagent on that model: it runs the full test suite + lint (hard gate) and a test-honesty scan (per the test skill's pattern list), writes a color-coded report to `docs/features/.test/<feat-name>/test-report.md`, and returns **green / red**:
 - **Green** → update the state file's **Last verification** from the tester's result; advance to step 7.
 - **Red** → do not advance. Re-set the status to `execute` (red-loop rewind); return to step 5 with the findings; fix and re-run test (a fresh tester subagent again).
 
 ## Step 7 — Review (fresh subagent)
-**Gate:** `test` → set `review`. Invoke `dev-flow:review`. It reads the **Verifier model** from the state file (no prompt) and dispatches a fresh reviewer subagent on it: spec coverage, plan coverage, obvious-issue scan (bugs, security smells, leftover, naming), and a maintainability pass (structure, coupling, naming, complexity, duplication), writes findings to a color-coded report, and returns **green / blue / yellow / red**:
-- **Green** (clean) → advance to step 8.
-- **Blue** (trivial findings, not worth a loop) → no prompt; note the findings for the PR body; advance to step 8.
-- **Yellow** (findings that should be fixed) → surface the list; ask the user with **fix now recommended**: fix now → re-set the status to `execute` (red-loop rewind), return to step 5 with the findings, fix and re-run test (step 6) then review (step 7) with fresh subagents; note-in-PR → note the findings for the PR body and advance to step 8.
-- **Red** (spec gap, missing task, real bug) → do **not** open the PR. Re-set the status to `execute`; return to step 5 with the specific findings; fix and re-run test (step 6) then review (step 7) with fresh subagents.
+**Gate:** `test` → set `review`. Invoke `dev-flow:review`. It reads the **Verifier model** from the state file (no prompt) and dispatches a fresh reviewer subagent on it: spec coverage, plan coverage, obvious-issue scan (bugs, security smells, leftover, naming), and a maintainability pass with a clean-code check (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells), writes findings to a color-coded report, and returns a verdict. Verdict and handling per the review skill's step 5 contract — green/blue advance to step 8; yellow surfaces the fix-now/note-in-PR choice; red rewinds to step 5.
 
 This is the gate that makes the PR worth a human's review — it does not replace human review at the PR. The orchestrator acts on the reviewer's verdict; it does not re-do the review inline.
 
