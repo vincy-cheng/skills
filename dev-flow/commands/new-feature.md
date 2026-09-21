@@ -174,17 +174,7 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 
 Answers become the brief handed to `superpowers:brainstorming` — it refines design against the codebase; the interview anchors it.
 
-**Idea-folder ingestion — run when arguments reference an idea folder.** If `$ARGUMENTS` contains a path to an existing idea folder (`ideas/[<project>/]<slug>/`, from `/new-idea`) or names one that exists, read its docs **before** invoking brainstorming and treat them as the established brief — don't re-derive what's settled (folder has five required docs; a sixth `cost.md` may be present if the user opted into cost research — read it if present, proceed without it if not):
-
-- `README.md` → problem/goal — the starting brief, carried forward.
-- `design.md` → proposed approach — the starting point for design decisions; settled choices aren't re-litigated.
-- `cost.md` → constraints — a decided tier/price is a spec constraint, not an open question.
-- `plan.md` → milestone shape — feeds step 3's plan; still refined there, not copied.
-- `research.md`, `tl-dr.md` → background; load on demand.
-
-Record the folder path in the state file's References. Brainstorming still runs — it validates and refines the draft against the current codebase rather than exploring from zero. If the path doesn't exist, say so and proceed as a normal fresh start.
-
-**Interview trim for idea folders:** when arguments reference an idea folder, its docs are already the brief — the interview is trimmed to confirmation, not fresh questions. Restate the problem/kind/scope/success as read from the folder's README/design/plan and ask only "did I read this right?" plus anything the docs leave genuinely open.
+**Idea-folder ingestion — run when arguments reference an idea folder.** If `$ARGUMENTS` contains a path to an existing idea folder (`ideas/[<project>/]<slug>/`, from `/new-idea`) or names one that exists, read its docs **before** invoking brainstorming and treat them as the established brief — don't re-derive what's settled (the folder's fixed file set and what each file carries are defined in the new-idea skill's recipe). Record the folder path in the state file's References. Brainstorming still runs — it validates and refines the draft against the current codebase rather than exploring from zero. If the path doesn't exist, say so and proceed as a normal fresh start. Because the docs are already the brief, the interview trims to confirmation — restate problem/kind/scope/success as read from the folder and ask only "did I read this right?" plus anything genuinely open.
 
 ## Step 2 — Spec (local only)
 **Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. **If `superpowers:brainstorming` already wrote a design doc under `docs/superpowers/specs/`, move it to `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md`** (brainstorming defaults to `docs/superpowers/specs/`; dev-flow keeps everything under `docs/features/`). If not yet written, write it there directly. Local reference, not published. Add the path to References; show the user. Verify it's gitignored before moving on.
