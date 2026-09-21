@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells) against the spec and plan. Returns a color-coded verdict. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test) or replace human PR review.
+description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells) against the spec and plan. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test) or replace human PR review.
 ---
 
 # Review
@@ -32,7 +32,7 @@ Spawn **one** fresh reviewer subagent (Agent tool) with the chosen model. It has
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
 4. **The checklist** (steps 1–4 below — including the clean-code pass in step 4) and **verdict contract** (step 5) — paste into the dispatch.
-5. **Report contract** — full findings go to `docs/features/.review/<feat-name>/review-report.md` (gitignored); the return holds only the verdict (`green`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the file, keeping the orchestrator's context clean.
+5. **Report contract** — full findings go to `docs/features/.review/<feat-name>/review-report.md` (gitignored); the return holds only the verdict (`green`/`blue`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the file, keeping the orchestrator's context clean.
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
 
@@ -58,7 +58,7 @@ Emoji — renders in terminal + GitHub markdown, where ANSI doesn't.
 - 🟦 **1. Spec coverage** — requirement → task → code; gaps listed
 - 🟪 **2. Plan coverage** — task → matching change; lies flagged
 - 🟧 **3. Obvious-issue scan** — bugs / security / leftover / naming
-- 🟫 **4. Maintainability** — structure, coupling, naming, complexity, duplication
+- 🟫 **4. Maintainability & clean code** — structure, coupling, naming, complexity, duplication, clean-code pass
 - 🟥 **Findings** (only when blue/yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
 
 Example (blue):
