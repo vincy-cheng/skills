@@ -125,6 +125,8 @@ Then a **clean-code pass** over the changed code (distilled from the classic cle
 - **Comments** — code explains itself first; comments carry intent/clarification/warnings only, never redundancy, obvious noise, closing-brace tags, or commented-out code (commented-out code is a leftover — see section 3).
 - **Structure** — variables declared close to usage; dependent/similar functions close; related code vertically dense; separate concepts separated vertically.
 - **Code smells** — rigidity (small change cascades), fragility (one change breaks many places), immobility (can't reuse), needless complexity, needless repetition, opacity (hard to understand).
+- **KISS** — the simplest shape that works; simpler is always better (the needless-complexity smell is its detection point).
+- **DRY** — every piece of knowledge has one authoritative representation (beyond copied code blocks — the duplication check extends to knowledge-level repetition: the same fact/rule stated in two places).
 - **Boy-scout** — the diff leaves the touched code cleaner, not worse; incidental tidy-ups are noted, not demanded.
 
 Consistency beats purity — match the file's existing conventions over textbook clean-code (legacy style stays legacy unless the task touches it); a DRY extraction that adds more complexity than it removes is itself a finding.
