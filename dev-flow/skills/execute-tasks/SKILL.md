@@ -55,7 +55,7 @@ Never stage or commit `docs/features/` (state, spec, plan, briefs). Stage the ta
 For each unchecked task, in order:
 
 1. **Read the task** — its `**Files:**` block names what to create/modify and which test covers it.
-2. **RED** — write the failing test for the task's behavior. Follow `superpowers:test-driven-development`: one behavior, clear name, real code (no mocks unless unavoidable).
+2. **RED** — write the failing test for the task's behavior. Follow `dev-flow:tdd`: one behavior, clear name, test at a public seam with real code (no mocks unless unavoidable).
 3. **Verify RED** — run the test, confirm it fails for the right reason (feature missing, not a typo). Passes immediately → the test is wrong; fix it before implementing.
 4. **GREEN** — implement the minimal code to pass. Don't add behavior the test doesn't require (YAGNI). Keep it clean as you write — small single-purpose functions, descriptive names, no magic numbers; `dev-flow:review`'s clean-code pass (step 7) is the backstop checklist, not a license to defer.
 5. **Verify GREEN** — run the test, confirm it passes and no other test broke.
@@ -69,7 +69,7 @@ Per-task subagent isolation: the implementer sees only its task, you stay clean 
 For each unchecked task, in order:
 
 1. **Write the brief** to `docs/features/.sdd/<feat-name>/task-N-brief.md` — the task's full text from the plan plus exact values (signatures, test cases, magic strings) the implementer must use verbatim. The brief is the single source of requirements; the dispatch prompt points to it, not the whole plan.
-2. **Dispatch the implementer** with: (a) one line on where this task fits; (b) the brief path ("read this first — your requirements"); (c) interfaces/decisions from earlier tasks the brief can't know; (d) a report-file path `docs/features/.sdd/<feat-name>/task-N-report.md` and the report contract (full report written there; returns only status, commits, one-line test summary, concerns). Specify the model explicitly — cheap for mechanical/well-specified tasks, standard for multi-file integration. In the dispatch prompt: "Follow clean code as you write — small single-purpose functions, descriptive names, no magic numbers; manage errors where the plan expects failure." **Never dispatch more than one implementer in parallel** (conflicts).
+2. **Dispatch the implementer** with: (a) one line on where this task fits; (b) the brief path ("read this first — your requirements"); (c) interfaces/decisions from earlier tasks the brief can't know; (d) a report-file path `docs/features/.sdd/<feat-name>/task-N-report.md` and the report contract (full report written there; returns only status, commits, one-line test summary, concerns). Specify the model explicitly — cheap for mechanical/well-specified tasks, standard for multi-file integration. In the dispatch prompt: "Follow clean code as you write — small single-purpose functions, descriptive names, no magic numbers; manage errors where the plan expects failure." Implementers follow `dev-flow:tdd` for their test cycle (watch the test fail first; honest assertions at public seams). **Never dispatch more than one implementer in parallel** (conflicts).
 3. **Handle the report:**
    - **DONE** → review (step 4).
    - **DONE_WITH_CONCERNS** → read concerns; address correctness/scope ones before review, note observations and proceed.
