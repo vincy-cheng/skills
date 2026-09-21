@@ -226,11 +226,7 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 - **Red** → do not advance. Re-set the status to `execute` (red-loop rewind); return to step 5 with the findings; fix and re-run test (a fresh tester subagent again).
 
 ## Step 7 — Review (fresh subagent)
-**Gate:** `test` → set `review`. Invoke `dev-flow:review`. It reads the **Verifier model** from the state file (no prompt) and dispatches a fresh reviewer subagent on it: spec coverage, plan coverage, obvious-issue scan (bugs, security smells, leftover, naming), and a maintainability pass with a clean-code check (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells), writes findings to a color-coded report, and returns **green / blue / yellow / red**:
-- **Green** (clean) → advance to step 8.
-- **Blue** (trivial findings, not worth a loop) → no prompt; note the findings for the PR body; advance to step 8.
-- **Yellow** (findings that should be fixed) → surface the list; ask the user with **fix now recommended**: fix now → re-set the status to `execute` (red-loop rewind), return to step 5 with the findings, fix and re-run test (step 6) then review (step 7) with fresh subagents; note-in-PR → note the findings for the PR body and advance to step 8.
-- **Red** (spec gap, missing task, real bug) → do **not** open the PR. Re-set the status to `execute`; return to step 5 with the specific findings; fix and re-run test (step 6) then review (step 7) with fresh subagents.
+**Gate:** `test` → set `review`. Invoke `dev-flow:review`. It reads the **Verifier model** from the state file (no prompt) and dispatches a fresh reviewer subagent on it: spec coverage, plan coverage, obvious-issue scan (bugs, security smells, leftover, naming), and a maintainability pass with a clean-code check (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells), writes findings to a color-coded report, and returns a verdict. Verdict and handling per the review skill's step 5 contract — green/blue advance to step 8; yellow surfaces the fix-now/note-in-PR choice; red rewinds to step 5.
 
 This is the gate that makes the PR worth a human's review — it does not replace human review at the PR. The orchestrator acts on the reviewer's verdict; it does not re-do the review inline.
 

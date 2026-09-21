@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability (structure, coupling, naming, complexity, duplication) against the spec and plan. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test) or replace human PR review.
+description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells) against the spec and plan. Returns a color-coded verdict. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test) or replace human PR review.
 ---
 
 # Review
@@ -31,7 +31,7 @@ Spawn **one** fresh reviewer subagent (Agent tool) with the chosen model. It has
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
-4. **The checklist** (steps 1–4 below) and **verdict contract** (step 5) — paste into the dispatch.
+4. **The checklist** (steps 1–4 below — including the clean-code pass in step 4) and **verdict contract** (step 5) — paste into the dispatch.
 5. **Report contract** — full findings go to `docs/features/.review/<feat-name>/review-report.md` (gitignored); the return holds only the verdict (`green`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the file, keeping the orchestrator's context clean.
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
@@ -106,7 +106,7 @@ Read the diff with fresh eyes for:
 
 Not a deep architectural review — "is anything obviously wrong before a human looks." Unsure whether something is real? Flag it as a question, not a verdict.
 
-### 4. Maintainability
+### 4. Maintainability & clean code
 
 Read the changed code in place (open the files, not just the diff hunks) — what does the next maintainer inherit?
 
@@ -116,7 +116,20 @@ Read the changed code in place (open the files, not just the diff hunks) — wha
 - **Complexity** — deep nesting, long functions, branching a simpler shape would kill.
 - **Duplication** — logic copied from elsewhere in the codebase (diff-only reading misses this).
 
-Report findings with file:line and a concrete suggested shape ("extract X into Y") — suggest, don't fix. Can be blue, yellow, or red; severity is the reviewer's judgment.
+Then a **clean-code pass** over the changed code (distilled from the classic clean-code checklist — wojteklu's gist, the r/cleancode guide):
+
+- **Names** — descriptive and unambiguous, pronounceable, searchable; magic numbers → named constants; no type-prefix encodings; meaningful distinctions (not `data2`).
+- **Functions** — small, do one thing, few arguments, no side effects, no flag arguments (a boolean param selecting behavior → split into independent methods); does only what its name promises — no surprising behavior (least astonishment).
+- **Error handling** — managed errors over crash paths (try/catch where the failure is expected, resources freed in `finally` or equivalent); a swallow-everything catch is a bug finding (section 3), but a new unhandled crash path belongs here.
+- **Conditionals** — no negative conditionals where a positive one reads cleaner; boundary conditions encapsulated in one place; no methods whose correctness depends on another method in the same class having run.
+- **Comments** — code explains itself first; comments carry intent/clarification/warnings only, never redundancy, obvious noise, closing-brace tags, or commented-out code (commented-out code is a leftover — see section 3).
+- **Structure** — variables declared close to usage; dependent/similar functions close; related code vertically dense; separate concepts separated vertically.
+- **Code smells** — rigidity (small change cascades), fragility (one change breaks many places), immobility (can't reuse), needless complexity, needless repetition, opacity (hard to understand).
+- **Boy-scout** — the diff leaves the touched code cleaner, not worse; incidental tidy-ups are noted, not demanded.
+
+Consistency beats purity — match the file's existing conventions over textbook clean-code (legacy style stays legacy unless the task touches it); a DRY extraction that adds more complexity than it removes is itself a finding.
+
+Report findings with file:line and a concrete suggested shape ("extract X into Y") — suggest, don't fix. Can be blue, yellow, or red; severity is the reviewer's judgment. Clean-code findings are usually blue or yellow — red only when the shape would actively break under the next change.
 
 ### 5. Verdict
 
@@ -131,12 +144,7 @@ Return one of (verdict inline, detail in the report file):
 
 ## Act on the verdict (orchestrator)
 
-The orchestrator acts on the verdict — it does not re-run the review:
-
-- **Green** → hand back to `/new-feature` for step 8 (doc-fix).
-- **Blue** → note the findings for the PR body; hand back to step 8. No prompt.
-- **Yellow** → surface the findings; ask the user with **fix now recommended**. Fix now → re-set the status to `execute` (red-loop rewind), return to step 5 with the findings; test (step 6) and review (step 7) re-run with fresh subagents. Note-in-PR → note the findings for the PR body; hand back to step 8.
-- **Red** → surface the blockers. Do not advance. Re-set the status to `execute` (red-loop rewind); return to step 5 with the findings; the user fixes and re-runs test (step 6) then review (step 7) with fresh subagents.
+The orchestrator acts on the verdict per step 5's contract above — it does not re-run the review and does not restate the handling inline. Green/blue → advance to step 8; yellow → the fix-now / note-in-PR choice per step 5; red → red-loop rewind to step 5. Step 5 owns the detail; the one-line mapping suffices.
 
 Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule.
 
