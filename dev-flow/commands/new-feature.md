@@ -1,5 +1,5 @@
 ---
-description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD) → verify (test → review → doc-fix) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans, test-driven-development).
+description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD) → verify (test → review → doc-fix) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans); TDD is dev-flow's own `tdd` skill.
 ---
 
 # New feature or fix — full workflow
@@ -21,9 +21,9 @@ Run each step before the next. Pause at the natural checkpoints (after spec, aft
 
 ## Peer dependency — superpowers
 
-Invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development` as sub-steps; runs its own `dev-flow:execute-tasks`, `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the three `superpowers:*` skills.
+Invokes `superpowers:brainstorming` and `superpowers:writing-plans` as sub-steps; runs its own `dev-flow:execute-tasks` (which invokes `dev-flow:tdd` per task), `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the two `superpowers:*` skills.
 
-**Missing-superpowers check — run at the start of every step that invokes a `superpowers:*` skill (steps 1, 3, 5):** if the skill is unavailable, **stop before doing any other work** and tell the user, in plain language:
+**Missing-superpowers check — run at the start of every step that invokes a `superpowers:*` skill (steps 1, 3):** if the skill is unavailable, **stop before doing any other work** and tell the user, in plain language:
 
 > dev-flow needs the `superpowers` plugin for this step, but it isn't installed. Install it and retry:
 > - `/plugin install superpowers` (from the official marketplace), or
@@ -208,7 +208,7 @@ Keep it honest: every task node matches a `### Task N` heading, every file under
 **Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feat/<n>-<name>` (or `fix/<n>-<name>`) branch off `dev`; update the state file's base branch and record the issue number in References.
 
 ## Step 5 — Execute tasks (TDD)
-**Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (following `superpowers:test-driven-development`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 6.
+**Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (its RED step follows `dev-flow:tdd`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 6.
 
 ## Step 6 — Test (fresh subagent)
 **Gate:** `execute` → set `test`. Invoke `dev-flow:test`. Ask the user for the **Verifier model** once (default: same as the orchestrator) — the pick is written to the state file's **Model picks** block and reused by the step 7 reviewer; no second prompt. The skill dispatches a fresh tester subagent on that model: it runs the full test suite + lint (hard gate) and a test-honesty scan (per the test skill's pattern list), writes a color-coded report to `docs/features/.test/<feat-name>/test-report.md`, and returns **green / red**:
