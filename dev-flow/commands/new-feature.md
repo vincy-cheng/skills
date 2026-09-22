@@ -36,7 +36,7 @@ Don't dump the rest of the step or attempt a fallback. The run pauses cleanly; o
 **Superpowers defaults lose to dev-flow.** Superpowers' SessionStart injection urges invoking its skills before any response, and its skills carry their own defaults (`docs/superpowers/` save paths, design-doc commits, "Execution Handoff"). Inside this workflow those defaults **do not apply**:
 
 - Before writing any file for this run, verify the target is under `docs/features/` — never `docs/superpowers/`. If a superpowers sub-skill (writing-plans) already wrote there, move the file (step 3 does this).
-- Never commit specs, plans, or state files (see *Commit guard*). Superpowers' "commit the design document" instruction does not override this.
+- Never commit specs, plans, or state files (see *Commit guard*). Superpowers' "commit the design document" instruction — which writing-plans-era defaults still carry — does not override this; design docs and state are dev-flow-local only.
 - A sub-skill's handoff never advances, skips, or reorders steps — see *The hard gate*.
 
 ## The hard gate
