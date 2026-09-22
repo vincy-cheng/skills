@@ -28,11 +28,13 @@ Write code before the test? Delete it. Start over.
 - Don't look at it
 - Delete means delete
 
-Exceptions (throwaway prototypes, generated code, configuration) go through your human partner — not around them.
+Exceptions (throwaway prototypes, generated code, configuration) go through your human partner — not around them. **Behavior-preserving refactors arriving from review findings are the one in-loop exception: no new failing test — the existing suite stays green and is the guard.**
 
 ## Seams: where tests go
 
 A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside. Tests verify behavior at seams — public interfaces — never internals, private methods, or side channels.
+
+**Confirm the seam before writing the test:** in dev-flow, the plan's task brief pre-agrees it; standalone, confirm it with your human partner. No test at an unconfirmed seam.
 
 **Before writing any test, name the production change that would make it fail.** If you can't name it, the test doesn't assert anything real.
 
@@ -40,10 +42,11 @@ A **seam** is the public boundary you test at: the interface where you observe b
 
 ## The loop
 
-**RED — write the failing test.** One behavior, clear name that reads like a specification ("user can checkout with valid cart"), real code — mocks only when unavoidable.
+**RED — write the failing test.** One behavior, clear name that reads like a specification ("user can checkout with valid cart"), real code — mocks only when unavoidable. Before mocking a dependency, understand its real behavior — a mock of something you haven't read can make the test lie.
 
 **Verify RED.** Run the test. Mandatory, never skip:
 - It must **fail** (not error) — for the right reason: the feature is missing, not a typo.
+- Errors instead (import typo, missing fixture)? Fix the error, re-run until it fails correctly.
 - Passes immediately? You're testing existing behavior or the test is wrong. Fix the test before implementing.
 
 **GREEN — minimal code.** The simplest code that passes the test. Don't add behavior the test doesn't require (YAGNI). Keep it clean as you write: small single-purpose functions, descriptive names, no magic numbers, manage errors where failure is expected.
@@ -52,7 +55,7 @@ A **seam** is the public boundary you test at: the interface where you observe b
 
 **Next test.** One test → one implementation → repeat. Each test is a tracer bullet responding to what the last cycle taught you.
 
-**Refactor is not a loop phase.** Clean as you write during GREEN; structured refactoring belongs to the review gate — `dev-flow:review` (step 7) inside a dev-flow run. Don't hold behavior changes hostage to cleanup, and don't defer obvious cleanliness to a later pass either.
+**Refactor is not a loop phase.** Clean as you write during GREEN; structured refactoring belongs to the review gate — `dev-flow:review` (step 7) inside a dev-flow run. Don't hold behavior changes hostage to cleanup, and don't defer obvious cleanliness to a later pass either. When a behavior-preserving refactor finding comes back from review, apply it without a new failing test — run the existing suite and keep it green; it's the guard.
 
 ## Good tests vs bad tests
 
@@ -101,7 +104,7 @@ Reproduce the bug with a failing test first. Watch it fail, fix the code, watch 
 
 ## dev-flow integration
 
-**Standalone mode:** any repo, no state file needed — apply the loop to the task at hand.
+**Standalone mode:** any repo, no state file needed — apply the loop to the task at hand. Before claiming done: every test written first and watched failing; full suite green; output pristine. (In dev-flow, the step 6 test gate runs this check — standalone, you run it yourself.)
 
 **In-flow mode:** `dev-flow:execute-tasks` (step 5) invokes this skill per task, in both its modes — inline runs the loop directly; subagent dispatches implementers who follow it. In-flow rules:
 
