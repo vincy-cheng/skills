@@ -24,8 +24,9 @@ done
 
 # 2. No docs/superpowers/ artifact paths in dev-flow/. Guard mentions are legitimate:
 # lines contrasting with docs/features/, saying "never", or naming a superpowers default
-# are prohibition text, not artifact paths.
-sp_hits=$(git grep -n 'docs/superpowers/' -- 'dev-flow/' | $G -vE 'docs/features/|never|default' || true)
+# are prohibition text, not artifact paths. dev-flow/evals/ is excluded — eval fixtures
+# quote forbidden paths as grading criteria by design.
+sp_hits=$(git grep -n 'docs/superpowers/' -- 'dev-flow/' ':!dev-flow/evals/' | $G -vE 'docs/features/|never|default' || true)
 if [ -n "$sp_hits" ]; then
   bad 2 "docs/superpowers/ path present (non-guard):"; echo "$sp_hits"
 else ok 2 "no docs/superpowers/ artifact paths"; fi
