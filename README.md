@@ -4,7 +4,7 @@ AI coding-agent plugins published from this repo. Each top-level directory is on
 
 ## Install
 
-`dev-flow` depends on the `superpowers` plugin (it calls `superpowers:brainstorming` and `superpowers:writing-plans`; its TDD loop is dev-flow's own `tdd` skill). Install superpowers first, then dev-flow:
+`dev-flow` depends on the `superpowers` plugin (it calls `superpowers:writing-plans`; its brainstorm and TDD loops are dev-flow's own `brainstorm` and `tdd` skills). Install superpowers first, then dev-flow:
 
 ```
 /plugin marketplace add vincy-cheng/skills
@@ -22,7 +22,7 @@ Then run `/new-feature <your idea>` in any repo with the `gh` CLI. Run `/new-fea
 
 The same install also gives you `/new-idea` — dev-flow's structured brainstorm command (see below).
 
-> If you see a "missing peer dependency: superpowers" prompt, run `/plugin install superpowers` and retry — dev-flow can't run its brainstorm/plan steps without it.
+> If you see a "missing peer dependency: superpowers" prompt, run `/plugin install superpowers` and retry — dev-flow can't run its plan step without it.
 
 ## Plugin: `dev-flow`
 
@@ -44,6 +44,7 @@ Three guarantees:
 | `/new-feature` command | The pipeline of record — runs all 11 steps in order (4 phases: plan → build → verify → ship) | Start or resume any feature/fix |
 | `/new-idea` command | Scaffolds `ideas/<slug>/` with five docs (README, research, design, plan, tl-dr) + optional `cost.md` | Brainstorm an idea before committing to build it |
 | `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
+| `brainstorm` skill | Step 1 — design dialogue (interview, idea-folder ingestion, design-tree rounds, 2-3 approaches) ending in an approved spec under `docs/features/specs/`. Standalone, and invoked by /new-feature step 1 | Inside the flow, or standalone |
 | `execute-tasks` skill | Step 5 — task loop, TDD via the `tdd` skill, commit per task. Inline or subagent mode; implement step carries a one-line clean-code pointer (prevention, with review as backstop) | Inside the flow |
 | `tdd` skill | Test-first engine for any feature/bugfix — red-green loop, seams, anti-patterns. Standalone, and invoked by execute-tasks per task | Inside the flow, or standalone |
 | `test` skill | Step 6 — fresh-subagent test gate: full suite + lint + test-honesty scan; green/red verdict; red returns to execute | Inside the flow, or standalone |
@@ -56,7 +57,7 @@ Three guarantees:
 
 ### Requires: the `superpowers` plugin
 
-`dev-flow` invokes `superpowers:brainstorming` and `superpowers:writing-plans`; the TDD loop is dev-flow's own `tdd` skill. Install superpowers first.
+`dev-flow` invokes `superpowers:writing-plans`; its brainstorm and TDD loops are dev-flow's own `brainstorm` and `tdd` skills. Install superpowers first.
 
 **One thing to know:** superpowers injects a session-start instruction urging skill use before any response. Inside a dev-flow run, ignore it — dev-flow calls the superpowers skills it needs as sub-steps, and superpowers' defaults (`docs/superpowers/` paths, design-doc commits, "Execution Handoff") **don't apply**. Everything lives under `docs/features/` (gitignored, never committed).
 
@@ -74,7 +75,7 @@ Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by 
 
 ## Acknowledgements
 
-`dev-flow` builds on [obra/superpowers](https://github.com/obra/superpowers) (available in Claude Code's official plugin marketplace). Dev-flow reuses two of its skills — `brainstorming` and `writing-plans` — as sub-steps inside its own pipeline, and adds its own `tdd`, `execute-tasks`, `test`, `review`, `doc-fix`, `open-pr`, `create-github-issue`, and `commit` skills so all artifacts stay under `docs/features/` with no `.superpowers/` workspace. Many thanks to the creator and maintainers of superpowers — dev-flow leans on their work for brainstorming and planning.
+`dev-flow` builds on [obra/superpowers](https://github.com/obra/superpowers) (available in Claude Code's official plugin marketplace). Dev-flow reuses one of its skills — `writing-plans` — as a sub-step inside its own pipeline, and adds its own `brainstorm`, `tdd`, `execute-tasks`, `test`, `review`, `doc-fix`, `open-pr`, `create-github-issue`, and `commit` skills so all artifacts stay under `docs/features/` with no `.superpowers/` workspace. Many thanks to the creator and maintainers of superpowers — dev-flow leans on their work for planning.
 
 ## Repo layout
 
@@ -84,6 +85,7 @@ dev-flow/
 ├── commands/new-feature.md         # /new-feature — pipeline + hard gate
 ├── commands/new-idea.md            # /new-idea — scaffold an idea folder (standalone)
 └── skills/
+    ├── brainstorm/SKILL.md         # step 1 design dialogue → approved spec under docs/features/specs/
     ├── commit/SKILL.md             # Conventional Commits, no AI attribution
     ├── create-github-issue/SKILL.md
     ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
