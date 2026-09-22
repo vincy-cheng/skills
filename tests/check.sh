@@ -23,12 +23,21 @@ done
 [ -z "$fm_errs" ] && ok 1 "frontmatter well-formed" || bad 1 "frontmatter broken:$fm_errs"
 
 # 2. No docs/superpowers/ artifact paths in dev-flow/. Guard mentions are legitimate:
-# lines contrasting with docs/features/, saying "never", or naming a superpowers default
-# are prohibition text, not artifact paths. dev-flow/evals/ is excluded — eval fixtures
-# quote forbidden paths as grading criteria by design.
-sp_hits=$(git grep -n 'docs/superpowers/' -- 'dev-flow/' ':!dev-flow/evals/' | $G -vE 'docs/features/|never|default' || true)
+# each mention is exempt only if the 40 chars BEFORE it carry a guard cue (never /
+# default / contrast with docs/features/) — context-scoped, not whole-line, so a real
+# artifact path elsewhere on a guard-word line is still caught. dev-flow/evals/ is
+# excluded — eval fixtures quote forbidden paths as grading criteria by design.
+sp_hits=""
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  ung=$(printf '%s\n' "$line" | $G -oE '.{0,40}docs/superpowers/' | $G -cvE 'never|default|docs/features/' || true)
+  [ "${ung:-0}" -gt 0 ] && sp_hits="$sp_hits$line
+"
+done <<EOF
+$(git grep -n 'docs/superpowers/' -- 'dev-flow/' ':!dev-flow/evals/' || true)
+EOF
 if [ -n "$sp_hits" ]; then
-  bad 2 "docs/superpowers/ path present (non-guard):"; echo "$sp_hits"
+  bad 2 "docs/superpowers/ path present (non-guard):"; printf '%s\n' "$sp_hits"
 else ok 2 "no docs/superpowers/ artifact paths"; fi
 
 # 3. No superpowers:brainstorming in tracked files (git grep skips gitignored docs/features/;
@@ -50,9 +59,20 @@ if [ -n "$spec_bad" ]; then
   bad 5 "spec path deviates from convention:"; echo "$spec_bad"
 else ok 5 "spec paths consistent"; fi
 
-# 6. plugin.json valid JSON
+# 6. plugin.json valid JSON + peerDependencies consistent with actual superpowers
+#    invocations: every invoked plugin must be declared, and every declared plugin
+#    must still be invoked (guards the future peerDependency drop).
 if python3 -c "import json;json.load(open('dev-flow/.claude-plugin/plugin.json'))" 2>/dev/null; then
-  ok 6 "plugin.json parses as JSON"
+  inv_plugs=$($G -rhoE 'superpowers:[a-z-]+' dev-flow/ --exclude-dir=evals 2>/dev/null | cut -d: -f1 | sort -u | tr '\n' ' ')
+  declared=$(python3 -c "import json;print(' '.join(json.load(open('dev-flow/.claude-plugin/plugin.json')).get('peerDependencies',{}).keys()))")
+  peer_err=""
+  for p in $inv_plugs; do
+    case " $declared " in *" $p "*) ;; *) peer_err="$peer_err invoked:$p:not-declared";; esac
+  done
+  for p in $declared; do
+    case " $inv_plugs " in *" $p "*) ;; *) peer_err="$peer_err declared:$p:not-invoked";; esac
+  done
+  [ -z "$peer_err" ] && ok 6 "plugin.json valid; peerDependencies match invoked skills" || bad 6 "peerDependencies mismatch:$peer_err"
 else bad 6 "plugin.json is not valid JSON"; fi
 
 # 7. Invoke list maps to real skill files: every `dev-flow:<name>` mention has skills/<name>/SKILL.md with matching name:
@@ -78,7 +98,7 @@ else
     [ -f "$CACHE/$name/SKILL.md" ] || { stale="$stale $name:missing-from-cache"; continue; }
     cmp -s "$f" "$CACHE/$name/SKILL.md" || stale="$stale $name:differs-from-cache"
   done
-  [ -z "$stale" ] && echo "PASS 9: repo skills match installed cache" || wn 9 "cache stale (refresh plugin before running evals):$stale"
+  [ -z "$stale" ] && ok 9 "repo skills match installed cache" || wn 9 "cache stale (refresh plugin before running evals):$stale"
 fi
 
 echo "---"
