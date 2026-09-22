@@ -86,6 +86,7 @@ Keep your own context clean: everything you paste into a dispatch and everything
 - **Test won't go green after a real attempt**: stop, don't push through. Re-read the task and relevant code. If the plan is wrong (the task as written can't be satisfied), surface it to the user — that's a plan defect, not an implementation problem.
 - **Scope creeps into the task**: if implementing reveals work the plan didn't list, note it and ask whether to add a task or defer. Don't silently expand the commit.
 - **A task depends on a later task's symbol**: the plan is mis-ordered. Surface it; reorder in the plan rather than jumping ahead.
+- **A review finding asks for a behavior-preserving refactor** (rename, extract — no behavior change): apply it without writing a new failing test. The existing green suite is the guard — `dev-flow:tdd`'s Iron Law exception covers this case.
 
 ## After all tasks
 
