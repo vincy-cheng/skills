@@ -1,5 +1,5 @@
 ---
-description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD) → verify (test → review → doc-fix) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (brainstorming, writing-plans); TDD is dev-flow's own `tdd` skill.
+description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD) → verify (test → review → doc-fix) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (writing-plans); brainstorm and TDD are dev-flow's own skills.
 ---
 
 # New feature or fix — full workflow
@@ -21,9 +21,9 @@ Run each step before the next. Pause at the natural checkpoints (after spec, aft
 
 ## Peer dependency — superpowers
 
-Invokes `superpowers:brainstorming` and `superpowers:writing-plans` as sub-steps; runs its own `dev-flow:execute-tasks` (which invokes `dev-flow:tdd` per task), `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the two `superpowers:*` skills.
+Invokes `superpowers:writing-plans` as a sub-step; runs its own `dev-flow:brainstorm`, `dev-flow:execute-tasks` (which invokes `dev-flow:tdd` per task), `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the one `superpowers:*` skill.
 
-**Missing-superpowers check — run at the start of every step that invokes a `superpowers:*` skill (steps 1, 3):** if the skill is unavailable, **stop before doing any other work** and tell the user, in plain language:
+**Missing-superpowers check — run at the start of every step that invokes a `superpowers:*` skill (step 3):** if the skill is unavailable, **stop before doing any other work** and tell the user, in plain language:
 
 > dev-flow needs the `superpowers` plugin for this step, but it isn't installed. Install it and retry:
 > - `/plugin install superpowers` (from the official marketplace), or
@@ -35,13 +35,13 @@ Don't dump the rest of the step or attempt a fallback. The run pauses cleanly; o
 
 **Superpowers defaults lose to dev-flow.** Superpowers' SessionStart injection urges invoking its skills before any response, and its skills carry their own defaults (`docs/superpowers/` save paths, design-doc commits, "Execution Handoff"). Inside this workflow those defaults **do not apply**:
 
-- Before writing any file for this run, verify the target is under `docs/features/` — never `docs/superpowers/`. If a superpowers sub-skill already wrote there, move the file (step 2 does this).
-- Never commit specs, plans, or state files (see *Commit guard*). Superpowers' "commit the design document" instruction does not override this.
+- Before writing any file for this run, verify the target is under `docs/features/` — never `docs/superpowers/`. If a superpowers sub-skill (writing-plans) already wrote there, move the file (step 3 does this).
+- Never commit specs, plans, or state files (see *Commit guard*). Superpowers' "commit the design document" instruction — which writing-plans-era defaults still carry — does not override this; design docs and state are dev-flow-local only.
 - A sub-skill's handoff never advances, skips, or reorders steps — see *The hard gate*.
 
 ## The hard gate
 
-Steps 1 and 3 invoke superpowers skills with their **own** handoff instructions (brainstorming → writing-plans; writing-plans → "Execution Handoff"). Left unchecked, those handoffs **will** skip or reorder this workflow. The gate prevents it **structurally**: the state file's **Goal status** is the only thing that advances a step.
+Step 3 invokes a superpowers skill with its **own** handoff instruction (writing-plans → "Execution Handoff"); step 1 runs dev-flow's own brainstorm skill. Left unchecked, those handoffs **will** skip or reorder this workflow. The gate prevents it **structurally**: the state file's **Goal status** is the only thing that advances a step.
 
 **Gate check — run at the start of every step:**
 1. Read `docs/features/.feature-states/<feat-name>.state.md`.
@@ -69,7 +69,7 @@ Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → 
 **Red-loop rewind:** steps 6 (red), 7 (red), and 8 (STOP) hand back to step 5 execute — but step 5's gate requires incoming `issue`. Rule: when a Verify-phase step sends work back, the orchestrator re-sets **Goal status** to `execute` first; step 5 treats `execute` as a valid re-entry (fix-continue — Tasks stay as-is, only the findings' fixes are new work).
 
 **Sub-skill handoffs — ignore them; return to the next dev-flow step:**
-- `brainstorming` finishes → **step 2 (spec)**, not its handoff to writing-plans.
+- `dev-flow:brainstorm` finishes → **step 2 (spec)**. Its terminal state is the approved spec — it has no handoff.
 - `writing-plans` finishes → **step 4 (create issue)**, not its Execution Handoff. The issue must exist first (the branch is named `feat/<n>-<name>` or `fix/<n>-<name>`).
 - Gate check fails → STOP and resume from the status the state file names. Don't "helpfully" follow the sub-skill.
 
@@ -164,20 +164,12 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 - Before pushing in step 9, confirm `git status --porcelain docs/features/` is empty. If not, stop and fix.
 
 ## Step 1 — Brainstorm
-**Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch) and add the index row. Set **Kind** from intent (ask if ambiguous). Invoke `superpowers:brainstorming` to explore intent, requirements, design. Don't write code. Brainstorming will hand off to `writing-plans` — **don't follow it**; advance to step 2.
+**Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch) and add the index row. Set **Kind** from intent (ask if ambiguous). Invoke `dev-flow:brainstorm` to explore intent, requirements, design — it owns the interview (problem, kind, scope, success), idea-folder ingestion, and the design dialogue. Don't write code. The skill's terminal state is the approved spec under `docs/features/specs/` — it has no handoff; advance to step 2.
 
-**Interview before brainstorming (always, except idea-folder ingestion).** After creating the state file, ask the user directly, one question at a time:
-1. What problem are we solving?
-2. Feature or fix? (sets **Kind** — always asked, not just when ambiguous)
-3. Scope boundaries — what's in, what's out?
-4. What does success look like?
-
-Answers become the brief handed to `superpowers:brainstorming` — it refines design against the codebase; the interview anchors it.
-
-**Idea-folder ingestion — run when arguments reference an idea folder.** If `$ARGUMENTS` contains a path to an existing idea folder (`ideas/[<project>/]<slug>/`, from `/new-idea`) or names one that exists, read its docs **before** invoking brainstorming and treat them as the established brief — don't re-derive what's settled (the folder's fixed file set and what each file carries are defined in the new-idea skill's recipe). Record the folder path in the state file's References. Brainstorming still runs — it validates and refines the draft against the current codebase rather than exploring from zero. If the path doesn't exist, say so and proceed as a normal fresh start. Because the docs are already the brief, the interview trims to confirmation — restate problem/kind/scope/success as read from the folder and ask only "did I read this right?" plus anything genuinely open.
+If `$ARGUMENTS` reference an idea folder, the skill ingests its docs as the established brief and the run records the folder path in References.
 
 ## Step 2 — Spec (local only)
-**Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. **If `superpowers:brainstorming` already wrote a design doc under `docs/superpowers/specs/`, move it to `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md`** (brainstorming defaults to `docs/superpowers/specs/`; dev-flow keeps everything under `docs/features/`). If not yet written, write it there directly. Local reference, not published. Add the path to References; show the user. Verify it's gitignored before moving on.
+**Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. The spec is written by `dev-flow:brainstorm` at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — verify it exists, add the path to References, show the user. Verify it's gitignored before moving on.
 
 ## Step 3 — Plan
 **Gate:** `spec` → set `planning`. **Invoke `superpowers:writing-plans` and follow it** — the plan is generated through that skill, not hand-authored. **Tell writing-plans to save the plan to `docs/features/plans/YYYY-MM-DD-<feat-name>.md`** (it defaults to `docs/superpowers/plans/`; dev-flow overrides that). Bite-sized tasks, TDD, frequent commits; reference the spec. Copy the task list into the state file's Tasks; add the plan path to References. Verify it's gitignored. `writing-plans` will offer an Execution Handoff — **don't take it**; advance to step 4.
