@@ -54,6 +54,8 @@ Three guarantees:
 | `commit` skill | Conventional Commits from the diff, **no AI attribution** | Standalone, or per-task in step 5 |
 | `document-structure` skill | Builds/updates the target repo's agent docs under `docs/agents/` — tiny index + architecture/dev-ops maps + dynamic concern maps (testing, API, deployment, database, …) | Any repo, on demand |
 | `whats-new` skill | Summarizes what's new in a repo: shipped work (git + PRs/issues) + doc-vs-code drift. Never writes a changelog file | Any repo, on demand |
+| `tests/check.sh` | The repo's test suite — 9 bash consistency checks run by dev-flow step 6 | Any edit to skills/commands |
+| `dev-flow/evals/` | Behavioral evals for the `brainstorm` and `tdd` skills (`claude plugin eval`), run manually after a plugin refresh | After editing a skill |
 
 ### Requires: the `superpowers` plugin
 
@@ -80,8 +82,10 @@ Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by 
 ## Repo layout
 
 ```
+tests/check.sh                       # the repo's test suite (9 consistency checks)
 dev-flow/
 ├── .claude-plugin/plugin.json      # metadata + peerDependencies.superpowers
+├── evals/                           # behavioral evals: brainstorm/, tdd/ (run via claude plugin eval)
 ├── commands/new-feature.md         # /new-feature — pipeline + hard gate
 ├── commands/new-idea.md            # /new-idea — scaffold an idea folder (standalone)
 └── skills/

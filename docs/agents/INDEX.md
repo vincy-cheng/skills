@@ -7,13 +7,13 @@ One Claude Code plugin (`dev-flow`), a workflow orchestrator. No app code — Ma
 | Map | Covers |
 |-----|--------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | plugin layout, the step pipeline, the hard gate, state files, superpowers peer dependency |
-| [DEVOPS.md](DEVOPS.md) | git workflow, commit conventions, the `docs/features/` gitignore rule, verification (no test suite) |
+| [DEVOPS.md](DEVOPS.md) | git workflow, commit conventions, the `docs/features/` gitignore rule, verification (tests/check.sh + read-through) |
 
 ## Quick facts
 
 - **Plugin:** `dev-flow` v0.1.0, peer-depends on `superpowers`.
 - **Orchestrator:** `dev-flow/commands/new-feature.md` (`/new-feature`) — the step sequence and the hard gate.
-- **No test suite / no build / no linter** — verification is read-through + grep.
+- **Test suite: `bash tests/check.sh`** (no build, no linter) — verification is the suite + read-through; skill evals under `dev-flow/evals/` run manually.
 - **Commits:** Conventional Commits, **no AI attribution**; docs as separate `docs:` commits. Details: DEVOPS.md.
 - **Pipeline, state files, the hard gate:** ARCHITECTURE.md.
 

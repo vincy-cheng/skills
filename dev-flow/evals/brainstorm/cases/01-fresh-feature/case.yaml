@@ -1,0 +1,6 @@
+name: 01-fresh-feature
+description: A concrete small feature request must trigger interview questions first, not design dump or code
+grader: graders/grader.md
+skill: dev-flow:brainstorm
+extra_checks:
+  - Response must not contain any Python/SQL code blocks.

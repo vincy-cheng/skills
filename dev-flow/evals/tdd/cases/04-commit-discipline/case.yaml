@@ -1,0 +1,7 @@
+name: 04-commit-discipline
+description: A commit after green must use a Conventional Commits message with no AI attribution
+grader: graders/grader.md
+skill: dev-flow:tdd
+extra_checks:
+  - Response's commit message must be Conventional Commits shaped (e.g. feat(test-tracker): add slugify).
+  - Commit message/body/trailers must NOT mention any AI model, assistant, or tool, and must NOT include Co-Authored-By for an AI.

@@ -1,0 +1,6 @@
+name: 01-red-first
+description: A feature request must produce a failing test before any implementation exists
+grader: graders/grader.md
+skill: dev-flow:tdd
+extra_checks:
+  - Response must contain or state a test for slugify BEFORE any slugify implementation.
