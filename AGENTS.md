@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repo publishes AI coding-agent plugins. There is no application code, no build step, and no test suite. Each top-level directory is one plugin. `CLAUDE.md` is a symlink to this file so Claude Code, GitHub Copilot, and other agents all read the same guidance.
+This repo publishes AI coding-agent plugins. There is no application code and no build step; the test suite is `tests/check.sh` (bash consistency checks). Each top-level directory is one plugin. `CLAUDE.md` is a symlink to this file so Claude Code, GitHub Copilot, and other agents all read the same guidance.
 
 Agent-facing docs (progressive-disclosure tree): `docs/agents/INDEX.md` — start there.
 

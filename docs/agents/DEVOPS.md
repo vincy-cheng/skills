@@ -1,6 +1,6 @@
 # Dev-ops
 
-Local developer workflow for this plugin repo. There is no build step, no test suite, no linter — the repo is Markdown consumed by AI agents. Verification is human/agent read-through + grep for internal consistency.
+Local developer workflow for this plugin repo. There is no build step and no linter — the repo is Markdown consumed by AI agents. The test suite is `bash tests/check.sh` (9 consistency checks; exit 0 = green). Verification is the suite + human/agent read-through.
 
 ## Setup
 
@@ -22,16 +22,18 @@ No dependencies to install. To use the plugin (separate from editing it): instal
 
 Never commit anything under `docs/features/` (specs, plans, state files, index) — it is gitignored and local-only. Stage source files explicitly; never `git add -A` / `git add .`.
 
-## Verification (no test suite)
+## Verification
 
+- **Run the suite**: `bash tests/check.sh` — 9 consistency checks (frontmatter, replaced-skill references, spec-path convention, plugin.json peerDependencies, invoke-list ↔ skill files, gitignore, cache freshness WARN). Any FAIL names the exact drift.
 - After editing skill/command Markdown: read-through for internal consistency (gate table matches lifecycle, every status appears in the table, every step's incoming matches the prior step's set).
-- Grep for orphaned references to old wording after a rename/restructure.
 - For YAML frontmatter: the `description` field drives skill triggering — keep it accurate, preserve the `---` fences exactly.
+- Skill behavior evals live under `dev-flow/evals/` (`brainstorm`, `tdd`), run manually after a plugin refresh: `claude plugin eval dev-flow --eval-dir evals/<skill> --judge-model <model> --json`. Results (`evals/*/results/`) are gitignored.
 
 ## Useful commands
 
 | Task | Command |
 |------|---------|
+| Run the test suite | `bash tests/check.sh` |
 | Verify docs/features is gitignored | `git check-ignore docs/features/` |
 | Confirm no local-only files in a diff | `git status --porcelain docs/features/` (should be empty) |
 | View a prior run's state | `cat docs/features/.feature-states/<feat>.state.md` |
