@@ -40,16 +40,12 @@ if [ -n "$sp_hits" ]; then
   bad 2 "docs/superpowers/ path present (non-guard):"; printf '%s\n' "$sp_hits"
 else ok 2 "no docs/superpowers/ artifact paths"; fi
 
-# 3. No superpowers:brainstorming in tracked files (git grep skips gitignored docs/features/;
-#    tests/check.sh excluded because it carries the pattern itself)
-if git grep -q 'superpowers:brainstorming' -- ':!tests/check.sh'; then
-  bad 3 "superpowers:brainstorming still referenced:"; git grep -n 'superpowers:brainstorming' -- ':!tests/check.sh'
-else ok 3 "no superpowers:brainstorming references"; fi
-
-# 4. No superpowers:test-driven-development in tracked files
-if git grep -q 'superpowers:test-driven-development' -- ':!tests/check.sh'; then
-  bad 4 "superpowers:test-driven-development still referenced:"; git grep -n 'superpowers:test-driven-development' -- ':!tests/check.sh'
-else ok 4 "no superpowers:test-driven-development references"; fi
+# 3. No superpowers:* references in tracked files outside dev-flow/ (git grep skips
+#    gitignored docs/features/; tests/check.sh excluded — it carries the pattern itself;
+#    README/AGENTS.md excluded — intentional inspiration-credit prose is legitimate)
+if git grep -qE 'superpowers:[a-z-]+' -- ':!tests/check.sh' ':!README.md' ':!AGENTS.md' 2>/dev/null; then
+  bad 3 "superpowers:* reference outside dev-flow:"; git grep -nE 'superpowers:[a-z-]+' -- ':!tests/check.sh' ':!README.md' ':!AGENTS.md'
+else ok 3 "no superpowers:* references outside dev-flow"; fi
 
 # 5. Spec path convention: file-shaped paths under docs/features/specs/ must be the
 #    design-doc pattern. Bare directory mentions are legitimate prose.
@@ -59,20 +55,14 @@ if [ -n "$spec_bad" ]; then
   bad 5 "spec path deviates from convention:"; echo "$spec_bad"
 else ok 5 "spec paths consistent"; fi
 
-# 6. plugin.json valid JSON + peerDependencies consistent with actual superpowers
-#    invocations: every invoked plugin must be declared, and every declared plugin
-#    must still be invoked (guards the future peerDependency drop).
+# 6. plugin.json valid JSON + fully self-contained: no peerDependencies key, no
+#    superpowers:* invocations anywhere in dev-flow (guards the dependency creeping back).
 if python3 -c "import json;json.load(open('dev-flow/.claude-plugin/plugin.json'))" 2>/dev/null; then
-  inv_plugs=$($G -rhoE 'superpowers:[a-z-]+' dev-flow/ --exclude-dir=evals 2>/dev/null | cut -d: -f1 | sort -u | tr '\n' ' ')
-  declared=$(python3 -c "import json;print(' '.join(json.load(open('dev-flow/.claude-plugin/plugin.json')).get('peerDependencies',{}).keys()))")
-  peer_err=""
-  for p in $inv_plugs; do
-    case " $declared " in *" $p "*) ;; *) peer_err="$peer_err invoked:$p:not-declared";; esac
-  done
-  for p in $declared; do
-    case " $inv_plugs " in *" $p "*) ;; *) peer_err="$peer_err declared:$p:not-invoked";; esac
-  done
-  [ -z "$peer_err" ] && ok 6 "plugin.json valid; peerDependencies match invoked skills" || bad 6 "peerDependencies mismatch:$peer_err"
+  if python3 -c "import json;import sys;sys.exit(0 if 'peerDependencies' in json.load(open('dev-flow/.claude-plugin/plugin.json')) else 1)" 2>/dev/null; then
+    bad 6 "plugin.json still declares peerDependencies"
+  else
+    ok 6 "plugin.json valid; no peerDependencies"
+  fi
 else bad 6 "plugin.json is not valid JSON"; fi
 
 # 7. Invoke list maps to real skill files: every `dev-flow:<name>` mention has skills/<name>/SKILL.md with matching name:

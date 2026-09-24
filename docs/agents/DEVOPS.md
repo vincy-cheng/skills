@@ -1,10 +1,10 @@
 # Dev-ops
 
-Local developer workflow for this plugin repo. There is no build step and no linter — the repo is Markdown consumed by AI agents. The test suite is `bash tests/check.sh` (9 consistency checks; exit 0 = green). Verification is the suite + human/agent read-through.
+Local developer workflow for this plugin repo. There is no build step and no linter — the repo is Markdown consumed by AI agents. The test suite is `bash tests/check.sh` (11 consistency checks; exit 0 = green). Verification is the suite + human/agent read-through.
 
 ## Setup
 
-No dependencies to install. To use the plugin (separate from editing it): install via Claude Code — `/plugin install dev-flow@vincy-skills` (after `/plugin marketplace add vincy-cheng/skills`), or `claude plugin install https://github.com/vincy-cheng/skills.git`. Requires the `superpowers` plugin installed first (peer dependency).
+No dependencies to install. To use the plugin (separate from editing it): install via Claude Code — `/plugin install dev-flow@vincy-skills` (after `/plugin marketplace add vincy-cheng/skills`), or `claude plugin install https://github.com/vincy-cheng/skills.git`. Fully self-contained — no other plugin required.
 
 ## Git workflow
 
