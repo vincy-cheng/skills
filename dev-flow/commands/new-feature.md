@@ -1,5 +1,5 @@
 ---
-description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD) → verify (test → review → doc-fix) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. Requires the superpowers plugin (writing-plans); brainstorm and TDD are dev-flow's own skills.
+description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD) → verify (test → review → doc-fix) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. All step skills are dev-flow's own — no external plugin dependencies.
 ---
 
 # New feature or fix — full workflow
@@ -19,29 +19,19 @@ Run each step before the next. Pause at the natural checkpoints (after spec, aft
 
 **Resume:** if $ARGUMENTS is empty, a feat-name, or the word "resume", go to **Resume** below and discover/continue existing work before starting anything fresh.
 
-## Peer dependency — superpowers
+## Skills — all in-house
 
-Invokes `superpowers:writing-plans` as a sub-step; runs its own `dev-flow:brainstorm`, `dev-flow:execute-tasks` (which invokes `dev-flow:tdd` per task), `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit` skills. Superpowers **must** be installed for the one `superpowers:*` skill.
+Runs its own skills for every step: `dev-flow:brainstorm` (step 1, which writes the spec), `dev-flow:plan` (step 3), `dev-flow:execute-tasks` (step 5, which invokes `dev-flow:tdd` per task), `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit`. No external plugin dependencies — no step invokes a `superpowers:*` skill or any other plugin's skills.
 
-**Missing-superpowers check — run at the start of every step that invokes a `superpowers:*` skill (step 3):** if the skill is unavailable, **stop before doing any other work** and tell the user, in plain language:
+**Artifact rules (apply to every sub-skill):**
 
-> dev-flow needs the `superpowers` plugin for this step, but it isn't installed. Install it and retry:
-> - `/plugin install superpowers` (from the official marketplace), or
-> - `claude plugin install https://github.com/obra/superpowers.git`
->
-> Then run `/new-feature` again — your state file is intact and you'll resume right here.
-
-Don't dump the rest of the step or attempt a fallback. The run pauses cleanly; once superpowers is present, resume picks up from the state file's **Goal status**.
-
-**Superpowers defaults lose to dev-flow.** Superpowers' SessionStart injection urges invoking its skills before any response, and its skills carry their own defaults (`docs/superpowers/` save paths, design-doc commits, "Execution Handoff"). Inside this workflow those defaults **do not apply**:
-
-- Before writing any file for this run, verify the target is under `docs/features/` — never `docs/superpowers/`. If a superpowers sub-skill (writing-plans) already wrote there, move the file (step 3 does this).
-- Never commit specs, plans, or state files (see *Commit guard*). Superpowers' "commit the design document" instruction — which writing-plans-era defaults still carry — does not override this; design docs and state are dev-flow-local only.
+- Before writing any file for this run, verify the target is under `docs/features/` — never `docs/superpowers/` or any other workspace path. If an earlier skill version wrote there, move the file.
+- Never commit specs, plans, or state files (see *Commit guard*). Design docs and state are dev-flow-local only.
 - A sub-skill's handoff never advances, skips, or reorders steps — see *The hard gate*.
 
 ## The hard gate
 
-Step 3 invokes a superpowers skill with its **own** handoff instruction (writing-plans → "Execution Handoff"); step 1 runs dev-flow's own brainstorm skill. Left unchecked, those handoffs **will** skip or reorder this workflow. The gate prevents it **structurally**: the state file's **Goal status** is the only thing that advances a step.
+Steps 1 and 3 invoke dev-flow's own skills (brainstorm, plan) whose terminal states are their artifacts (spec, plan) — but a sub-skill left unchecked **will** skip or reorder this workflow via its own "next step" instructions. The gate prevents it **structurally**: the state file's **Goal status** is the only thing that advances a step.
 
 **Gate check — run at the start of every step:**
 1. Read `docs/features/.feature-states/<feat-name>.state.md`.
@@ -70,7 +60,7 @@ Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → 
 
 **Sub-skill handoffs — ignore them; return to the next dev-flow step:**
 - `dev-flow:brainstorm` finishes → **step 2 (spec)**. Its terminal state is the approved spec — it has no handoff.
-- `writing-plans` finishes → **step 4 (create issue)**, not its Execution Handoff. The issue must exist first (the branch is named `feat/<n>-<name>` or `fix/<n>-<name>`).
+- `dev-flow:plan` finishes → **step 4 (create issue)**. The issue must exist first (the branch is named `feat/<n>-<name>` or `fix/<n>-<name>`).
 - Gate check fails → STOP and resume from the status the state file names. Don't "helpfully" follow the sub-skill.
 
 The state file is the single source of truth for "what step am I on." On any doubt or ambiguity: run the gate check.
@@ -172,29 +162,7 @@ If `$ARGUMENTS` reference an idea folder, the skill ingests its docs as the esta
 **Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. The spec is written by `dev-flow:brainstorm` at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — verify it exists, add the path to References, show the user. Verify it's gitignored before moving on.
 
 ## Step 3 — Plan
-**Gate:** `spec` → set `planning`. **Invoke `superpowers:writing-plans` and follow it** — the plan is generated through that skill, not hand-authored. **Tell writing-plans to save the plan to `docs/features/plans/YYYY-MM-DD-<feat-name>.md`** (it defaults to `docs/superpowers/plans/`; dev-flow overrides that). Bite-sized tasks, TDD, frequent commits; reference the spec. Copy the task list into the state file's Tasks; add the plan path to References. Verify it's gitignored. `writing-plans` will offer an Execution Handoff — **don't take it**; advance to step 4.
-
-### Flow chart is mandatory in every plan
-
-The plan **must** include a `## Flow Chart` section, placed right after `## Global Constraints` and before `## File Structure` / the first task. It shows what to do and what changes — task flow plus per-task blast radius — so a reader grasps the whole change at a glance.
-
-Use a Mermaid `flowchart` (renders in VS Code and GitHub). For every task: **what it does** (task name) and **what it changes** (files, keyed to File Structure).
-
-- Each task is a node labeled `Task N: <name>`.
-- Connect in execution order with `-->`. Draw a dependency edge where one task blocks another (a later task imports a symbol an earlier task defines) — surfaces the critical path.
-- List the files each task touches under its node, e.g. `Task N changes: file_a.dart, file_b.dart`. Never omit the "what changes".
-- Add a second diagram for data/control flow (e.g. UI → service → DAO → DB) when the work spans layers. One task-flow chart is the minimum.
-
-Example (adapt, don't copy):
-```mermaid
-flowchart TD
-    T1["Task 1: Rename TWD→NTD<br/>changes: supported_currencies.dart"] --> T2
-    T2["Task 2: Migration v12<br/>changes: migration_v12.dart, database.dart"] --> T3
-    T3["Task 3: Read-side normalization<br/>changes: currency_provider.dart"]
-    T2 -.blocks.-> T5["Task 5: Price NTD column<br/>changes: csv_import_service.dart"]
-```
-
-Keep it honest: every task node matches a `### Task N` heading, every file under a node appears in that task's `**Files:**` block. Update the chart in the same edit if a task is added/removed. A stale flow chart is worse than none.
+**Gate:** `spec` → set `planning`. **Invoke `dev-flow:plan` and follow it** — the plan is generated through that skill, not hand-authored. It saves the plan to `docs/features/plans/YYYY-MM-DD-<feat-name>.md` (its own convention — no override needed), produces the contract-complete sections (overview, Global Constraints, Flow Chart, File Structure, Tasks with per-task files and TDD shape), and has no handoff. Copy the task list into the state file's Tasks; add the plan path to References. Verify it's gitignored; advance to step 4.
 
 ## Step 4 — Create issue
 **Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feat/<n>-<name>` (or `fix/<n>-<name>`) branch off `dev`; update the state file's base branch and record the issue number in References.

@@ -96,13 +96,20 @@ else
 fi
 [ -z "$plan_errs" ] && ok 8 "plan skill present with contract-first mandates" || bad 8 "plan skill broken:$plan_errs"
 
-# 9. docs/features/ gitignored
-if git check-ignore -q docs/features/; then ok 9 "docs/features/ gitignored"; else bad 9 "docs/features/ NOT gitignored"; fi
+# 9. No superpowers:* skill invocations in tracked dev-flow files (evals excluded —
+#    fixtures quote forbidden invocations as grading criteria; check.sh excluded —
+#    it carries the pattern itself). Guards the dependency creeping back.
+if git grep -qE 'superpowers:[a-z-]+' -- 'dev-flow/' ':!dev-flow/evals/' ':!tests/check.sh' 2>/dev/null; then
+  bad 9 "superpowers:* invocation still referenced:"; git grep -nE 'superpowers:[a-z-]+' -- 'dev-flow/' ':!dev-flow/evals/' ':!tests/check.sh'
+else ok 9 "no superpowers:* invocations in dev-flow"; fi
 
-# 10. Plugin cache freshness vs repo (WARN only — never FAILs the suite)
+# 10. docs/features/ gitignored
+if git check-ignore -q docs/features/; then ok 10 "docs/features/ gitignored"; else bad 10 "docs/features/ NOT gitignored"; fi
+
+# 11. Plugin cache freshness vs repo (WARN only — never FAILs the suite)
 CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/0.1.0/skills"
 if [ ! -d "$CACHE" ]; then
-  wn 10 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"
+  wn 11 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"
 else
   stale=""
   for f in dev-flow/skills/*/SKILL.md; do
@@ -110,7 +117,7 @@ else
     [ -f "$CACHE/$name/SKILL.md" ] || { stale="$stale $name:missing-from-cache"; continue; }
     cmp -s "$f" "$CACHE/$name/SKILL.md" || stale="$stale $name:differs-from-cache"
   done
-  [ -z "$stale" ] && ok 10 "repo skills match installed cache" || wn 10 "cache stale (refresh plugin before running evals):$stale"
+  [ -z "$stale" ] && ok 11 "repo skills match installed cache" || wn 11 "cache stale (refresh plugin before running evals):$stale"
 fi
 
 echo "---"
