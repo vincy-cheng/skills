@@ -84,13 +84,25 @@ for name in $($G -rhoE 'dev-flow:[a-z][a-z-]+' dev-flow/commands/ README.md AGEN
 done
 [ -z "$inv_errs" ] && ok 7 "invocations map to real skills" || bad 7 "invocation errors:$inv_errs"
 
-# 8. docs/features/ gitignored
-if git check-ignore -q docs/features/; then ok 8 "docs/features/ gitignored"; else bad 8 "docs/features/ NOT gitignored"; fi
+# 8. plan skill exists with correct frontmatter and its contract-first mandates
+PLAN_SKILL="dev-flow/skills/plan/SKILL.md"
+plan_errs=""
+if [ ! -f "$PLAN_SKILL" ]; then
+  plan_errs=" $PLAN_SKILL:missing"
+else
+  $G -q '^name: plan' "$PLAN_SKILL" || plan_errs="$plan_errs plan:no-name"
+  $G -q '## Flow Chart' "$PLAN_SKILL" || plan_errs="$plan_errs plan:no-flow-chart-mandate"
+  $G -q 'docs/features/plans/' "$PLAN_SKILL" || plan_errs="$plan_errs plan:no-save-path"
+fi
+[ -z "$plan_errs" ] && ok 8 "plan skill present with contract-first mandates" || bad 8 "plan skill broken:$plan_errs"
 
-# 9. Plugin cache freshness vs repo (WARN only — never FAILs the suite)
+# 9. docs/features/ gitignored
+if git check-ignore -q docs/features/; then ok 9 "docs/features/ gitignored"; else bad 9 "docs/features/ NOT gitignored"; fi
+
+# 10. Plugin cache freshness vs repo (WARN only — never FAILs the suite)
 CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/0.1.0/skills"
 if [ ! -d "$CACHE" ]; then
-  wn 9 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"
+  wn 10 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"
 else
   stale=""
   for f in dev-flow/skills/*/SKILL.md; do
@@ -98,7 +110,7 @@ else
     [ -f "$CACHE/$name/SKILL.md" ] || { stale="$stale $name:missing-from-cache"; continue; }
     cmp -s "$f" "$CACHE/$name/SKILL.md" || stale="$stale $name:differs-from-cache"
   done
-  [ -z "$stale" ] && ok 9 "repo skills match installed cache" || wn 9 "cache stale (refresh plugin before running evals):$stale"
+  [ -z "$stale" ] && ok 10 "repo skills match installed cache" || wn 10 "cache stale (refresh plugin before running evals):$stale"
 fi
 
 echo "---"
