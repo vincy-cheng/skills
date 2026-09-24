@@ -1,0 +1,6 @@
+name: 02-flow-chart-present
+description: The plan must include a Mermaid Flow Chart section whose task nodes and file lists match the Tasks section
+grader: graders/grader.md
+skill: dev-flow:plan
+extra_checks:
+  - Response must contain a Mermaid flowchart with a node per task and file lists under the nodes.

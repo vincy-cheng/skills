@@ -1,0 +1,6 @@
+name: 04-save-path
+description: The plan is saved under docs/features/plans/ with the YYYY-MM-DD-<feat-name>.md convention — never docs/superpowers/ — and never committed
+grader: graders/grader.md
+skill: dev-flow:plan
+extra_checks:
+  - Response must state or show the plan saved to docs/features/plans/YYYY-MM-DD-<feat-name>.md; must never use docs/superpowers/ and must not commit the plan.
