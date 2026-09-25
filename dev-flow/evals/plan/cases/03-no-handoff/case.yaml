@@ -1,6 +1,9 @@
+schema_version: "1.0"
 name: 03-no-handoff
 description: The plan skill's terminal state is the presented plan — no Execution Handoff, no invoking other skills, no starting implementation
-grader: graders/grader.md
-skill: dev-flow:plan
-extra_checks:
-  - Response must end with the plan presented for approval; no "next step" handoff to another skill and no begun implementation.
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Write
+    - Edit

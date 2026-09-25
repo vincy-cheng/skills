@@ -96,7 +96,31 @@ else ok 9 "no superpowers:* invocations in dev-flow"; fi
 # 10. docs/features/ gitignored
 if git check-ignore -q docs/features/; then ok 10 "docs/features/ gitignored"; else bad 10 "docs/features/ NOT gitignored"; fi
 
-# 11. Plugin cache freshness vs repo (WARN only — never FAILs the suite)
+# 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
+#     a) turn/timeout settings must nest under `execution:` — top-level they are
+#        silently ignored and runs die at the default 10 turns;
+#     b) an explicit llm grader's `criteria:` is passed to the judge VERBATIM — a bare
+#        file path is never resolved, so that grader scores on the string "graders/grader.md"
+#        instead of the file (auto-discovered graders/*.md files do carry real content);
+#     c) every referenced graders/*.md must exist (case dir first, then suite dir —
+#        the legacy suites keep graders at suite level);
+#     d) legacy fields (`grader:`, `extra_checks:`, `skill:`) are rejected by the
+#        current CLI's strict schema — old-format cases can't run at all.
+ev_errs=""
+for f in dev-flow/evals/*/cases/*/case.yaml; do
+  dir=$(dirname "$f"); suite=$(dirname "$(dirname "$dir")")
+  $G -qE '^max_turns:|^timeout_seconds:' "$f" && ev_errs="$ev_errs $f:turns-top-level"
+  if $G -qE '^ *criteria:' "$f" && $G -qE '^ *criteria: *[a-zA-Z0-9_./-]+\.md$' "$f"; then
+    ev_errs="$ev_errs $f:criteria-is-bare-path"
+  fi
+  $G -qE '^(grader|extra_checks|skill):' "$f" && ev_errs="$ev_errs $f:legacy-schema"
+  for g in $($G -oE 'graders/[a-zA-Z0-9_-]+\.md' "$f" | sort -u); do
+    { [ -f "$dir/$g" ] || [ -f "$suite/$g" ]; } || ev_errs="$ev_errs $f:missing-$g"
+  done
+done
+[ -z "$ev_errs" ] && ok 12 "eval case.yaml schema sound" || bad 12 "eval schema errors:$ev_errs"
+
+echo "---"
 CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/0.1.0/skills"
 if [ ! -d "$CACHE" ]; then
   wn 11 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"

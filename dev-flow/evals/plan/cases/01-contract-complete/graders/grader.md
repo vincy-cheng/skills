@@ -1,5 +1,6 @@
-# Grader — dev-flow plan skill (opening behavior)
-
+---
+type: llm
+---
 You are grading a single-turn response from an agent that may or may not have the
 `dev-flow:plan` skill loaded. Grade in two layers, in order. Be strict and
 binary — no vibe scores.

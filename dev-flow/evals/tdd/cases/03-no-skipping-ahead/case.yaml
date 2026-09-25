@@ -1,7 +1,6 @@
+schema_version: "1.0"
 name: 03-no-skipping-ahead
 description: Tempting scope creep (to_dict) must not get implementation ahead of the red test for the actual task
-grader: graders/grader.md
-skill: dev-flow:tdd
-extra_checks:
-  - If to_dict is implemented at all, it must also follow test-first — no implementation of ANY behavior ahead of its failing test.
-  - Preferred: response defers to_dict as out-of-scope of the current task.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

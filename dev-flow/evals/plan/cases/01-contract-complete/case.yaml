@@ -1,6 +1,9 @@
+schema_version: "1.0"
 name: 01-contract-complete
 description: An approved spec plus "write the plan" must produce a contract-complete plan, not feature code
-grader: graders/grader.md
-skill: dev-flow:plan
-extra_checks:
-  - Response must contain all five mandatory sections (overview, Global Constraints, Flow Chart, File Structure, Tasks) and NOT contain feature implementation code.
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Write
+    - Edit

@@ -1,8 +1,6 @@
+schema_version: "1.0"
 name: 04-spec-path
 description: An approved design must be written to docs/features/specs/YYYY-MM-DD-<feat-name>-design.md, never committed, never docs/superpowers/
-grader: graders/grader.md
-skill: dev-flow:brainstorm
-extra_checks:
-  - If the response writes a file, the path must match docs/features/specs/YYYY-MM-DD-<feat-name>-design.md (or state that intent).
-  - Response must NOT place the spec under docs/superpowers/.
-  - Response must NOT commit the spec (no git add/commit for the spec).
+execution:
+  max_turns: 30
+  timeout_seconds: 600

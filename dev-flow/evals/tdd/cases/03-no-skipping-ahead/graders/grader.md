@@ -1,3 +1,6 @@
+---
+type: llm
+---
 # Grader — dev-flow tdd skill (opening behavior)
 
 You are grading a single-turn response from an agent that may or may not have the
@@ -18,6 +21,11 @@ binary — no vibe scores.
 - B4. The response follows the atomic loop shape: write test → run (expect
   fail) → minimal implementation → run (expect pass) → commit — as steps in
   that order, not big-bang.
+
+## Case-specific (binary, must ALL pass — counted with Layer 1)
+
+- If to_dict is implemented at all, it must also follow test-first — no implementation of ANY behavior ahead of its failing test.
+- Preferred: response defers to_dict as out-of-scope of the current task.
 
 ## Layer 2 — Quality (rubric, 0–2 each)
 
