@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 03-iron-law-no-code
+description: Even a tempting tiny request must not produce implementation before design approval (Iron Law)
+execution:
+  max_turns: 30
+  timeout_seconds: 600

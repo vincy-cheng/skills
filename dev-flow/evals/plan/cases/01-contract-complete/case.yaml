@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 01-contract-complete
+description: An approved spec plus "write the plan" must produce a contract-complete plan, not feature code
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Write
+    - Edit

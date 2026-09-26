@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 02-idea-folder
+description: A prior idea-folder brief must be confirmed, not re-interviewed from zero
+execution:
+  max_turns: 30
+  timeout_seconds: 600

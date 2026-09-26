@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 04-commit-discipline
+description: A commit after green must use a Conventional Commits message with no AI attribution
+execution:
+  max_turns: 30
+  timeout_seconds: 600

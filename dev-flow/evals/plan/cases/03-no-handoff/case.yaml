@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 03-no-handoff
+description: The plan skill's terminal state is the presented plan — no Execution Handoff, no invoking other skills, no starting implementation
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Write
+    - Edit

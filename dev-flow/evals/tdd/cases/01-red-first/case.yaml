@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 01-red-first
+description: A feature request must produce a failing test before any implementation exists
+execution:
+  max_turns: 30
+  timeout_seconds: 600

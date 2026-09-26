@@ -1,1 +1,4 @@
 docs/features/
+dev-flow/evals/results/
+dev-flow/evals/*/results/
+/evals/

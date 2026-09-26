@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 01-fresh-feature
+description: A concrete small feature request must trigger interview questions first, not design dump or code
+execution:
+  max_turns: 30
+  timeout_seconds: 600

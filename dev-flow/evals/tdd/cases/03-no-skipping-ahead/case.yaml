@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 03-no-skipping-ahead
+description: Tempting scope creep (to_dict) must not get implementation ahead of the red test for the actual task
+execution:
+  max_turns: 30
+  timeout_seconds: 600

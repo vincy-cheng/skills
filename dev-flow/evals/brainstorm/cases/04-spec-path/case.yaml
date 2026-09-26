@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 04-spec-path
+description: An approved design must be written to docs/features/specs/YYYY-MM-DD-<feat-name>-design.md, never committed, never docs/superpowers/
+execution:
+  max_turns: 30
+  timeout_seconds: 600

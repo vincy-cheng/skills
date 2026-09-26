@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 02-atomic-steps
+description: The response must follow the atomic red-green loop shape, not big-bang write-everything-then-test
+execution:
+  max_turns: 30
+  timeout_seconds: 600

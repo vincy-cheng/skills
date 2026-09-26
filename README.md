@@ -4,11 +4,8 @@ AI coding-agent plugins published from this repo. Each top-level directory is on
 
 ## Install
 
-`dev-flow` depends on the `superpowers` plugin (it calls `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`). Install superpowers first, then dev-flow:
-
 ```
 /plugin marketplace add vincy-cheng/skills
-/plugin install superpowers
 /plugin install dev-flow@vincy-skills
 ```
 
@@ -21,8 +18,6 @@ claude plugin install https://github.com/vincy-cheng/skills.git
 Then run `/new-feature <your idea>` in any repo with the `gh` CLI. Run `/new-feature` with no args to **resume** — it finds your last run for you.
 
 The same install also gives you `/new-idea` — dev-flow's structured brainstorm command (see below).
-
-> If you see a "missing peer dependency: superpowers" prompt, run `/plugin install superpowers` and retry — dev-flow can't run its brainstorm/plan/TDD steps without it.
 
 ## Plugin: `dev-flow`
 
@@ -44,20 +39,23 @@ Three guarantees:
 | `/new-feature` command | The pipeline of record — runs all 11 steps in order (4 phases: plan → build → verify → ship) | Start or resume any feature/fix |
 | `/new-idea` command | Scaffolds `ideas/<slug>/` with five docs (README, research, design, plan, tl-dr) + optional `cost.md` | Brainstorm an idea before committing to build it |
 | `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
-| `execute-tasks` skill | Step 5 — TDD loop, commit per task. Inline or subagent mode | Inside the flow |
+| `plan` skill | Step 3 — contract-first plan engine: overview, Global Constraints, Flow Chart (Mermaid), File Structure, bite-sized TDD-shaped tasks ending in an approved plan under `docs/features/plans/`. Standalone, and invoked by /new-feature step 3 | Inside the flow, or standalone |
+| `brainstorm` skill | Step 1 — design dialogue (interview, idea-folder ingestion, design-tree rounds, 2-3 approaches) ending in an approved spec under `docs/features/specs/`. Standalone, and invoked by /new-feature step 1 | Inside the flow, or standalone |
+| `execute-tasks` skill | Step 5 — task loop, TDD via the `tdd` skill, commit per task. Inline or subagent mode; implement step carries a one-line clean-code pointer (prevention, with review as backstop) | Inside the flow |
+| `tdd` skill | Test-first engine for any feature/bugfix — red-green loop, seams, anti-patterns. Standalone, and invoked by execute-tasks per task | Inside the flow, or standalone |
 | `test` skill | Step 6 — fresh-subagent test gate: full suite + lint + test-honesty scan; green/red verdict; red returns to execute | Inside the flow, or standalone |
-| `review` skill | Step 7 — judgment review via a fresh reviewer subagent: spec covered, obvious issues (bugs, security smells, leftover, naming), maintainability (structure, coupling, naming, complexity, duplication). Test gate is the test skill (step 6) | Inside the flow, or standalone |
+| `review` skill | Step 7 — judgment review via a fresh reviewer subagent: spec covered, obvious issues (bugs, security smells, leftover, naming), maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells, KISS, DRY). Test gate is the test skill (step 6) | Inside the flow, or standalone |
 | `doc-fix` skill | Step 8 — pre-PR doc drift scan caused by this run; guided edits, ride in the PR as `docs:` commits | Inside the flow, or standalone |
 | `open-pr` skill | Step 9 — opens the PR targeting `dev`: body draft, closing keyword, issue link + issue-body sync, standalone mode. Never merges | Inside the flow, or standalone |
 | `commit` skill | Conventional Commits from the diff, **no AI attribution** | Standalone, or per-task in step 5 |
 | `document-structure` skill | Builds/updates the target repo's agent docs under `docs/agents/` — tiny index + architecture/dev-ops maps + dynamic concern maps (testing, API, deployment, database, …) | Any repo, on demand |
 | `whats-new` skill | Summarizes what's new in a repo: shipped work (git + PRs/issues) + doc-vs-code drift. Never writes a changelog file | Any repo, on demand |
+| `tests/check.sh` | The repo's test suite — 11 bash consistency checks run by dev-flow step 6 | Any edit to skills/commands |
+| `dev-flow/evals/` | Behavioral evals for the `brainstorm`, `plan`, and `tdd` skills (`claude plugin eval`), run manually after a plugin refresh | After editing a skill |
 
-### Requires: the `superpowers` plugin
+## dev-flow is fully self-contained
 
-`dev-flow` invokes `superpowers:brainstorming`, `superpowers:writing-plans`, and `superpowers:test-driven-development`. Install superpowers first.
-
-**One thing to know:** superpowers injects a session-start instruction urging skill use before any response. Inside a dev-flow run, ignore it — dev-flow calls the superpowers skills it needs as sub-steps, and superpowers' defaults (`docs/superpowers/` paths, design-doc commits, "Execution Handoff") **don't apply**. Everything lives under `docs/features/` (gitignored, never committed).
+Every step's engine is dev-flow's own skill — brainstorm, plan, tdd, execute-tasks, test, review, doc-fix, open-pr, create-github-issue, commit — no external plugin dependencies. All artifacts live under `docs/features/` (gitignored, never committed).
 
 ## dev-flow's brainstorm command: `/new-idea`
 
@@ -73,21 +71,26 @@ Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by 
 
 ## Acknowledgements
 
-`dev-flow` builds on [obra/superpowers](https://github.com/obra/superpowers) (available in Claude Code's official plugin marketplace). Dev-flow reuses three of its skills — `brainstorming`, `writing-plans`, and `test-driven-development` — as sub-steps inside its own pipeline, and adds its own `execute-tasks`, `test`, `review`, `doc-fix`, `open-pr`, `create-github-issue`, and `commit` skills so all artifacts stay under `docs/features/` with no `.superpowers/` workspace. Many thanks to the creator and maintainers of superpowers — dev-flow leans on their work for brainstorming, planning, and TDD.
+`dev-flow`'s workflow shape — brainstorm → spec → plan → issue → execute → review → merge — and its early planning engine were inspired by [obra/superpowers](https://github.com/obra/superpowers). Dev-flow has since replaced every borrowed piece with its own skills (`brainstorm`, `plan`, `tdd`, `execute-tasks`, `test`, `review`, `doc-fix`, `open-pr`, `create-github-issue`, `commit`) so all artifacts stay under `docs/features/`. Many thanks to the creator and maintainers of superpowers.
 
 ## Repo layout
 
 ```
+tests/check.sh                       # the repo's test suite (11 consistency checks)
 dev-flow/
-├── .claude-plugin/plugin.json      # metadata + peerDependencies.superpowers
+├── .claude-plugin/plugin.json      # metadata (fully self-contained — no peer dependencies)
+├── evals/                           # behavioral evals: brainstorm/, plan/, tdd/ (run via claude plugin eval)
 ├── commands/new-feature.md         # /new-feature — pipeline + hard gate
 ├── commands/new-idea.md            # /new-idea — scaffold an idea folder (standalone)
 └── skills/
+    ├── brainstorm/SKILL.md         # step 1 design dialogue → approved spec under docs/features/specs/
     ├── commit/SKILL.md             # Conventional Commits, no AI attribution
     ├── create-github-issue/SKILL.md
     ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
-    ├── execute-tasks/SKILL.md      # step 5: TDD loop, inline or subagent
+    ├── execute-tasks/SKILL.md      # step 5: task loop, TDD via the tdd skill, inline or subagent
     ├── new-idea/SKILL.md           # idea-folder scaffold: fixed slots + optional cost.md + draft plan
+    ├── plan/SKILL.md               # step 3 contract-first plan engine → approved plan under docs/features/plans/
+    ├── tdd/SKILL.md                # test-first engine (standalone + step 5)
     ├── test/SKILL.md               # step 6: fresh-subagent test gate (suite + lint + test honesty)
     ├── review/SKILL.md             # step 7: pre-PR judgment review via fresh subagent
     ├── doc-fix/SKILL.md            # step 8: pre-PR doc-drift scan for this run's changes
