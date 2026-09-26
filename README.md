@@ -73,6 +73,10 @@ Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by 
 
 `dev-flow`'s workflow shape — brainstorm → spec → plan → issue → execute → review → merge — and its early planning engine were inspired by [obra/superpowers](https://github.com/obra/superpowers). Dev-flow has since replaced every borrowed piece with its own skills (`brainstorm`, `plan`, `tdd`, `execute-tasks`, `test`, `review`, `doc-fix`, `open-pr`, `create-github-issue`, `commit`) so all artifacts stay under `docs/features/`. Many thanks to the creator and maintainers of superpowers.
 
+The `tdd` skill's **seams** concept (test at public boundaries, never internals) comes from Kent Beck's *Test-Driven Development: By Example*, encountered via Matt Pocock's skill collections ([mattpocock-skills](https://github.com/mattpocock/skills)).
+
+The `review` skill's clean-code pass is distilled from Robert C. Martin's *Clean Code* (via [wojteklu's clean-code checklist](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29) and the r/cleancode community guide). Many thanks to all of them.
+
 ## Repo layout
 
 ```
