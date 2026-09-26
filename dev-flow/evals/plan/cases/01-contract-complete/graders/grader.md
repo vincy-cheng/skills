@@ -20,6 +20,13 @@ binary — no vibe scores.
   Handoff" / next-skill invocation — its terminal state is the presented plan
   awaiting approval.
 
+## Case-specific (binary, must ALL pass — counted with Layer 1)
+
+- The plan must cover the whole spec: the `slug_cache` table, the 24h TTL, and
+  invalidate-on-rename. A plan missing any of the three fails.
+- Each task must state its test (what failing check proves it) and a
+  verification command — tasks without both fail.
+
 ## Layer 2 — Quality (rubric, 0–2 each)
 
 Only if Layer 1 is fully passed, score:

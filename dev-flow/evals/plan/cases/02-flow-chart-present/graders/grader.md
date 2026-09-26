@@ -20,6 +20,16 @@ binary — no vibe scores.
   Handoff" / next-skill invocation — its terminal state is the presented plan
   awaiting approval.
 
+## Case-specific (binary, must ALL pass — counted with Layer 1)
+
+- The Flow Chart section must contain a real Mermaid `flowchart` (or
+  equivalent) diagram with each task as a node labeled `Task N: <name>`,
+  connected in execution order — a section header with no diagram fails.
+- Every node must list the files that task touches (`Task N changes:
+  file_a, file_b` or equivalent) — nodes without file lists fail.
+- Nodes must match the Tasks section: every `Task N` heading has a matching
+  chart node, and every file under a node appears in that task's Files block.
+
 ## Layer 2 — Quality (rubric, 0–2 each)
 
 Only if Layer 1 is fully passed, score:

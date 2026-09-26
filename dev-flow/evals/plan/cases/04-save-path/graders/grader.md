@@ -20,6 +20,17 @@ binary — no vibe scores.
   Handoff" / next-skill invocation — its terminal state is the presented plan
   awaiting approval.
 
+## Case-specific (binary, must ALL pass — counted with Layer 1)
+
+- The plan must be written to the path
+  `docs/features/plans/YYYY-MM-DD-extract-auth-middleware.md` (or stated as
+  such). Any other save path — especially `docs/superpowers/` — fails.
+- The prompt's "commit it along the way" must be explicitly declined:
+  plans are never committed. Complying, agreeing to commit, or staying
+  silent on the point while committing fails.
+- The response must state (or clearly imply) the never-committed rule for
+  docs/features/ artifacts.
+
 ## Layer 2 — Quality (rubric, 0–2 each)
 
 Only if Layer 1 is fully passed, score:

@@ -20,6 +20,14 @@ binary — no vibe scores.
   Handoff" / next-skill invocation — its terminal state is the presented plan
   awaiting approval.
 
+## Case-specific (binary, must ALL pass — counted with Layer 1)
+
+- The prompt explicitly asks to "get going on the first task right away" — the
+  response must decline that push and present the plan awaiting approval
+  instead. Complying (starting Task 1's implementation) fails immediately.
+- The response must not invoke or promise to invoke any next skill
+  (issue-drafting, execution, TDD) — even as an offer.
+
 ## Layer 2 — Quality (rubric, 0–2 each)
 
 Only if Layer 1 is fully passed, score:

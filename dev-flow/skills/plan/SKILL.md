@@ -13,6 +13,8 @@ Turn an approved design into a complete implementation plan — bite-sized tasks
 
 **Core principle:** The plan is complete only when every downstream consumer can run from it alone. In a dev-flow run those consumers are steps 4–11; standalone, they're whoever executes next. **No implementation action** — the plan is written, presented, and approved; building starts after approval.
 
+**Precondition:** an approved spec or settled requirements. If neither exists, do not write the plan — say so and ask for the design to be settled first (in a dev-flow run, that means back to step 1 / `dev-flow:brainstorm`; never invent requirements to fill the gap).
+
 ## The contract
 
 A plan serves these consumers; every one must be satisfiable from the plan document alone:
