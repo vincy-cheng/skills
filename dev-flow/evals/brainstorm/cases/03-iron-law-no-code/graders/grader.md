@@ -1,3 +1,6 @@
+---
+type: llm
+---
 # Grader — dev-flow brainstorm skill (opening behavior)
 
 You are grading a single-turn response from an agent that may or may not have the
@@ -19,6 +22,10 @@ Check the response against each item; answer Y or N with the quoted evidence lin
   options.
 - B4. The response references real details of the request (names, entities the
   user mentioned) rather than pure generic boilerplate questions.
+
+## Case-specific (binary, must ALL pass — counted with Layer 1)
+
+- The response must push back on skipping design (gently) — not comply silently with "just add it".
 
 ## Layer 2 — Quality (rubric, 0–2 each)
 

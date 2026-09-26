@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 00-no-spec
+description: With no approved spec and no settled requirements, the plan skill refuses/defers plan-writing and asks for the design to be settled first — it never invents requirements
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Write
+    - Edit

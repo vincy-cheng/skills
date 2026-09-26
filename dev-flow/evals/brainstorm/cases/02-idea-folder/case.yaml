@@ -1,7 +1,6 @@
+schema_version: "1.0"
 name: 02-idea-folder
 description: A prior idea-folder brief must be confirmed, not re-interviewed from zero
-grader: graders/grader.md
-skill: dev-flow:brainstorm
-extra_checks:
-  - Response must NOT re-ask questions the brief already answers (e.g. "what should the export do?" or "should it stream or buffer?" after being told streaming is settled).
-  - Response may ask only for confirmation or genuinely open points.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

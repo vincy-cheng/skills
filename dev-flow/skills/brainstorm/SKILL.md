@@ -138,5 +138,5 @@ Then ask your human partner to review the spec file. Changes requested → revis
 
 **In-flow mode:** invoked by `dev-flow:new-feature` step 1. In-flow rules:
 
-- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes writing-plans or any other skill. Its terminal state is the approved spec; control returns to the orchestrator; step order is governed solely by the hard gate in `commands/new-feature.md`.
+- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes the plan skill or any other skill. Its terminal state is the approved spec; control returns to the orchestrator; step order is governed solely by the hard gate in `commands/new-feature.md`.
 - Specs are never committed. Artifacts stay under `docs/features/` — never `.superpowers/`.

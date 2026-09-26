@@ -92,7 +92,7 @@ Keep your own context clean: everything you paste into a dispatch and everything
 
 - Run the **full test + lint suite** one more time. Update **Last verification** — this is the green signal the next step (review → PR) relies on.
 - In subagent mode: delete `docs/features/.sdd/<feat-name>/` — the git history is the record now.
-- Do **not** open the PR here — that's dev-flow step 9. Do **not** invoke `superpowers:finishing-a-development-branch` — this workflow's merge is manual (step 10), not a local merge.
+- Do **not** open the PR here — that's dev-flow step 9. Do **not** run any branch-finishing skill — this workflow's merge is manual (step 10), not a local merge.
 - Hand back to `/new-feature`: it invokes `dev-flow:test` (step 6) next, then `dev-flow:review` (step 7), then advances to step 8.
 
 ## What not to do
