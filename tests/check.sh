@@ -135,10 +135,13 @@ import re
 from pathlib import Path
 
 path = Path("dev-flow/skills/new-feature/SKILL.md")
-if not path.is_file():
-    print("skill-missing")
-else:
+try:
     text = path.read_text()
+except FileNotFoundError:
+    print("skill-missing")
+except OSError as error:
+    print(f"skill-unreadable:{error}")
+else:
     header = text.split("---", 2)
     metadata = header[1] if len(header) == 3 and header[0] == "" else ""
     if not re.search(r"^name: new-feature$", metadata, re.M):
@@ -162,11 +165,28 @@ if [ -z "$skill_errs" ]; then ok 14 "Codex new-feature skill retains the gated w
 docs_errs=$(python3 - <<'PY'
 from pathlib import Path
 
-readme = Path("README.md").read_text()
-agents = Path("AGENTS.md").read_text()
-index = Path("docs/agents/INDEX.md").read_text()
-architecture = Path("docs/agents/ARCHITECTURE.md").read_text()
-devops = Path("docs/agents/DEVOPS.md").read_text()
+docs = {}
+missing = []
+for key, rel in (
+    ("readme", "README.md"),
+    ("agents", "AGENTS.md"),
+    ("index", "docs/agents/INDEX.md"),
+    ("architecture", "docs/agents/ARCHITECTURE.md"),
+    ("devops", "docs/agents/DEVOPS.md"),
+):
+    try:
+        docs[key] = Path(rel).read_text()
+    except FileNotFoundError:
+        missing.append(rel)
+    except OSError as error:
+        missing.append(f"{rel}:{error}")
+if missing:
+    print("missing-docs:" + ",".join(missing))
+readme = docs.get("readme", "")
+agents = docs.get("agents", "")
+index = docs.get("index", "")
+architecture = docs.get("architecture", "")
+devops = docs.get("devops", "")
 checks = {
     "README Codex setup": "codex plugin marketplace add" in readme,
     "README Codex skill invocation": "$dev-flow:new-feature" in readme,
@@ -208,7 +228,8 @@ done
 [ -z "$ev_errs" ] && ok 12 "eval case.yaml schema sound" || bad 12 "eval schema errors:$ev_errs"
 
 echo "---"
-CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/0.1.0/skills"
+PLUGIN_VERSION=$(python3 -c "import json;print(json.load(open('dev-flow/.claude-plugin/plugin.json'))['version'])" 2>/dev/null || echo unknown)
+CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/$PLUGIN_VERSION/skills"
 if [ ! -d "$CACHE" ]; then
   wn 11 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"
 else

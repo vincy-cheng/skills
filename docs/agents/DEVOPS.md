@@ -32,7 +32,7 @@ Never commit anything under `docs/features/` (specs, plans, state files, index) 
 - **Run the suite**: `bash tests/check.sh` — 14 consistency checks (frontmatter, package metadata, skill wiring, spec-path convention, gitignore, and eval schema; cache freshness is a warning). Any FAIL names the exact drift.
 - After editing skill/command Markdown: read-through both orchestrators for internal consistency (gate table matches lifecycle, every status appears in the table, every step's incoming matches the prior step's set).
 - For YAML frontmatter: the `description` field drives skill triggering — keep it accurate, preserve the `---` fences exactly.
-- Skill behavior evals live under `dev-flow/evals/` (`brainstorm`, `tdd`), run manually after a plugin refresh: `claude plugin eval dev-flow --eval-dir evals/<skill> --judge-model <model> --json`. Results (`evals/*/results/`) are gitignored.
+- Skill behavior evals live under `dev-flow/evals/` (`brainstorm`, `plan`, `tdd`), run manually after a plugin refresh: `claude plugin eval dev-flow --eval-dir evals/<skill> --judge-model <model> --json`. Results (`evals/*/results/`) are gitignored.
 
 ## Useful commands
 
