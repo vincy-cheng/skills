@@ -96,6 +96,39 @@ else ok 9 "no superpowers:* invocations in dev-flow"; fi
 # 10. docs/features/ gitignored
 if git check-ignore -q docs/features/; then ok 10 "docs/features/ gitignored"; else bad 10 "docs/features/ NOT gitignored"; fi
 
+# 13. Codex portable manifest and repo marketplace point to the shared dev-flow plugin.
+codex_errs=$(python3 - <<'PY'
+import json
+from pathlib import Path
+
+portable_path = Path("dev-flow/plugin.json")
+marketplace_path = Path(".agents/plugins/marketplace.json")
+claude_path = Path("dev-flow/.claude-plugin/plugin.json")
+try:
+    portable = json.loads(portable_path.read_text())
+    marketplace = json.loads(marketplace_path.read_text())
+    claude = json.loads(claude_path.read_text())
+except (OSError, json.JSONDecodeError) as error:
+    print(f"invalid-or-missing-json:{error}")
+else:
+    if portable.get("name") != "dev-flow":
+        print("portable-name-mismatch")
+    if portable.get("version") != claude.get("version"):
+        print("portable-version-mismatch")
+    plugin = next((item for item in marketplace.get("plugins", []) if item.get("name") == "dev-flow"), None)
+    if plugin is None:
+        print("marketplace-plugin-missing")
+    else:
+        if plugin.get("source", {}).get("source") != "local" or plugin.get("source", {}).get("path") != "./dev-flow":
+            print("marketplace-source-mismatch")
+        if plugin.get("policy", {}).get("installation") != "AVAILABLE":
+            print("marketplace-installation-policy-missing")
+        if plugin.get("policy", {}).get("authentication") != "ON_INSTALL":
+            print("marketplace-authentication-policy-missing")
+PY
+)
+if [ -z "$codex_errs" ]; then ok 13 "Codex manifest and marketplace wiring are valid"; else bad 13 "Codex package metadata broken:$codex_errs"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;

@@ -1,0 +1,20 @@
+{
+  "name": "vincy-skills-codex",
+  "interface": {
+    "displayName": "Vincy Skills (Codex)"
+  },
+  "plugins": [
+    {
+      "name": "dev-flow",
+      "source": {
+        "source": "local",
+        "path": "./dev-flow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
