@@ -1,6 +1,6 @@
 # skills
 
-AI coding-agent plugins published from this repo. Each top-level directory is one Claude Code plugin.
+AI coding-agent plugins published from this repo. `dev-flow` supports Claude Code and Codex through host-specific plugin metadata and orchestrators, with shared standalone skills.
 
 ## Install
 
@@ -19,6 +19,18 @@ Then run `/new-feature <your idea>` in any repo with the `gh` CLI. Run `/new-fea
 
 The same install also gives you `/new-idea` — dev-flow's structured brainstorm command (see below).
 
+### Install in Codex
+
+From this repository's root, add its local marketplace:
+
+```sh
+codex plugin marketplace add .
+```
+
+Restart the Codex desktop app, open the **Plugins Directory**, choose **Vincy Skills (Codex)**, and install `dev-flow`. The package includes all shared skills and the `new-feature` workflow skill. To start a feature, invoke `$dev-flow:new-feature` with your brief; invoke it without a new brief to resume the latest active run.
+
+After updating this checkout, refresh the marketplace with `codex plugin marketplace upgrade vincy-skills-codex`, then restart Codex so the installed copy picks up the changes.
+
 ## Plugin: `dev-flow`
 
 Drives a feat **or fix** end-to-end:
@@ -36,7 +48,8 @@ Three guarantees:
 
 | Piece | What it does | When |
 |-------|--------------|------|
-| `/new-feature` command | The pipeline of record — runs all 11 steps in order (4 phases: plan → build → verify → ship) | Start or resume any feature/fix |
+| `/new-feature` command | Claude Code pipeline of record — runs all 11 steps in order (4 phases: plan → build → verify → ship) | Start or resume any feature/fix in Claude Code |
+| `new-feature` skill | Codex version of the same 11-step orchestrator and hard gate | `$dev-flow:new-feature` in Codex |
 | `/new-idea` command | Scaffolds `ideas/<slug>/` with five docs (README, research, design, plan, tl-dr) + optional `cost.md` | Brainstorm an idea before committing to build it |
 | `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
 | `plan` skill | Step 3 — contract-first plan engine: overview, Global Constraints, Flow Chart (Mermaid), File Structure, bite-sized TDD-shaped tasks ending in an approved plan under `docs/features/plans/`. Standalone, and invoked by /new-feature step 3 | Inside the flow, or standalone |
@@ -50,7 +63,7 @@ Three guarantees:
 | `commit` skill | Conventional Commits from the diff, **no AI attribution** | Standalone, or per-task in step 5 |
 | `document-structure` skill | Builds/updates the target repo's agent docs under `docs/agents/` — tiny index + architecture/dev-ops maps + dynamic concern maps (testing, API, deployment, database, …) | Any repo, on demand |
 | `whats-new` skill | Summarizes what's new in a repo: shipped work (git + PRs/issues) + doc-vs-code drift. Never writes a changelog file | Any repo, on demand |
-| `tests/check.sh` | The repo's test suite — 11 bash consistency checks run by dev-flow step 6 | Any edit to skills/commands |
+| `tests/check.sh` | The repo's test suite — 14 bash consistency checks run by dev-flow step 6 | Any edit to skills/commands |
 | `dev-flow/evals/` | Behavioral evals for the `brainstorm`, `plan`, and `tdd` skills (`claude plugin eval`), run manually after a plugin refresh | After editing a skill |
 
 ## dev-flow is fully self-contained
@@ -80,8 +93,10 @@ The `review` skill's clean-code pass is distilled from Robert C. Martin's *Clean
 ## Repo layout
 
 ```
-tests/check.sh                       # the repo's test suite (11 consistency checks)
+tests/check.sh                       # the repo's test suite (14 consistency checks)
+.agents/plugins/marketplace.json    # repository-local Codex plugin source
 dev-flow/
+├── plugin.json                      # portable Codex plugin manifest
 ├── .claude-plugin/plugin.json      # metadata (fully self-contained — no peer dependencies)
 ├── evals/                           # behavioral evals: brainstorm/, plan/, tdd/ (run via claude plugin eval)
 ├── commands/new-feature.md         # /new-feature — pipeline + hard gate
@@ -93,6 +108,7 @@ dev-flow/
     ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
     ├── execute-tasks/SKILL.md      # step 5: task loop, TDD via the tdd skill, inline or subagent
     ├── new-idea/SKILL.md           # idea-folder scaffold: fixed slots + optional cost.md + draft plan
+    ├── new-feature/SKILL.md        # Codex orchestrator; mirrors commands/new-feature.md
     ├── plan/SKILL.md               # step 3 contract-first plan engine → approved plan under docs/features/plans/
     ├── tdd/SKILL.md                # test-first engine (standalone + step 5)
     ├── test/SKILL.md               # step 6: fresh-subagent test gate (suite + lint + test honesty)

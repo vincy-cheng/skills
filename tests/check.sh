@@ -158,6 +158,31 @@ PY
 )
 if [ -z "$skill_errs" ]; then ok 14 "Codex new-feature skill retains the gated workflow"; else bad 14 "new-feature skill broken:$skill_errs"; fi
 
+# 15. Setup docs explain both hosts and point users to the repo Codex marketplace.
+docs_errs=$(python3 - <<'PY'
+from pathlib import Path
+
+readme = Path("README.md").read_text()
+agents = Path("AGENTS.md").read_text()
+index = Path("docs/agents/INDEX.md").read_text()
+architecture = Path("docs/agents/ARCHITECTURE.md").read_text()
+devops = Path("docs/agents/DEVOPS.md").read_text()
+checks = {
+    "README Codex setup": "codex plugin marketplace add" in readme,
+    "README Codex skill invocation": "$dev-flow:new-feature" in readme,
+    "README Claude command retained": "/new-feature" in readme,
+    "AGENTS dual-host packaging": "Codex" in agents and "Claude Code" in agents,
+    "INDEX Codex skill route": "dev-flow/skills/new-feature/SKILL.md" in index,
+    "ARCHITECTURE portable manifest": "dev-flow/plugin.json" in architecture,
+    "DEVOPS local marketplace setup": "marketplace add" in devops and "Plugins Directory" in devops,
+}
+for label, present in checks.items():
+    if not present:
+        print(label.replace(" ", "-").lower())
+PY
+)
+if [ -z "$docs_errs" ]; then ok 15 "dual-host setup documentation is linked and complete"; else bad 15 "host setup docs incomplete:$docs_errs"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
