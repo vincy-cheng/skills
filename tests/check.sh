@@ -129,6 +129,35 @@ PY
 )
 if [ -z "$codex_errs" ]; then ok 13 "Codex manifest and marketplace wiring are valid"; else bad 13 "Codex package metadata broken:$codex_errs"; fi
 
+# 14. Codex has a new-feature skill that carries the full gated workflow.
+skill_errs=$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("dev-flow/skills/new-feature/SKILL.md")
+if not path.is_file():
+    print("skill-missing")
+else:
+    text = path.read_text()
+    header = text.split("---", 2)
+    metadata = header[1] if len(header) == 3 and header[0] == "" else ""
+    if not re.search(r"^name: new-feature$", metadata, re.M):
+        print("name-missing")
+    if not re.search(r"^description:\s*\S", metadata, re.M):
+        print("description-missing")
+    if re.findall(r"^## Step (\d+)\b", text, re.M) != [str(n) for n in range(1, 12)]:
+        print("step-sequence-incomplete")
+    for marker in ("## The hard gate", "## Resume", "## Commit guard", "| Step | Requires incoming | Sets |"):
+        if marker not in text:
+            print("missing-" + marker.strip("# |:").replace(" ", "-").lower())
+    required = {"brainstorm", "plan", "execute-tasks", "tdd", "test", "review", "doc-fix", "open-pr", "create-github-issue", "commit"}
+    found = set(re.findall(r"dev-flow:([a-z][a-z-]+)", text))
+    if required - found:
+        print("missing-skill-routes:" + ",".join(sorted(required - found)))
+PY
+)
+if [ -z "$skill_errs" ]; then ok 14 "Codex new-feature skill retains the gated workflow"; else bad 14 "new-feature skill broken:$skill_errs"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
