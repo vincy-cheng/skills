@@ -96,6 +96,113 @@ else ok 9 "no superpowers:* invocations in dev-flow"; fi
 # 10. docs/features/ gitignored
 if git check-ignore -q docs/features/; then ok 10 "docs/features/ gitignored"; else bad 10 "docs/features/ NOT gitignored"; fi
 
+# 13. Codex portable manifest and repo marketplace point to the shared dev-flow plugin.
+codex_errs=$(python3 - <<'PY'
+import json
+from pathlib import Path
+
+portable_path = Path("dev-flow/plugin.json")
+marketplace_path = Path(".agents/plugins/marketplace.json")
+claude_path = Path("dev-flow/.claude-plugin/plugin.json")
+try:
+    portable = json.loads(portable_path.read_text())
+    marketplace = json.loads(marketplace_path.read_text())
+    claude = json.loads(claude_path.read_text())
+except (OSError, json.JSONDecodeError) as error:
+    print(f"invalid-or-missing-json:{error}")
+else:
+    if portable.get("name") != "dev-flow":
+        print("portable-name-mismatch")
+    if portable.get("version") != claude.get("version"):
+        print("portable-version-mismatch")
+    plugin = next((item for item in marketplace.get("plugins", []) if item.get("name") == "dev-flow"), None)
+    if plugin is None:
+        print("marketplace-plugin-missing")
+    else:
+        if plugin.get("source", {}).get("source") != "local" or plugin.get("source", {}).get("path") != "./dev-flow":
+            print("marketplace-source-mismatch")
+        if plugin.get("policy", {}).get("installation") != "AVAILABLE":
+            print("marketplace-installation-policy-missing")
+        if plugin.get("policy", {}).get("authentication") != "ON_INSTALL":
+            print("marketplace-authentication-policy-missing")
+PY
+)
+if [ -z "$codex_errs" ]; then ok 13 "Codex manifest and marketplace wiring are valid"; else bad 13 "Codex package metadata broken:$codex_errs"; fi
+
+# 14. Codex has a new-feature skill that carries the full gated workflow.
+skill_errs=$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("dev-flow/skills/new-feature/SKILL.md")
+try:
+    text = path.read_text()
+except FileNotFoundError:
+    print("skill-missing")
+except OSError as error:
+    print(f"skill-unreadable:{error}")
+else:
+    header = text.split("---", 2)
+    metadata = header[1] if len(header) == 3 and header[0] == "" else ""
+    if not re.search(r"^name: new-feature$", metadata, re.M):
+        print("name-missing")
+    if not re.search(r"^description:\s*\S", metadata, re.M):
+        print("description-missing")
+    if re.findall(r"^## Step (\d+)\b", text, re.M) != [str(n) for n in range(1, 12)]:
+        print("step-sequence-incomplete")
+    for marker in ("## The hard gate", "## Resume", "## Commit guard", "| Step | Requires incoming | Sets |"):
+        if marker not in text:
+            print("missing-" + marker.strip("# |:").replace(" ", "-").lower())
+    required = {"brainstorm", "plan", "execute-tasks", "tdd", "test", "review", "doc-fix", "open-pr", "create-github-issue", "commit"}
+    found = set(re.findall(r"dev-flow:([a-z][a-z-]+)", text))
+    if required - found:
+        print("missing-skill-routes:" + ",".join(sorted(required - found)))
+PY
+)
+if [ -z "$skill_errs" ]; then ok 14 "Codex new-feature skill retains the gated workflow"; else bad 14 "new-feature skill broken:$skill_errs"; fi
+
+# 15. Setup docs explain both hosts and point users to the repo Codex marketplace.
+docs_errs=$(python3 - <<'PY'
+from pathlib import Path
+
+docs = {}
+missing = []
+for key, rel in (
+    ("readme", "README.md"),
+    ("agents", "AGENTS.md"),
+    ("index", "docs/agents/INDEX.md"),
+    ("architecture", "docs/agents/ARCHITECTURE.md"),
+    ("devops", "docs/agents/DEVOPS.md"),
+):
+    try:
+        docs[key] = Path(rel).read_text()
+    except FileNotFoundError:
+        missing.append(rel)
+    except OSError as error:
+        missing.append(f"{rel}:{error}")
+if missing:
+    print("missing-docs:" + ",".join(missing))
+readme = docs.get("readme", "")
+agents = docs.get("agents", "")
+index = docs.get("index", "")
+architecture = docs.get("architecture", "")
+devops = docs.get("devops", "")
+checks = {
+    "README Codex setup": "codex plugin marketplace add" in readme,
+    "README Codex skill invocation": "$dev-flow:new-feature" in readme,
+    "README Claude command retained": "/new-feature" in readme,
+    "AGENTS dual-host packaging": "Codex" in agents and "Claude Code" in agents,
+    "INDEX Codex skill route": "dev-flow/skills/new-feature/SKILL.md" in index,
+    "ARCHITECTURE portable manifest": "dev-flow/plugin.json" in architecture,
+    "DEVOPS local marketplace setup": "marketplace add" in devops and "Plugins Directory" in devops,
+}
+for label, present in checks.items():
+    if not present:
+        print(label.replace(" ", "-").lower())
+PY
+)
+if [ -z "$docs_errs" ]; then ok 15 "dual-host setup documentation is linked and complete"; else bad 15 "host setup docs incomplete:$docs_errs"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
@@ -121,7 +228,8 @@ done
 [ -z "$ev_errs" ] && ok 12 "eval case.yaml schema sound" || bad 12 "eval schema errors:$ev_errs"
 
 echo "---"
-CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/0.1.0/skills"
+PLUGIN_VERSION=$(python3 -c "import json;print(json.load(open('dev-flow/.claude-plugin/plugin.json'))['version'])" 2>/dev/null || echo unknown)
+CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/$PLUGIN_VERSION/skills"
 if [ ! -d "$CACHE" ]; then
   wn 11 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"
 else

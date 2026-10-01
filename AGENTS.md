@@ -1,15 +1,18 @@
 # AGENTS.md
 
-This repo publishes AI coding-agent plugins. There is no application code and no build step; the test suite is `tests/check.sh` (bash consistency checks). Each top-level directory is one plugin. `CLAUDE.md` is a symlink to this file so Claude Code, GitHub Copilot, and other agents all read the same guidance.
+This repo publishes AI coding-agent plugins. There is no application code and no build step; the test suite is `tests/check.sh` (bash consistency checks). Each top-level directory is one plugin, with host-specific metadata where needed. `CLAUDE.md` is a symlink to this file so Claude Code, Codex, GitHub Copilot, and other agents all read the same guidance.
 
 Agent-facing docs (progressive-disclosure tree): `docs/agents/INDEX.md` — start there.
 
 ## Layout convention
 
 A plugin directory follows the plugin format:
+- `plugin.json` — portable plugin identity and metadata for Codex.
 - `.claude-plugin/plugin.json` — metadata (name, description, version, author, keywords).
 - `commands/<name>.md` — slash commands, each with YAML frontmatter (`description`) and a Markdown body. `$ARGUMENTS` interpolates user input.
 - `skills/<name>/SKILL.md` — skills, each with YAML frontmatter (`name`, `description`) and a Markdown body that tells the agent how to run the skill.
+
+The repository-level `.agents/plugins/marketplace.json` catalogs local Codex plugins; its paths point to plugin directories.
 
 These skill files are Markdown consumed by AI coding agents (Claude Code, Copilot, etc.), not application source.
 
@@ -18,7 +21,7 @@ These skill files are Markdown consumed by AI coding agents (Claude Code, Copilo
 `dev-flow` drives a feat **or fix** end-to-end in four phases — plan / build / verify / ship:
 brainstorm → spec → plan → create GitHub issue → execute (TDD) → test → review → doc-fix → PR → manual merge → close-out.
 
-- `commands/new-feature.md` — the `/new-feature` command and the pipeline of record. It defines the step sequence, the state-file format, the commit guard, and the **hard gate** that prevents invoked sub-skills from skipping or reordering dev-flow steps. Maintains an **index file** (`docs/features/.feature-states/state.md`) mirroring all runs — current/last at a glance. Called with no args (or "resume"), it reads the index and resumes the newest active run — so you don't have to remember the feat-name to continue.
+- `commands/new-feature.md` and `skills/new-feature/SKILL.md` — the Claude `/new-feature` command and Codex `new-feature` skill implement the same pipeline and **hard gate**. Keep their step sequence, state-file format, commit guard, resume behavior, and handoffs aligned. The index file (`docs/features/.feature-states/state.md`) mirrors all runs — current/last at a glance.
 - `commands/new-idea.md` + `skills/new-idea/SKILL.md` — the `/new-idea` command: scaffolds a structured brainstorm folder `ideas/<project>/<slug>/` (ideas repo) or `ideas/<slug>/` (project repo) with five fixed self-contained docs (README, research, design, **plan**, tl-dr) plus an optional **cost** doc — both the nesting level and cost inclusion are confirmed with the user up front, and the idea is **discussed and grilled with the user before any files are written** (one round: restate → grill → synthesize → explicit go-ahead). `cost.md` (when included) captures pricing/quotas; `plan.md` is a milestone-draft. Pairs with `/new-feature`: when its arguments reference an idea folder, step 1 ingests the docs as the established brief (settled choices carried forward, not re-derived), and `create-github-issue` links the folder in the issue References. Standalone like `document-structure`/`whats-new` — **not** part of the step sequence and never gated by the state file.
 - `skills/brainstorm/SKILL.md` — step 1. The in-house brainstorming engine: interview (problem, kind, scope, success), idea-folder ingestion, design-tree rounds with recommended answers, 2-3 approaches with trade-offs, sectioned design presentation, spec written directly to `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` (never committed). Standalone-capable; **no handoff** — its terminal state is the approved spec, and the hard gate advances to step 2.
 - `skills/plan/SKILL.md` — step 3. The in-house contract-first plan engine: a plan is complete only when steps 4–11 can run from it alone (issue material, verbatim-copyable task list for the state file, Mermaid **Flow Chart**, per-task Files + TDD shape via the `tdd` skill). Plan saved to `docs/features/plans/YYYY-MM-DD-<feat-name>.md` (never committed). Standalone-capable; **no handoff** — its terminal state is the approved plan, and the hard gate advances to step 4. In-house replacement for superpowers' writing-plans skill.
@@ -41,7 +44,7 @@ Every step's engine is dev-flow's own skill (`brainstorm`, `plan`, `tdd`, `execu
 
 ### How the pieces fit together
 
-`/new-feature` is the orchestrator; it invokes its own skills for every step (`brainstorm` runs step 1, `plan` runs step 3; execute-tasks — which invokes tdd per task — test, review, doc-fix, open-pr, create-github-issue, commit). Sub-skills have their own "next step" instructions. Per `commands/new-feature.md`, those handoffs do **not** advance, skip, or reorder dev-flow steps — control always returns to the next dev-flow step.
+Both `/new-feature` and `$dev-flow:new-feature` are orchestrators; each invokes its own skills for every step (`brainstorm` runs step 1, `plan` runs step 3; execute-tasks — which invokes tdd per task — test, review, doc-fix, open-pr, create-github-issue, commit). Sub-skills have their own "next step" instructions. Their handoffs do **not** advance, skip, or reorder dev-flow steps — control always returns to the next dev-flow step.
 
 The **hard gate** enforces this structurally: each step reads the state file's **Goal status** on entry and refuses to run unless it matches the expected incoming status, then sets the next status. A sub-skill handoff that tries to jump ahead hits the gate and bounces back to the correct step. The state file (`docs/features/.feature-states/<feat>.state.md`) is the source of truth for which step a piece of work is on.
 
@@ -49,11 +52,12 @@ The **hard gate** enforces this structurally: each step reads the state file's *
 
 Preserve:
 - The exact YAML frontmatter (`---` fences) at the top of each file — the `description` field drives skill triggering and must stay accurate.
-- The hard gate in `commands/new-feature.md` — the step→incoming-status→sets-status mapping and the gate check that runs on every step entry. This is the workflow's backbone.
+- The hard gate in both `commands/new-feature.md` and `skills/new-feature/SKILL.md` — preserve their aligned step→incoming-status→sets-status mapping and gate check on every step entry. This is the workflow's backbone.
+- Keep `skills/new-feature/SKILL.md` aligned with the command's gate, lifecycle, resume behavior, and handoffs; Codex uses the skill while Claude Code uses the command.
 - The Mermaid flow-chart requirement in `skills/plan/SKILL.md` (the plan skill's `## Flow Chart` section mandates the chart in every generated plan; `tests/check.sh` check 8 guards it).
 - The state-file template and lifecycle (`brainstorm` → `spec` → `planning` → `issue` → `execute` → `test` → `review` → `doc-fix` → `pr-review` → `merged` → `done`).
 
-When changing one step's behavior, update both `commands/new-feature.md` (the step description and gate) and the relevant sub-skill (`skills/.../SKILL.md`) so the two stay consistent.
+When changing workflow behavior, update both orchestrators and the relevant sub-skill (`skills/.../SKILL.md`) so Claude Code and Codex stay consistent.
 
 ## Git workflow
 
