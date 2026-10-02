@@ -22,7 +22,7 @@ Each step reads the state file's **Goal status** on entry, refuses to run unless
 
 `docs/features/.feature-states/` (gitignored, never committed):
 - `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Goal status, Kind, Last verification, Tasks, References.
-- `state.md` — index: `Feat-name | Kind | Status | Issue | Updated | Branch`, newest first; top non-`done` row is the current run; `Issue` is `—` until step 4, then `#NN`.
+- `.state.md` — index (dot-prefixed, sorts to top): `Feat-name | Kind | Status | Issue | Updated | Branch`, newest first; top non-`done` row is the current run; `Issue` is `—` until step 4, then `#NN`.
 
 Resume: read the index, jump to the step matching Goal status. Only `done` is finished; `merged` still has close-out pending.
 
