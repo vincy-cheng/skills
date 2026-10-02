@@ -122,7 +122,7 @@ One row per feat; newest **Updated** first (re-sort on every write). The top non
 
 ## Resume
 
-You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/state.md` and the current/last run is the top non-`done` row.
+You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/.state.md` and the current/last run is the top non-`done` row.
 
 - **No feat-name in $ARGUMENTS (or "resume"):** read the index; present the active rows numbered; resume the topmost unless the user picks another. Index missing → fall back to scanning `docs/features/.feature-states/*.state.md`, sort by **Updated**, rebuild the index. Zero state files → start fresh from step 1.
 - **Feat-name given in $ARGUMENTS:** use it directly. State file missing for it → tell the user; don't silently start fresh.

@@ -41,7 +41,7 @@ brainstorm → spec → plan → issue → execute (TDD) → test → review →
 
 Three guarantees:
 - **Hard gate** — sub-skills can't skip or reorder steps.
-- **Resumable** — gitignored state files + an index file (`docs/features/.feature-states/state.md`) track every run.
+- **Resumable** — gitignored state files + an index file (`docs/features/.feature-states/.state.md`) track every run.
 - **Local artifacts** — specs/plans/state live under `docs/features/`, never committed.
 
 ### What it provides
