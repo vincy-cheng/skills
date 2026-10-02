@@ -21,15 +21,21 @@ The same install also gives you `/new-idea` — dev-flow's structured brainstorm
 
 ### Install in Codex
 
-From this repository's root, add its local marketplace:
+Add the marketplace straight from GitHub — no clone needed:
+
+```sh
+codex plugin marketplace add vincy-cheng/skills
+```
+
+Restart the Codex desktop app, open the **Plugins Directory**, choose **Vincy Skills (Codex)**, and install `dev-flow`. The package includes all shared skills and the `new-feature` workflow skill. To start a feature, invoke `$dev-flow:new-feature` with your brief; invoke it without a new brief to resume the latest active run.
+
+Alternatively, from this repository's root (local checkout):
 
 ```sh
 codex plugin marketplace add .
 ```
 
-Restart the Codex desktop app, open the **Plugins Directory**, choose **Vincy Skills (Codex)**, and install `dev-flow`. The package includes all shared skills and the `new-feature` workflow skill. To start a feature, invoke `$dev-flow:new-feature` with your brief; invoke it without a new brief to resume the latest active run.
-
-After updating this checkout, refresh the marketplace with `codex plugin marketplace upgrade vincy-skills-codex`, then restart Codex so the installed copy picks up the changes.
+After updating this checkout, refresh the marketplace with `codex plugin marketplace upgrade vincy-skills`, then restart Codex so the installed copy picks up the changes.
 
 ## Plugin: `dev-flow`
 
@@ -41,7 +47,7 @@ brainstorm → spec → plan → issue → execute (TDD) → test → review →
 
 Three guarantees:
 - **Hard gate** — sub-skills can't skip or reorder steps.
-- **Resumable** — gitignored state files + an index file (`docs/features/.feature-states/state.md`) track every run.
+- **Resumable** — gitignored state files + an index file (`docs/features/.feature-states/.state.md`) track every run.
 - **Local artifacts** — specs/plans/state live under `docs/features/`, never committed.
 
 ### What it provides
@@ -53,7 +59,7 @@ Three guarantees:
 | `/new-idea` command | Scaffolds `ideas/<slug>/` with five docs (README, research, design, plan, tl-dr) + optional `cost.md` | Brainstorm an idea before committing to build it |
 | `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
 | `plan` skill | Step 3 — contract-first plan engine: overview, Global Constraints, Flow Chart (Mermaid), File Structure, bite-sized TDD-shaped tasks ending in an approved plan under `docs/features/plans/`. Standalone, and invoked by /new-feature step 3 | Inside the flow, or standalone |
-| `brainstorm` skill | Step 1 — design dialogue (interview, idea-folder ingestion, design-tree rounds, 2-3 approaches) ending in an approved spec under `docs/features/specs/`. Standalone, and invoked by /new-feature step 1 | Inside the flow, or standalone |
+| `brainstorm` skill | Step 1 — design dialogue (interview, idea-folder ingestion, design-tree dialogue one question at a time, 2-3 approaches) ending in an approved spec under `docs/features/specs/`. Standalone, and invoked by /new-feature step 1 | Inside the flow, or standalone |
 | `execute-tasks` skill | Step 5 — task loop, TDD via the `tdd` skill, commit per task. Inline or subagent mode; implement step carries a one-line clean-code pointer (prevention, with review as backstop) | Inside the flow |
 | `tdd` skill | Test-first engine for any feature/bugfix — red-green loop, seams, anti-patterns. Standalone, and invoked by execute-tasks per task | Inside the flow, or standalone |
 | `test` skill | Step 6 — fresh-subagent test gate: full suite + lint + test-honesty scan; green/red verdict; red returns to execute | Inside the flow, or standalone |

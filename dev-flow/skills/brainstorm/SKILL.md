@@ -63,33 +63,39 @@ Record the folder path in the state file's References (in a dev-flow run). The i
 
 If the path doesn't exist, say so and proceed as a normal fresh start.
 
+## Overview-spec ingestion
+
+If the arguments reference an overview spec (`docs/features/specs/YYYY-MM-DD-<feat-name>-overview.md`, written by a decomposed roadmap's first run) and it exists, read it **before** anything else. The named run's entry is the established brief — its problem, scope, and deferred checklist are settled; don't re-derive them. Later-run entries are context, not commitments. Record the path in the state file's References (the `Overview:` line, in a dev-flow run). The interview trims to confirmation: restate the run's entry as read and ask only "did I read this right?" plus anything genuinely open.
+
+If the path doesn't exist, say so and proceed as a normal fresh start.
+
 ## Explore before asking
 
 Facts are your job, never your human partner's. Before asking design questions, check the current project state: files, docs, recent commits. Anything you could look up yourself, look up — bring findings to the dialogue, don't ask the user for them. Where existing code has problems that affect the work (a file grown too large, unclear boundaries), include targeted improvements as part of the design — but no unrelated refactoring.
 
 ## The design tree
 
-Map the design as a **tree**: every decision branches into the decisions that hang off it. Work the tree in **rounds**.
+Map the design as a **tree**: every decision branches into the decisions that hang off it. Work the tree **one question per message**.
 
-The **frontier** is every decision whose prerequisites are already settled — the questions you can ask *now* without guessing at answers you haven't heard. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for the user's answers before the next round.
+The **frontier** is every decision whose prerequisites are already settled — the questions you can ask *now* without guessing at answers you haven't heard. Track the frontier internally: compute it before each question, and recompute it after each answer (settled decisions push it outward and unblock the decisions that hung off them). A question whose prerequisites aren't settled belongs *later* — never ask it now.
 
-Format a round like so:
+Ask one frontier question per message, then stop and wait for the answer:
 
 ```
-❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+❓ **<question>**
 
-➡️ <your recommended answer>
+- **<option A>** — <one line>
+- **<option B>** — <one line>
+- **<option C>** — <one line>
 
----
-
-❓ **Q2** - **<question title>**: <question body>
+➡️ <your recommendation — one short line, or only when asked>
 ```
 
-Each round's answers reshape the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute and ask the next round. A question whose answer depends on another question still open in this round belongs to a *later* round, not this one.
+Max 2-3 options per question, one line each — no long per-option explanations. Give your recommendation either as one short inline line or only when asked; never a paragraph of advocacy. Some questions have no options — an open question is fine too.
 
 The session is done when the frontier is empty: every branch visited, nothing left silently assumed.
 
-**Flag decomposition early.** If the request spans multiple independent subsystems, flag it *before* spending questions on details: help decompose into sub-projects (what are the pieces, how do they relate, what order), then brainstorm the first sub-project through the normal flow. Each sub-project gets its own spec → plan → implementation cycle.
+**Flag decomposition early.** If the request spans multiple independent subsystems, flag it *before* spending questions on details: help decompose into sub-projects (what are the pieces, how do they relate, what order), then brainstorm the first sub-project through the normal flow. Each sub-project gets its own spec → plan → implementation cycle. When the decomposition flag fires, also write an **overview spec** to `docs/features/specs/YYYY-MM-DD-<feat-name>-overview.md` recording all runs, their order, their dependencies, and each run's deferred checklist (the pieces deliberately pushed to later runs). Write it only when decomposition fires — never for a plain spike or bounded run.
 
 ## Approaches
 

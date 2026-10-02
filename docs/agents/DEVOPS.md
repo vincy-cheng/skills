@@ -7,7 +7,7 @@ Local developer workflow for this plugin repo. There is no build step and no lin
 No dependencies to install. To use the plugin (separate from editing it):
 
 - **Claude Code:** `/plugin install dev-flow@vincy-skills` (after `/plugin marketplace add vincy-cheng/skills`), or `claude plugin install https://github.com/vincy-cheng/skills.git`. Run `/new-feature` for the orchestrator.
-- **Codex:** from the repository root run `codex plugin marketplace add .`, restart Codex, then open the Plugins Directory, select **Vincy Skills (Codex)**, and install `dev-flow`. Use `$dev-flow:new-feature` to start or resume the workflow. After local changes, run `codex plugin marketplace upgrade vincy-skills-codex` and restart Codex.
+- **Codex:** run `codex plugin marketplace add vincy-cheng/skills` (no clone needed), restart Codex, then open the Plugins Directory, select **Vincy Skills (Codex)**, and install `dev-flow`. Use `$dev-flow:new-feature` to start or resume the workflow. From a local checkout instead: `codex plugin marketplace add .` from the repository root; after local changes, run `codex plugin marketplace upgrade vincy-skills` and restart Codex.
 
 Both packages use the same standalone skills; no other plugin is required.
 
