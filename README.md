@@ -1,127 +1,125 @@
-# skills
+# Skills
 
-AI coding-agent plugins published from this repo. `dev-flow` supports Claude Code and Codex through host-specific plugin metadata and orchestrators, with shared standalone skills.
+AI coding-agent plugins published from this repository. The `dev-flow` plugin supports Claude Code and Codex through host-specific metadata and workflow entry points, with shared standalone skills.
 
-## Install
+## Install and start
 
-```
+### Claude Code
+
+```sh
 /plugin marketplace add vincy-cheng/skills
 /plugin install dev-flow@vincy-skills
 ```
 
-Alternatively, install dev-flow directly from the git URL:
+Or install directly from GitHub:
 
-```
+```sh
 claude plugin install https://github.com/vincy-cheng/skills.git
 ```
 
-Then run `/new-feature <your idea>` in any repo with the `gh` CLI. Run `/new-feature` with no args to **resume** — it finds your last run for you.
+Start a feature or fix with `/new-feature <your idea>`. Run `/new-feature` without a new brief to resume the latest active run. The workflow uses the `gh` CLI to create GitHub issues and pull requests.
 
-The same install also gives you `/new-idea` — dev-flow's structured brainstorm command (see below).
+The plugin also provides `/new-idea` for documenting an idea before building it.
 
-### Install in Codex
+### Codex
 
-Add the marketplace straight from GitHub — no clone needed:
+Add the marketplace from GitHub:
 
 ```sh
 codex plugin marketplace add vincy-cheng/skills
 ```
 
-Restart the Codex desktop app, open the **Plugins Directory**, choose **Vincy Skills (Codex)**, and install `dev-flow`. The package includes all shared skills and the `new-feature` workflow skill. To start a feature, invoke `$dev-flow:new-feature` with your brief; invoke it without a new brief to resume the latest active run.
+In Codex, open the **Plugins Directory**, select **Vincy Skills (Codex)**, and install `dev-flow`. Restart the Codex desktop app after installation. Invoke `$dev-flow:new-feature` with a brief to start, or without a new brief to resume the latest active run.
 
-Alternatively, from this repository's root (local checkout):
+For a local checkout, add the marketplace from the repository root:
 
 ```sh
 codex plugin marketplace add .
 ```
 
-After updating this checkout, refresh the marketplace with `codex plugin marketplace upgrade vincy-skills`, then restart Codex so the installed copy picks up the changes.
+After updating a local checkout, refresh it with `codex plugin marketplace upgrade vincy-skills` and restart Codex.
 
-## Plugin: `dev-flow`
+## The `dev-flow` workflow
 
-Drives a feat **or fix** end-to-end:
+`dev-flow` guides a feature or fix through 11 steps in four phases:
 
-```
-brainstorm → spec → plan → issue → execute (TDD) → test → review → doc-fix → PR → merge → close-out
-```
+| Phase | Steps | Work |
+|-------|-------|------|
+| Plan | 1–4 | Brainstorm, approve a spec, plan, create a GitHub issue |
+| Build | 5 | Execute the plan with TDD and per-task commits |
+| Verify | 6–8 | Test, review, and fix documentation drift |
+| Ship | 9–11 | Open a pull request, merge it manually, close out the run |
 
-Three guarantees:
-- **Hard gate** — sub-skills can't skip or reorder steps.
-- **Resumable** — gitignored state files + an index file (`docs/features/.feature-states/.state.md`) track every run.
-- **Local artifacts** — specs/plans/state live under `docs/features/`, never committed.
+The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies.
 
-### What it provides
-
-| Piece | What it does | When |
-|-------|--------------|------|
-| `/new-feature` command | Claude Code pipeline of record — runs all 11 steps in order (4 phases: plan → build → verify → ship) | Start or resume any feature/fix in Claude Code |
-| `new-feature` skill | Codex version of the same 11-step orchestrator and hard gate | `$dev-flow:new-feature` in Codex |
-| `/new-idea` command | Scaffolds `ideas/<slug>/` with five docs (README, research, design, plan, tl-dr) + optional `cost.md` | Brainstorm an idea before committing to build it |
-| `create-github-issue` skill | Step 4 — draft → confirm → `gh issue create` | Inside the flow |
-| `plan` skill | Step 3 — contract-first plan engine: overview, Global Constraints, Flow Chart (Mermaid), File Structure, bite-sized TDD-shaped tasks ending in an approved plan under `docs/features/plans/`. Standalone, and invoked by /new-feature step 3 | Inside the flow, or standalone |
-| `brainstorm` skill | Step 1 — design dialogue (interview, idea-folder ingestion, design-tree dialogue one question at a time, 2-3 approaches) ending in an approved spec under `docs/features/specs/`. Standalone, and invoked by /new-feature step 1 | Inside the flow, or standalone |
-| `execute-tasks` skill | Step 5 — task loop, TDD via the `tdd` skill, commit per task. Inline or subagent mode; implement step carries a one-line clean-code pointer (prevention, with review as backstop) | Inside the flow |
-| `tdd` skill | Test-first engine for any feature/bugfix — red-green loop, seams, anti-patterns. Standalone, and invoked by execute-tasks per task | Inside the flow, or standalone |
-| `test` skill | Step 6 — fresh-subagent test gate: full suite + lint + test-honesty scan; green/red verdict; red returns to execute | Inside the flow, or standalone |
-| `review` skill | Step 7 — judgment review via a fresh reviewer subagent: spec covered, obvious issues (bugs, security smells, leftover, naming), maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells, KISS, DRY). Test gate is the test skill (step 6) | Inside the flow, or standalone |
-| `doc-fix` skill | Step 8 — pre-PR doc drift scan caused by this run; guided edits, ride in the PR as `docs:` commits | Inside the flow, or standalone |
-| `open-pr` skill | Step 9 — opens the PR targeting `dev`: body draft, closing keyword, issue link + issue-body sync, standalone mode. Never merges | Inside the flow, or standalone |
-| `commit` skill | Conventional Commits from the diff, **no AI attribution** | Standalone, or per-task in step 5 |
-| `document-structure` skill | Builds/updates the target repo's agent docs under `docs/agents/` — tiny index + architecture/dev-ops maps + dynamic concern maps (testing, API, deployment, database, …) | Any repo, on demand |
-| `whats-new` skill | Summarizes what's new in a repo: shipped work (git + PRs/issues) + doc-vs-code drift. Never writes a changelog file | Any repo, on demand |
-| `tests/check.sh` | The repo's test suite — 14 bash consistency checks run by dev-flow step 6 | Any edit to skills/commands |
-| `dev-flow/evals/` | Behavioral evals for the `brainstorm`, `plan`, and `tdd` skills (`claude plugin eval`), run manually after a plugin refresh | After editing a skill |
-
-## dev-flow is fully self-contained
-
-Every step's engine is dev-flow's own skill — brainstorm, plan, tdd, execute-tasks, test, review, doc-fix, open-pr, create-github-issue, commit — no external plugin dependencies. All artifacts live under `docs/features/` (gitignored, never committed).
-
-## dev-flow's brainstorm command: `/new-idea`
-
-Scaffolds a structured brainstorm folder for a product or concept:
-
-```
-ideas/<slug>/ — README · research · (cost) · design · plan · tl-dr
+```mermaid
+flowchart TD
+    brainstorm[1 brainstorm] --> spec[2 approve spec] --> plan[3 approve plan]
+    plan --> issue[4 create issue] --> execute[5 execute with TDD]
+    execute --> test[6 test gate]
+    test -- red --> execute
+    test -- green --> review[7 review gate]
+    review -- red --> execute
+    review -- blue --> docfix[8 doc-fix]
+    review -- yellow --> choice{Fix findings now?}
+    choice -- yes --> execute
+    choice -- no, note in PR --> docfix
+    docfix -- stop --> execute
+    docfix --> pr[9 open PR]
+    pr --> merge[10 manual merge]
+    merge --> closeout[11 close-out]
 ```
 
-Five self-contained docs by default, no ad-hoc file names; a sixth, `cost.md`, when you opt in — the skill asks up front whether to include cost research (live pricing verification). `cost.md` captures pricing/quotas/limits, and `plan.md` is a milestone-draft plan you can hand straight to `/new-feature` when you're ready to build.
+For requests spanning independent subsystems, step 1 can create an overview spec that records the sub-projects, order, dependencies, and deferred work. Each sub-project gets its own `/new-feature` run. Close-out updates the overview and prints the next run's command.
 
-Run `/new-idea <your idea>` in any repo — it asks whether the folder nests by project (ideas repo: `ideas/<project>/<slug>/`) or sits flat (project repo: `ideas/<slug>/`), and whether to include a `cost.md`. Before writing anything it **discusses the idea with you** — one grill round (who's it for, smallest version, hard part), a synthesis, and an explicit go-ahead — so the docs record the settled idea, not your first prompt. It pairs with the pipeline: brainstorm with `/new-idea`, then build with `/new-feature ideas/<slug>` — step 1 ingests the folder's docs as its brief, and the GitHub issue links back to the folder.
+### Workflow skills
+
+| Skill | Step | Purpose |
+|-------|------|---------|
+| `brainstorm` | 1 | Work through the design and write an approved spec |
+| `plan` | 3 | Turn the spec into a contract-first implementation plan |
+| `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch from `dev` |
+| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; inline or subagent mode |
+| `tdd` | — | Test-first engine used by `execute-tasks` |
+| `test` | 6 | Fresh tester subagent runs the repo's test and lint commands and scans changed tests for honesty |
+| `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability |
+| `doc-fix` | 8 | Find and fix documentation drift caused by the run |
+| `open-pr` | 9 | Open a pull request targeting `dev` and sync the issue; never merges |
+
+These skills can also run on their own. The test skill uses each target repository's test and lint commands; this repository's suite is `bash tests/check.sh` and it has no linter.
+
+### Standalone commands and skills
+
+| Piece | Purpose |
+|-------|---------|
+| `/new-feature` command | Claude Code workflow orchestrator; starts or resumes a feature or fix |
+| `new-feature` skill | Codex workflow orchestrator (`$dev-flow:new-feature`) |
+| `/new-idea` command | Discuss an idea, then scaffold its research and planning documents |
+| `commit` skill | Write Conventional Commit messages without AI attribution |
+| `document-structure` skill | Generate or update agent-facing documentation in a target repo's `docs/agents/` |
+| `whats-new` skill | Summarize recent work and check for documentation drift |
+
+## `/new-idea`: capture an idea before building
+
+Run `/new-idea <your idea>` in any repository. It asks whether the folder should be nested (`ideas/<project>/<slug>/`) or flat (`ideas/<slug>/`), and whether to include cost research.
+
+By default it creates five self-contained documents: `README.md`, `research.md`, `design.md`, `plan.md`, and `tl-dr.md`. If requested, it adds `cost.md` with pricing, quotas, and limits. The plan is a milestone draft that can seed `/new-feature` later.
+
+Before creating files, the command discusses and grills the idea, summarizes the decisions, and gets your explicit go-ahead. To build from the resulting folder, run `/new-feature ideas/<slug>`; the workflow uses the folder as its brief and links it from the GitHub issue.
+
+## Repository guide
+
+- `dev-flow/` — plugin commands, skills, evals, and host manifests
+- `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
+- `tests/check.sh` — 14 bash consistency checks; run after editing skills or commands
+- `dev-flow/evals/` — behavioral evals for `brainstorm`, `plan`, and `tdd`, run manually with `claude plugin eval`
+- `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
+- `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
 
 ## Acknowledgements
 
-`dev-flow`'s workflow shape — brainstorm → spec → plan → issue → execute → review → merge — and its early planning engine were inspired by [obra/superpowers](https://github.com/obra/superpowers). Dev-flow has since replaced every borrowed piece with its own skills (`brainstorm`, `plan`, `tdd`, `execute-tasks`, `test`, `review`, `doc-fix`, `open-pr`, `create-github-issue`, `commit`) so all artifacts stay under `docs/features/`. Many thanks to the creator and maintainers of superpowers.
+The `dev-flow` workflow and its early planning engine were inspired by [obra/superpowers](https://github.com/obra/superpowers). The plugin now provides its own skills for the workflow, and all artifacts stay under `docs/features/`.
 
-The `tdd` skill's **seams** concept (test at public boundaries, never internals) comes from Kent Beck's *Test-Driven Development: By Example*, encountered via Matt Pocock's skill collections ([mattpocock-skills](https://github.com/mattpocock/skills)).
+The `tdd` skill's **seams** concept (testing at public boundaries rather than internals) comes from Kent Beck's *Test-Driven Development: By Example*, encountered through Matt Pocock's skill collections ([mattpocock-skills](https://github.com/mattpocock/skills)).
 
-The `review` skill's clean-code pass is distilled from Robert C. Martin's *Clean Code* (via [wojteklu's clean-code checklist](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29) and the r/cleancode community guide). Many thanks to all of them.
-
-## Repo layout
-
-```
-tests/check.sh                       # the repo's test suite (14 consistency checks)
-.agents/plugins/marketplace.json    # repository-local Codex plugin source
-dev-flow/
-├── plugin.json                      # portable Codex plugin manifest
-├── .claude-plugin/plugin.json      # metadata (fully self-contained — no peer dependencies)
-├── evals/                           # behavioral evals: brainstorm/, plan/, tdd/ (run via claude plugin eval)
-├── commands/new-feature.md         # /new-feature — pipeline + hard gate
-├── commands/new-idea.md            # /new-idea — scaffold an idea folder (standalone)
-└── skills/
-    ├── brainstorm/SKILL.md         # step 1 design dialogue → approved spec under docs/features/specs/
-    ├── commit/SKILL.md             # Conventional Commits, no AI attribution
-    ├── create-github-issue/SKILL.md
-    ├── document-structure/SKILL.md # agent-facing doc tree generator (docs/agents/)
-    ├── execute-tasks/SKILL.md      # step 5: task loop, TDD via the tdd skill, inline or subagent
-    ├── new-idea/SKILL.md           # idea-folder scaffold: fixed slots + optional cost.md + draft plan
-    ├── new-feature/SKILL.md        # Codex orchestrator; mirrors commands/new-feature.md
-    ├── plan/SKILL.md               # step 3 contract-first plan engine → approved plan under docs/features/plans/
-    ├── tdd/SKILL.md                # test-first engine (standalone + step 5)
-    ├── test/SKILL.md               # step 6: fresh-subagent test gate (suite + lint + test honesty)
-    ├── review/SKILL.md             # step 7: pre-PR judgment review via fresh subagent
-    ├── doc-fix/SKILL.md            # step 8: pre-PR doc-drift scan for this run's changes
-    ├── open-pr/SKILL.md            # step 9: open the PR targeting dev, sync the issue
-    └── whats-new/SKILL.md          # "what's new" summary: history + doc-drift check
-```
-
-`AGENTS.md` is the agent guidance for this repo; `CLAUDE.md` is a symlink to it so Claude Code, Copilot, and others read the same file.
+The `review` skill's clean-code pass draws on Robert C. Martin's *Clean Code*, [wojteklu's clean-code checklist](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29), and the r/cleancode community guide.
