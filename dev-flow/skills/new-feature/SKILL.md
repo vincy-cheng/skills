@@ -92,6 +92,7 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 - [ ] <task description>
 
 ## References
+- Overview: <path or _(none)_>
 - Spec: docs/features/specs/YYYY-MM-DD-<feat-name>-design.md
 - Plan: <path or _(pending)_>
 - Issue: <#NN or _(pending)_>
@@ -106,7 +107,7 @@ Field rules:
 - **Last verification** — most recent test + lint result during execute (the repo's commands). The resume signal: "was it green when I stopped?" `_(not run yet)_` until first run.
 - **Implementer model** / **Verifier model** — subagent model picks, one per phase that dispatches subagents. **Implementer model** is asked and written by `execute-tasks` (with its mode question, subagent mode only; `_(inline — not asked)_` when execute ran inline). **Verifier model** is asked and written by the orchestrator at step 6 (default: same as orchestrator), shared by tester + reviewer. On resume, read from the state file; if absent, re-ask.
 - **Tasks** — mirrors the plan's task list as `- [ ]` / `- [x]`; flip on every status change. Live progress; the plan doc is static design. Annotate a task `— ⚠ test failing: <reason>` only when its test exists and is currently red; clear when green. Don't annotate passing/pending tasks — a `[x]` already means its test passed.
-- **References** — spec (step 2), plan (step 3), issue (step 4), PR (step 9). Test (step 6) and review (step 7) add no reference. Replace `_(pending)_` with the real value when it exists.
+- **References** — overview (step 1, only when the run came from a decomposed roadmap — else `_(none)_`), spec (step 2), plan (step 3), issue (step 4), PR (step 9). Test (step 6) and review (step 7) add no reference. Replace `_(pending)_` with the real value when it exists.
 
 ### Index file
 
@@ -157,7 +158,7 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 ## Step 1 — Brainstorm
 **Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch) and add the index row. Set **Kind** from intent (ask if ambiguous). Invoke `dev-flow:brainstorm` to explore intent, requirements, design — it owns the interview (problem, kind, scope, success), idea-folder ingestion, and the design dialogue. Don't write code. The skill's terminal state is the approved spec under `docs/features/specs/` — it has no handoff; advance to step 2.
 
-If the user's request references an idea folder, the skill ingests its docs as the established brief and the run records the folder path in References.
+If the user's request references an idea folder, the skill ingests its docs as the established brief and the run records the folder path in References. If the run is seeded from an overview spec (brainstorm's decomposition fired on a prior run), the state file's References record the Overview path at creation.
 
 ## Step 2 — Spec (local only)
 **Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. The spec is written by `dev-flow:brainstorm` at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — verify it exists, add the path to References, show the user. Verify it's gitignored before moving on.
@@ -194,12 +195,13 @@ This is the gate that makes the PR worth a human's review — it does not replac
 **Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 11 (close-out). `merged` is the intermediate — a crash here lands back on `merged` and re-runs step 11.
 
 ## Step 11 — Close-out
-**Gate:** `merged` → set `done`. The work is shipped and the doc-fix already happened in step 8; step 11 is **close-out only** — no doc edits here.
+**Gate:** `merged` → set `done`. The work is shipped and the doc-fix already happened in step 8; step 11 is **close-out only** — no doc edits here **except the roadmap refresh** (below).
 
 Look at:
 - **Persisted agent memory** (if the harness keeps it) — only durable, cross-session facts (a user preference confirmed this run, a project constraint discovered). Skip ephemeral task state — that's the state file's job.
 
 Rules:
+- **Roadmap refresh** — if the state file's References carry an Overview path and that file exists, refresh the overview spec with what the completed run changed and taught: mark the run's entry done, record learnings, adjust later-run entries if direction shifted. Then print the exact next-run bootstrap command: `/new-feature <overview-spec-path> <next-run-name>`. The user starts the next run manually — no cross-run automation. No Overview path, or it doesn't exist → skip silently and say so.
 - **Show the user any proposed memory update before applying** — close-out is guided, not fire-and-forget.
 - **No memory update needed** → say so plainly and mark the run `done`. Don't invent edits to justify the step.
 - **Ask before deleting the branch** — after the merge, offer to clean up: check out the target branch first (`git checkout dev` — you can't delete the branch you're on), then `git branch -d <branch>` locally (safe post-merge) and `git push origin --delete <branch>` for the remote. Only with the user's yes; a declined offer is a normal outcome, not a failure.
