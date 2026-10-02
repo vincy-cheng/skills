@@ -21,15 +21,21 @@ The same install also gives you `/new-idea` — dev-flow's structured brainstorm
 
 ### Install in Codex
 
-From this repository's root, add its local marketplace:
+Add the marketplace straight from GitHub — no clone needed:
+
+```sh
+codex plugin marketplace add vincy-cheng/skills
+```
+
+Restart the Codex desktop app, open the **Plugins Directory**, choose **Vincy Skills (Codex)**, and install `dev-flow`. The package includes all shared skills and the `new-feature` workflow skill. To start a feature, invoke `$dev-flow:new-feature` with your brief; invoke it without a new brief to resume the latest active run.
+
+Alternatively, from this repository's root (local checkout):
 
 ```sh
 codex plugin marketplace add .
 ```
 
-Restart the Codex desktop app, open the **Plugins Directory**, choose **Vincy Skills (Codex)**, and install `dev-flow`. The package includes all shared skills and the `new-feature` workflow skill. To start a feature, invoke `$dev-flow:new-feature` with your brief; invoke it without a new brief to resume the latest active run.
-
-After updating this checkout, refresh the marketplace with `codex plugin marketplace upgrade vincy-skills-codex`, then restart Codex so the installed copy picks up the changes.
+After updating this checkout, refresh the marketplace with `codex plugin marketplace upgrade vincy-skills`, then restart Codex so the installed copy picks up the changes.
 
 ## Plugin: `dev-flow`
 
