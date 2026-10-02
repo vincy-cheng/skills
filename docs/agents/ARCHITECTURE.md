@@ -5,7 +5,7 @@ One plugin — `dev-flow` — a workflow orchestrator driving a feat or fix end-
 ## Plugin layout
 
 - `dev-flow/plugin.json` — portable Codex plugin identity and metadata; fixed `skills/` package path includes shared skills.
-- `dev-flow/.claude-plugin/plugin.json` — Claude Code metadata (version `0.2.0`, fully self-contained — no peer dependencies).
+- `dev-flow/.claude-plugin/plugin.json` — Claude Code metadata (version `0.2.1`, fully self-contained — no peer dependencies).
 - `.agents/plugins/marketplace.json` — repo-local Codex marketplace; its `./dev-flow` source points to the shared package.
 - `dev-flow/commands/` — Claude slash commands (YAML `description` + body, `$ARGUMENTS`): `new-feature.md` (`/new-feature`, the orchestrator), `new-idea.md` (`/new-idea`).
 - `dev-flow/skills/` — shared skills (YAML `name`/`description` + body), including `new-feature/` (Codex orchestrator mirroring the Claude command), `commit/`, `create-github-issue/`, `execute-tasks/`, `plan/`, `tdd/`, `test/`, `review/`, `doc-fix/`, `open-pr/`, `document-structure/`, `whats-new/`, and `new-idea/`.
