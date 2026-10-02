@@ -48,9 +48,9 @@ if git grep -qE 'superpowers:[a-z-]+' -- ':!tests/check.sh' ':!README.md' ':!AGE
 else ok 3 "no superpowers:* references outside dev-flow"; fi
 
 # 5. Spec path convention: file-shaped paths under docs/features/specs/ must be the
-#    design-doc pattern. Bare directory mentions are legitimate prose.
+#    design-doc or overview-doc pattern. Bare directory mentions are legitimate prose.
 spec_bad=$(git grep -nE 'docs/features/specs/[^ )`]*\.md' -- 'dev-flow/' 'README.md' 'AGENTS.md' \
-  | $G -vE 'docs/features/specs/(YYYY-MM-DD-<feat-name>-design|[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+-design)\.md' || true)
+  | $G -vE 'docs/features/specs/(YYYY-MM-DD-<feat-name>-(design|overview)|[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+-(design|overview))\.md' || true)
 if [ -n "$spec_bad" ]; then
   bad 5 "spec path deviates from convention:"; echo "$spec_bad"
 else ok 5 "spec paths consistent"; fi
