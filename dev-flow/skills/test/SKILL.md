@@ -15,7 +15,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 - The **plan** at `docs/features/plans/YYYY-MM-DD-<feat-name>.md` — what the work claims to do.
 - The **base branch** — from the state file's **Base branch**; ask if unclear.
-- The repo's **test + lint commands** (e.g. `flutter test`, `pytest`, `npm test`, `cargo test`). **In this repo (skills), the suite is `bash tests/check.sh`** — run it as the test command; no linter exists.
+- The repo's **test + lint commands** (e.g. `flutter test`, `pytest`, `npm test`, `cargo test`).
 
 ## The verifier model (dev-flow mode: read, don't ask)
 
