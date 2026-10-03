@@ -52,12 +52,12 @@ The **hard gate** enforces this structurally: each step reads the state file's *
 
 Preserve:
 - The exact YAML frontmatter (`---` fences) at the top of each file — the `description` field drives skill triggering and must stay accurate.
-- The hard gate in both `commands/new-feature.md` and `skills/new-feature/SKILL.md` — preserve their aligned step→incoming-status→sets-status mapping and gate check on every step entry. This is the workflow's backbone.
+- The hard gate in `skills/new-feature/SKILL.md` — preserve the step→incoming-status→sets-status mapping and gate check on every step entry. This is the workflow's backbone. The command is a thin wrapper delegating there.
 - `commands/new-feature.md` is a **thin wrapper** that delegates to `skills/new-feature/SKILL.md` — the SKILL.md is the single source of truth for the gate table, state-file template, and all 11 step definitions. Never duplicate workflow content back into the wrapper; edit the SKILL.md (one edit per behavior change).
 - The Mermaid flow-chart requirement in `skills/plan/SKILL.md` (the plan skill's `## Flow Chart` section mandates the chart in every generated plan; `tests/check.sh` check 8 guards it).
 - The state-file template and lifecycle (`brainstorm` → `spec` → `planning` → `issue` → `execute` → `test` → `review` → `doc-fix` → `pr-review` → `merged` → `done`).
 
-When changing workflow behavior, update both orchestrators and the relevant sub-skill (`skills/.../SKILL.md`) so Claude Code and Codex stay consistent.
+When changing workflow behavior, edit `skills/new-feature/SKILL.md` (the single source) and the relevant sub-skill; host entry points are thin wrappers that pick it up.
 
 ## Git workflow
 
