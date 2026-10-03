@@ -12,14 +12,14 @@ One plugin (`dev-flow`) with Claude Code and Codex packaging. No app code — Ma
 ## Quick facts
 
 - **Plugin:** `dev-flow` v0.2.1, fully self-contained (no peer dependencies); Claude metadata is in `.claude-plugin/`, Codex manifest in `dev-flow/plugin.json`.
-- **Orchestrators:** Claude Code `dev-flow/commands/new-feature.md` (`/new-feature`); Codex `dev-flow/skills/new-feature/SKILL.md` (`$dev-flow:new-feature`). Keep the 11-step gate aligned.
+- **Orchestrator:** `dev-flow/skills/new-feature/SKILL.md` — single source of the 11-step gated workflow; `dev-flow/commands/new-feature.md` (`/new-feature`) is a thin wrapper delegating to it.
 - **Test suite: `bash tests/check.sh`** (no build, no linter) — 14 consistency checks; verification is the suite + read-through; skill evals under `dev-flow/evals/` run manually.
 - **Commits:** Conventional Commits, **no AI attribution**; docs as separate `docs:` commits. Details: DEVOPS.md.
 - **Pipeline, state files, the hard gate:** ARCHITECTURE.md.
 
 ## Where to look
 
-- Editing workflow behavior → ARCHITECTURE.md (the hard gate) + both orchestrators (`commands/new-feature.md` and `skills/new-feature/SKILL.md`) + the relevant step skill.
+- Editing workflow behavior → ARCHITECTURE.md (the hard gate) + `skills/new-feature/SKILL.md` (the single source) + the relevant step skill.
 - Committing work → DEVOPS.md + the `dev-flow:commit` skill.
 - Resuming a run → `/new-feature` (no args) reads the index; state-file details in ARCHITECTURE.md.
 
