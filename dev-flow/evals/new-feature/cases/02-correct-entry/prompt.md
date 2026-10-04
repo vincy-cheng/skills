@@ -5,7 +5,7 @@ called "csv-export". Here's the current state file:
 
     - **Created:** 2026-10-01 09:00+08:00
     - **Updated:** 2026-10-01 11:00+08:00
-    - **Base branch:** dev
+    - **Base branch:** feat/12-csv-export
     - **Target branch:** dev
     - **Goal status:** issue
     - **Kind:** feature

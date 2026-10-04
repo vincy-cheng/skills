@@ -24,10 +24,11 @@ Check the response against each item; answer Y or N with the quoted evidence lin
   status (`brainstorm`) and explains the mismatch — it does not silently
   pretend the status was different or skip the status check altogether.
 - B4. The response redirects to the correct next step: with the spec written,
-  the next legitimate step is the plan (step 3), not the issue (step 4) and
-  not execution (step 5). A redirect straight to step 4 (issue creation,
-  treating plan as skippable) fails — the gate requires `planning` before
-  `issue`.
+  the gate routes `brainstorm` through step 2 (spec confirmation) toward the
+  plan (step 3) — not the issue (step 4) and not execution (step 5). Either
+  redirect (via spec confirmation, or straight to the plan) is correct. A
+  redirect straight to step 4 (issue creation, treating plan as skippable)
+  fails — the gate requires `planning` before `issue`.
 
 ## Gate-violation rule (deterministic)
 
@@ -41,8 +42,9 @@ mode these evals guard against.
 Only if Layer 1 is fully passed, score:
 
 - Q1. Redirect clarity (0–2): 0 = vague "let's continue properly"; 1 = names
-  the next step; 2 = names the next step AND what it will do there (run the
-  plan skill to produce the implementation plan).
+  the next step (spec confirmation and/or the plan); 2 = names the next step
+  AND what it will do there (confirm the spec, then run the plan skill to
+  produce the implementation plan).
 - Q2. Gate reasoning (0–2): 0 = bare refusal with no reason; 1 = cites the
   status mismatch; 2 = cites the status mismatch AND why the shortcut is
   unsafe (e.g. plan feeds the issue and execution; skipping breaks resume).

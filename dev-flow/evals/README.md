@@ -26,12 +26,12 @@ Under a model proxy (e.g. OmniRoute), pass explicit model/judge overrides —
 the default model resolution doesn't reach proxy-routed models:
 
 ```bash
-claude plugin eval dev-flow --eval-dir evals/new-feature \
+claude plugin eval /path/to/skills/dev-flow --eval-dir evals/new-feature \
   --model <target-model> --judge-model <judge-model>
 ```
 
-Results land under each suite's `results/<timestamp>/` (`aggregate-result.json`,
-`report.html`).
+Results land under `dev-flow/evals/results/<timestamp>/` (`aggregate-result.json`;
+`report.html` when the run produces one — observed layouts have varied).
 
 ## Known quirks
 
@@ -56,8 +56,10 @@ until a dedicated issue says otherwise).
 Two layers, strict and binary:
 
 - **Layer 1** — behavior checks (B1..Bn), each Y/N with quoted evidence from
-  the response. ALL must pass. Suite-specific **gate-violation rules** make
-  the guarded failure modes fail deterministically regardless of phrasing.
+  the response. ALL must pass. The newer suites (`new-feature`, `review`) add
+  a suite-specific **gate-violation rule** section that makes the guarded
+  failure modes fail deterministically regardless of phrasing; the older
+  suites use looser case-specific sections to the same effect.
 - **Layer 2** — quality rubric (Q1/Q2, 0–2), scored only if Layer 1 fully
   passes.
 - **Verdict** — `PASS`/`FAIL` on the first line.

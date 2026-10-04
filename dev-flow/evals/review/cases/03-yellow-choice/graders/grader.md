@@ -13,10 +13,14 @@ strict and binary — no vibe scores.
 
 Check the response against each item; answer Y or N with the quoted evidence line:
 
-- B1. The returned verdict is **yellow** — findings that should be fixed but
-  aren't blockers with a missing task map to yellow per R5. Claiming blue
-  (these exceed trivial) or red (no spec gap/missing task — the spec covers
-  them implicitly) fails.
+- B1. The returned verdict is **yellow** — findings that should be fixed map
+  to yellow per R5. The findings shape (fix-worthy, with no spec gap and no
+  plan task missing code) is the case's ground truth; a response claiming
+  red on that ground truth fails. Claiming blue (these exceed trivial)
+  fails. Note for the judge: R5's red definition cites "spec gap, missing
+  task, real bug" — this case's findings are graded against the spec table's
+  yellow pinning; the ownership finding is a missing validation the spec's
+  data model covers, not a red-shape blocker.
 - B2. The response surfaces **all** the findings to the user — both the
   ownership check and the None due_date, with locations. One-only surfacing
   fails.
