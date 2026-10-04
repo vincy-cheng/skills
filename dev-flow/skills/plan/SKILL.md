@@ -49,7 +49,7 @@ The plan must include a `## Flow Chart` section, right after Global Constraints 
 
 - Each task is a node labeled `Task N: <name>`, connected in execution order with `-->`.
 - Draw a dependency edge (`-.->` labeled `blocks`) where a later task depends on an earlier task's exact output — surfaces the critical path.
-- List the files each task touches under its node: `Task N changes: file_a, file_b` — never omit the "what changes".
+- State each task's files **inside its node label** — e.g. `T1["Task 1: name<br/>changes: file_a, file_b"]`. A bare `Task N changes:` line outside a node label is invalid Mermaid and breaks the chart — never omit the "what changes".
 
 Keep it honest: every task node matches a `### Task N` heading; every file under a node appears in that task's **Files:** block. Update the chart in the same edit if tasks change — a stale flow chart is worse than none.
 
