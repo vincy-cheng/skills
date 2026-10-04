@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells) against the spec and plan. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test) or replace human PR review.
+description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells) against the spec and plan. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test), doesn't replace human PR review, and is not a line-by-line correctness scan (use a code-review tool for that) — it judges the branch against its spec and plan.
 ---
 
 # Review
@@ -31,7 +31,7 @@ Spawn **one** fresh reviewer subagent (Agent tool) with the chosen model. It has
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
-4. **The checklist** (steps 1–4 below — including the clean-code pass in step 4) and **verdict contract** (step 5) — paste into the dispatch.
+4. **The checklists** (steps 1–4) — give the subagent the **absolute path** to this skill's `references/clean-code.md` (resolved from the skill's base directory — not repo-relative: in a target repo the file lives in the plugin directory), with the instruction to read it before running the review; the subagent reads it itself. The **verdict contract** (step 5) stays pasted into the dispatch.
 5. **Report contract** — full findings go to `docs/features/.review/<feat-name>/review-report.md` (gitignored); the return holds only the verdict (`green`/`blue`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the file, keeping the orchestrator's context clean.
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
