@@ -78,25 +78,25 @@ EOF
 
 ## Branches
 
-Step 9's PR is on `main` → `dev` → `feat/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off `dev`, not `main`. Use `fix/` when the state file's **Kind** is `fix`, else `feat/`. If `dev` doesn't exist, ask before doing anything: create it off the default branch (`git checkout -b dev && git push -u origin dev`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
+Step 9's PR is on the default branch → the state file's **Target branch** → `feat/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off the state file's **Target branch** (`dev` by default, or `.dev-flow/config.json`'s `dev_branch` — see the new-feature skill's step 1), not the default branch. Use `fix/` when the state file's **Kind** is `fix`, else `feat/`. If that target branch doesn't exist, ask before doing anything: create it off the default branch (`git checkout -b <dev-branch> && git push -u origin <dev-branch>`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
 
-> "Issue #NN created. Want me to create a `feat/NN-<name>` (or `fix/NN-<name>`) branch off `dev` and switch to it?"
+> "Issue #NN created. Want me to create a `feat/NN-<name>` (or `fix/NN-<name>`) branch off `<dev-branch>` and switch to it?"
 
 If accepted:
 ```bash
-git checkout dev && git pull --ff-only origin dev && git checkout -b feat/NN-<name>
+git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git checkout -b feat/NN-<name>
 # or, for a fix:
-git checkout dev && git pull --ff-only origin dev && git checkout -b fix/NN-<name>
+git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git checkout -b fix/NN-<name>
 ```
 
-`pull --ff-only` keeps `dev` current. If rejected (local `dev` diverged), surface it — don't force. Don't commit anything; the branch is just scaffolding for step 5.
+`<dev-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`). `pull --ff-only` keeps it current. If rejected (the local branch diverged), surface it — don't force. Don't commit anything; the branch is just scaffolding for step 5.
 
 ## State file (dev-flow only)
 
 If a state file exists, update it as part of step 4:
 - Set **Goal status** to `issue`; leave it for step 5 to advance.
 - Record `Issue: #NN` in References (replace `_(pending)_`).
-- If the user accepts the branch, set **Base branch** to `feat/NN-<name>` or `fix/NN-<name>`; **Target branch** stays `dev`.
+- If the user accepts the branch, set **Base branch** to `feat/NN-<name>` or `fix/NN-<name>`; **Target branch** stays the state file's Target branch (the configured dev branch, `dev` by default).
 - Bump **Updated**.
 
 You don't create the state file (step 1 does). Touch it only if it exists, and only the fields above.

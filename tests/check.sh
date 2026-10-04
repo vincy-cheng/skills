@@ -257,6 +257,13 @@ $G -q "dev-flow/config.json" dev-flow/skills/new-feature/SKILL.md \
   && ok 18 "new-feature mentions branch config" \
   || bad 18 "new-feature skill missing .dev-flow/config.json read"
 
+# 19. Branch literals stay out of the branch-deriving skills: create-github-issue
+#     must not carry a literal `git checkout dev` command (feat/55) — branch names
+#     derive from the state file / config. Concept grep, not exact sentences.
+$G -qE 'checkout (dev|`dev`)' dev-flow/skills/create-github-issue/SKILL.md \
+  && bad 19 "create-github-issue still hardcodes a checkout dev command" \
+  || ok 19 "create-github-issue derives branch names from the state file"
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
