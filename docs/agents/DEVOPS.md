@@ -1,6 +1,6 @@
 # Dev-ops
 
-Local developer workflow for this plugin repo. There is no build step and no linter — the repo is Markdown consumed by AI agents. The test suite is `bash tests/check.sh` (14 consistency checks; exit 0 = green). Verification is the suite + human/agent read-through.
+Local developer workflow for this plugin repo. There is no build step and no linter — the repo is Markdown consumed by AI agents. The test suite is `bash tests/check.sh` (15 consistency checks; exit 0 = green). Verification is the suite + human/agent read-through.
 
 ## Setup
 
@@ -29,7 +29,7 @@ Never commit anything under `docs/features/` (specs, plans, state files, index) 
 
 ## Verification
 
-- **Run the suite**: `bash tests/check.sh` — 14 consistency checks (frontmatter, package metadata, skill wiring, spec-path convention, gitignore, and eval schema; cache freshness is a warning). Any FAIL names the exact drift.
+- **Run the suite**: `bash tests/check.sh` — 15 consistency checks (frontmatter, package metadata, skill wiring, spec-path convention, gitignore, eval schema, and plan mermaid blocks — file lists must sit inside node labels; cache freshness is a warning). Any FAIL names the exact drift.
 - After editing skill/command Markdown: read-through both orchestrators for internal consistency (gate table matches lifecycle, every status appears in the table, every step's incoming matches the prior step's set).
 - For YAML frontmatter: the `description` field drives skill triggering — keep it accurate, preserve the `---` fences exactly.
 - Skill behavior evals live under `dev-flow/evals/` (`brainstorm`, `plan`, `tdd`), run manually after a plugin refresh: `claude plugin eval dev-flow --eval-dir evals/<skill> --judge-model <model> --json`. Results (`evals/*/results/`) are gitignored.

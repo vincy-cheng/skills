@@ -203,6 +203,38 @@ PY
 )
 if [ -z "$docs_errs" ]; then ok 15 "dual-host setup documentation is linked and complete"; else bad 15 "host setup docs incomplete:$docs_errs"; fi
 
+# 16. Plan mermaid blocks: file lists must live inside node labels. The plan
+#     skill's flow-chart rule (fixed in #51) once showed 'Task N changes:'
+#     under its node; agents took it literally and emitted bare lines inside
+#     mermaid fences — invalid flowchart syntax (parse error in run #48).
+#     Structural check: any line inside a mermaid fence containing 'changes:'
+#     must be part of a quoted node label on the same line.
+mermaid_errs=$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+FENCE = chr(96) * 3  # backtick triplet, kept out of the script to stay bash-safe
+
+for path in sorted(Path("docs/features/plans").glob("*.md")):
+    in_fence = False
+    for lineno, line in enumerate(path.read_text().splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith(FENCE + "mermaid"):
+            in_fence = True
+            continue
+        if in_fence and stripped == FENCE:
+            in_fence = False
+            continue
+        if not in_fence or "changes:" not in line:
+            continue
+        # a quoted node label containing changes: on the same line is valid
+        if re.search(r'"[^"]*changes:[^"]*"', line):
+            continue
+        print(f"{path.name}:{lineno}:bare-changes-in-mermaid")
+PY
+)
+if [ -z "$mermaid_errs" ]; then ok 16 "plan mermaid blocks keep changes: inside node labels"; else bad 16 "bare changes: lines in plan mermaid blocks:$mermaid_errs"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;

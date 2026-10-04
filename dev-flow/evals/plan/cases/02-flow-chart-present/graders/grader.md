@@ -25,8 +25,9 @@ binary — no vibe scores.
 - The Flow Chart section must contain a real Mermaid `flowchart` (or
   equivalent) diagram with each task as a node labeled `Task N: <name>`,
   connected in execution order — a section header with no diagram fails.
-- Every node must list the files that task touches (`Task N changes:
-  file_a, file_b` or equivalent) — nodes without file lists fail.
+- Every node must list the files that task touches inside its node label
+  (`T1["Task 1: name<br/>changes: file_a"]` or equivalent) — nodes without
+  file lists, or bare `Task N changes:` lines outside a node label, fail.
 - Nodes must match the Tasks section: every `Task N` heading has a matching
   chart node, and every file under a node appears in that task's Files block.
 
