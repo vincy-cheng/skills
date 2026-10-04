@@ -112,7 +112,7 @@ Before creating files, the command discusses and grills the idea, summarizes the
 - `dev-flow/` — plugin commands, skills, evals, and host manifests
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
 - `tests/check.sh` — 15 bash consistency checks; run after editing skills or commands
-- `dev-flow/evals/` — behavioral evals for `brainstorm`, `plan`, and `tdd`, run manually with `claude plugin eval`
+- `dev-flow/evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
 
