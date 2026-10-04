@@ -31,12 +31,12 @@ Spawn **one** fresh reviewer subagent (Agent tool) with the chosen model. It has
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
-4. **The methodology** (steps 1–4) — give the subagent the **absolute path** to this skill's `references/clean-code.md` (resolved from the skill's base directory — not repo-relative: in a target repo the file lives in the plugin directory), with the instruction to read it first as the review's checklist; the subagent reads it itself. Paste **steps 1–2's and step 3's section bodies** (spec coverage / plan coverage / obvious-issue scan) into the dispatch — the reference file carries only the section-4 clean-code checklist, not the full methodology — and paste the **verdict contract** (step 5) too.
+4. **The methodology** (R1–R4) — give the subagent the **absolute path** to this skill's `references/clean-code.md` (resolved from the skill's base directory — not repo-relative: in a target repo the file lives in the plugin directory), with the instruction to read it first as the review's checklist; the subagent reads it itself. Paste **R1–R2's and R3's section bodies** (spec coverage / plan coverage / obvious-issue scan) into the dispatch — the reference file carries only the R4 clean-code checklist, not the full methodology — and paste the **verdict contract** (R5) too.
 5. **Report contract** — full findings go to `docs/features/.review/<feat-name>/review-report.md` (gitignored); the return holds only the verdict (`green`/`blue`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the file, keeping the orchestrator's context clean.
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
 
-The reviewer runs steps 1–4 and the verdict contract (step 5), then returns the verdict. The orchestrator does **not** re-do the review — it trusts the verdict and acts on it.
+The reviewer runs R1–R4 and the verdict contract (R5), then returns the verdict. The orchestrator does **not** re-do the review — it trusts the verdict and acts on it.
 
 ## The review (run by the reviewer subagent)
 
@@ -55,10 +55,10 @@ Emoji — renders in terminal + GitHub markdown, where ANSI doesn't.
 
 **Section titles** (distinct color per section):
 
-- 🟦 **1. Spec coverage** — requirement → task → code; gaps listed
-- 🟪 **2. Plan coverage** — task → matching change; lies flagged
-- 🟧 **3. Obvious-issue scan** — bugs / security / leftover / naming
-- 🟫 **4. Maintainability & clean code** — structure, coupling, naming, complexity, duplication, clean-code pass
+- 🟦 **R1. Spec coverage** — requirement → task → code; gaps listed
+- 🟪 **R2. Plan coverage** — task → matching change; lies flagged
+- 🟧 **R3. Obvious-issue scan** — bugs / security / leftover / naming
+- 🟫 **R4. Maintainability & clean code** — structure, coupling, naming, complexity, duplication, clean-code pass
 - 🟥 **Findings** (only when blue/yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
 
 Example (blue):
@@ -67,13 +67,13 @@ Example (blue):
 # Review report — <feat-name>
 🟦 BLUE — 2 trivial findings, not worth a loop; noted for the PR
 
-🟦 1. Spec coverage
+🟦 R1. Spec coverage
    - All spec requirements map to tasks + code. No gaps.
 
-🟪 2. Plan coverage
+🟪 R2. Plan coverage
    - All [x] tasks have matching changes.
 
-🟧 3. Obvious-issue scan
+🟧 R3. Obvious-issue scan
    - No bugs, no leftover, naming consistent.
 
 🟥 Findings
@@ -83,7 +83,7 @@ Example (blue):
    (Blue advances to doc-fix with no prompt — findings noted for the PR body.)
 ```
 
-### 1. Spec coverage
+### R1. Spec coverage
 
 For each spec requirement, is there a plan task and branch code implementing it? Gaps:
 
@@ -91,11 +91,11 @@ For each spec requirement, is there a plan task and branch code implementing it?
 - Task with no matching code → missing work; red.
 - Code matching no spec requirement → scope creep; ask keep or cut.
 
-### 2. Plan coverage
+### R2. Plan coverage
 
 For each `[x]` task, the code it named should exist and do what the task said — check the diff against the plan's `**Files:**` blocks. A done-marked task with no matching change is a lie the state file told itself; flag it.
 
-### 3. Obvious-issue scan
+### R3. Obvious-issue scan
 
 Read the diff with fresh eyes for:
 
@@ -106,11 +106,11 @@ Read the diff with fresh eyes for:
 
 Not a deep architectural review — "is anything obviously wrong before a human looks." Unsure whether something is real? Flag it as a question, not a verdict.
 
-### 4. Maintainability & clean code
+### R4. Maintainability & clean code
 
 Read the changed code in place (open the files, not just the diff hunks) — full checklist in `references/clean-code.md`.
 
-### 5. Verdict
+### R5. Verdict
 
 Return one of (verdict inline, detail in the report file):
 
@@ -123,7 +123,7 @@ Return one of (verdict inline, detail in the report file):
 
 ## Act on the verdict (orchestrator)
 
-The orchestrator acts on the verdict per step 5's contract above — it does not re-run the review and does not restate the handling inline. Green/blue → advance to step 8; yellow → the fix-now / note-in-PR choice per step 5; red → red-loop rewind to step 5. Step 5 owns the detail; the one-line mapping suffices.
+The orchestrator acts on the verdict per contract R5 above — it does not re-run the review and does not restate the handling inline. Green/blue → advance to step 8; yellow → the fix-now / note-in-PR choice per R5; red → red-loop rewind to step 5. R5 owns the detail; the one-line mapping suffices.
 
 Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule.
 

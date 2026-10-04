@@ -1,6 +1,6 @@
-# Clean-code checklist (review section 4)
+# Clean-code checklist (review R4)
 
-The full maintainability & clean-code pass for the review's section 4 — read this file before running section 4, in place of the inline checklist.
+The full maintainability & clean-code pass for the review's R4 — read this file before running R4, in place of the inline checklist.
 
 Read the changed code in place (open the files, not just the diff hunks) — what does the next maintainer inherit?
 
@@ -14,9 +14,9 @@ Then a **clean-code pass** over the changed code (distilled from the classic cle
 
 - **Names** — descriptive and unambiguous, pronounceable, searchable; magic numbers → named constants; no type-prefix encodings; meaningful distinctions (not `data2`).
 - **Functions** — small, do one thing, few arguments, no side effects, no flag arguments (a boolean param selecting behavior → split into independent methods); does only what its name promises — no surprising behavior (least astonishment).
-- **Error handling** — managed errors over crash paths (try/catch where the failure is expected, resources freed in `finally` or equivalent); a swallow-everything catch is a bug finding (section 3), but a new unhandled crash path belongs here.
+- **Error handling** — managed errors over crash paths (try/catch where the failure is expected, resources freed in `finally` or equivalent); a swallow-everything catch is a bug finding (R3), but a new unhandled crash path belongs here.
 - **Conditionals** — no negative conditionals where a positive one reads cleaner; boundary conditions encapsulated in one place; no methods whose correctness depends on another method in the same class having run.
-- **Comments** — code explains itself first; comments carry intent/clarification/warnings only, never redundancy, obvious noise, closing-brace tags, or commented-out code (commented-out code is a leftover — see section 3).
+- **Comments** — code explains itself first; comments carry intent/clarification/warnings only, never redundancy, obvious noise, closing-brace tags, or commented-out code (commented-out code is a leftover — see R3).
 - **Structure** — variables declared close to usage; dependent/similar functions close; related code vertically dense; separate concepts separated vertically.
 - **Code smells** — rigidity (small change cascades), fragility (one change breaks many places), immobility (can't reuse), needless complexity, needless repetition, opacity (hard to understand).
 - **KISS** — the simplest shape that works; simpler is always better (the needless-complexity smell is its detection point).

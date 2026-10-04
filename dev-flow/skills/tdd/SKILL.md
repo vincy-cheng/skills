@@ -1,9 +1,6 @@
 ---
 name: tdd
-description: >-
-  Use when implementing any feature or bugfix test-first, before writing implementation code —
-  red-green loop, seams, test honesty. Runs standalone in any repo, or as the TDD engine of
-  dev-flow step 5 (invoked by execute-tasks per task).
+description: Use when implementing any feature or bugfix test-first, before writing implementation code — red-green loop, seams, test honesty. Runs standalone in any repo, or as the TDD engine of dev-flow step 5 (invoked by execute-tasks per task).
 ---
 
 # Test-Driven Development

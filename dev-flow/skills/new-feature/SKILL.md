@@ -180,7 +180,7 @@ If the user's request references an idea folder, the skill ingests its docs as t
 - **Red** → do not advance. Re-set the status to `execute` (red-loop rewind); return to step 5 with the findings; fix and re-run test (a fresh tester subagent again).
 
 ## Step 7 — Review (fresh subagent)
-**Gate:** `test` → set `review`. Invoke `dev-flow:review`. It reads the **Verifier model** from the state file (no prompt) and dispatches a fresh reviewer subagent on it: spec coverage, plan coverage, obvious-issue scan (bugs, security smells, leftover, naming), and a maintainability pass with a clean-code check (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells), writes findings to a color-coded report, and returns a verdict. Verdict and handling per the review skill's step 5 contract — green/blue advance to step 8; yellow surfaces the fix-now/note-in-PR choice; red rewinds to step 5.
+**Gate:** `test` → set `review`. Invoke `dev-flow:review`. It reads the **Verifier model** from the state file (no prompt) and dispatches a fresh reviewer subagent on it: spec coverage, plan coverage, obvious-issue scan (bugs, security smells, leftover, naming), and a maintainability pass with a clean-code check (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells), writes findings to a color-coded report, and returns a verdict. Verdict and handling per the review skill's R5 verdict contract — green/blue advance to step 8; yellow surfaces the fix-now/note-in-PR choice; red rewinds to step 5.
 
 This is the gate that makes the PR worth a human's review — it does not replace human review at the PR. The orchestrator acts on the reviewer's verdict; it does not re-do the review inline.
 
