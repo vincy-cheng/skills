@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 02-correct-entry
+description: State file at Goal status issue and a plain "resume the run" — the orchestrator must proceed to step 5 (execute) without re-running brainstorm/plan/issue work or restarting from step 1
+execution:
+  max_turns: 30
+  timeout_seconds: 600
