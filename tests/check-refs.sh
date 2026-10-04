@@ -56,6 +56,31 @@ $G -q "references/mermaid.md" "$MM_SKILL" && ok "mermaid-pointer-exists" || bad 
 $G -q "Mermaid is for files humans will open" "$MM_SKILL" && ok "mermaid-rule-line" || bad "mermaid-rule-line"
 $G -q "Mermaid renders in chat" "$MM_SKILL" && bad "mermaid-paragraph-removed" || ok "mermaid-paragraph-removed"
 
+# --- clean-code.md extraction (review) ---
+CC_REF=dev-flow/skills/review/references/clean-code.md
+CC_SKILL=dev-flow/skills/review/SKILL.md
+
+# 9. reference file exists
+[ -f "$CC_REF" ] && ok "clean-code-ref-exists" || bad "clean-code-ref-exists"
+
+# 10. moved content survives
+for phrase in "Consistency beats purity" "Boy-scout" "magic numbers" "least astonishment"; do
+  $G -q "$phrase" "$CC_REF" 2>/dev/null && ok "clean-code-ref-content:$phrase" || bad "clean-code-ref-content:$phrase"
+done
+
+# 11. SKILL.md keeps the pointer, moved body gone
+$G -q "references/clean-code.md" "$CC_SKILL" && ok "clean-code-pointer-exists" || bad "clean-code-pointer-exists"
+$G -q "needless repetition" "$CC_SKILL" && bad "clean-code-body-removed" || ok "clean-code-body-removed"
+
+# 12. SKILL.md shrank to the extraction target (~169 baseline; heading+intro retained)
+if [ -f "$CC_SKILL" ]; then
+  lines=$($G -c "" "$CC_SKILL")
+  [ "$lines" -le 150 ] && ok "clean-code-skill-shrunk:$lines" || bad "clean-code-skill-shrunk:$lines (expected <=150)"
+  [ "$lines" -ge 110 ] && ok "clean-code-skill-not-over-trimmed:$lines" || bad "clean-code-skill-not-over-trimmed:$lines (expected >=110)"
+else
+  bad "clean-code-skill-shrunk:skill-missing"
+fi
+
 echo "---"
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

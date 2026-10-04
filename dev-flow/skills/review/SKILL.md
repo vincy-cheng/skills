@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells) against the spec and plan. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test) or replace human PR review.
+description: Use to review a feat or fix branch before opening a PR — a judgment review gate checking spec coverage, plan coverage, obvious issues (bugs, security smells, leftover, naming), and maintainability with a clean-code pass (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells) against the spec and plan. This is dev-flow step 7 (after the step 6 test gate, before doc-fix). Spawns a fresh independent reviewer subagent (no author bias) that runs the review and returns a verdict. Also runs standalone on any branch ("review this", "review the branch", "review my work"). Doesn't run the test suite (that's dev-flow:test), doesn't replace human PR review, and is not a line-by-line correctness scan (use a code-review tool for that) — it judges the branch against its spec and plan.
 ---
 
 # Review
@@ -31,7 +31,7 @@ Spawn **one** fresh reviewer subagent (Agent tool) with the chosen model. It has
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
-4. **The checklist** (steps 1–4 below — including the clean-code pass in step 4) and **verdict contract** (step 5) — paste into the dispatch.
+4. **The methodology** (steps 1–4) — give the subagent the **absolute path** to this skill's `references/clean-code.md` (resolved from the skill's base directory — not repo-relative: in a target repo the file lives in the plugin directory), with the instruction to read it first as the review's checklist; the subagent reads it itself. Paste **steps 1–2's and step 3's section bodies** (spec coverage / plan coverage / obvious-issue scan) into the dispatch — the reference file carries only the section-4 clean-code checklist, not the full methodology — and paste the **verdict contract** (step 5) too.
 5. **Report contract** — full findings go to `docs/features/.review/<feat-name>/review-report.md` (gitignored); the return holds only the verdict (`green`/`blue`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the file, keeping the orchestrator's context clean.
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
@@ -108,30 +108,7 @@ Not a deep architectural review — "is anything obviously wrong before a human 
 
 ### 4. Maintainability & clean code
 
-Read the changed code in place (open the files, not just the diff hunks) — what does the next maintainer inherit?
-
-- **Structure** — one thing per module/function; new code follows existing patterns?
-- **Coupling** — layering violations, hidden dependencies, leaked internals.
-- **Naming** — names that say what things do, not just locally true ones.
-- **Complexity** — deep nesting, long functions, branching a simpler shape would kill.
-- **Duplication** — logic copied from elsewhere in the codebase (diff-only reading misses this).
-
-Then a **clean-code pass** over the changed code (distilled from the classic clean-code checklist — wojteklu's gist, the r/cleancode guide):
-
-- **Names** — descriptive and unambiguous, pronounceable, searchable; magic numbers → named constants; no type-prefix encodings; meaningful distinctions (not `data2`).
-- **Functions** — small, do one thing, few arguments, no side effects, no flag arguments (a boolean param selecting behavior → split into independent methods); does only what its name promises — no surprising behavior (least astonishment).
-- **Error handling** — managed errors over crash paths (try/catch where the failure is expected, resources freed in `finally` or equivalent); a swallow-everything catch is a bug finding (section 3), but a new unhandled crash path belongs here.
-- **Conditionals** — no negative conditionals where a positive one reads cleaner; boundary conditions encapsulated in one place; no methods whose correctness depends on another method in the same class having run.
-- **Comments** — code explains itself first; comments carry intent/clarification/warnings only, never redundancy, obvious noise, closing-brace tags, or commented-out code (commented-out code is a leftover — see section 3).
-- **Structure** — variables declared close to usage; dependent/similar functions close; related code vertically dense; separate concepts separated vertically.
-- **Code smells** — rigidity (small change cascades), fragility (one change breaks many places), immobility (can't reuse), needless complexity, needless repetition, opacity (hard to understand).
-- **KISS** — the simplest shape that works; simpler is always better (the needless-complexity smell is its detection point).
-- **DRY** — every piece of knowledge has one authoritative representation (beyond copied code blocks — the duplication check extends to knowledge-level repetition: the same fact/rule stated in two places).
-- **Boy-scout** — the diff leaves the touched code cleaner, not worse; incidental tidy-ups are noted, not demanded.
-
-Consistency beats purity — match the file's existing conventions over textbook clean-code (legacy style stays legacy unless the task touches it); a DRY extraction that adds more complexity than it removes is itself a finding.
-
-Report findings with file:line and a concrete suggested shape ("extract X into Y") — suggest, don't fix. Can be blue, yellow, or red; severity is the reviewer's judgment. Clean-code findings are usually blue or yellow — red only when the shape would actively break under the next change.
+Read the changed code in place (open the files, not just the diff hunks) — full checklist in `references/clean-code.md`.
 
 ### 5. Verdict
 
