@@ -158,7 +158,7 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 - Before pushing in step 9, confirm `git status --porcelain docs/features/` is empty. If not, stop and fix.
 
 ## Step 1 — Brainstorm
-**Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch) and add the index row. Set **Kind** from intent (ask if ambiguous). Invoke `dev-flow:brainstorm` to explore intent, requirements, design — it owns the interview (problem, kind, scope, success), idea-folder ingestion, and the design dialogue. Don't write code. The skill's terminal state is the approved spec under `docs/features/specs/` — it has no handoff; advance to step 2.
+**Gate:** fresh start → set `brainstorm`. Create the state file (default base `dev`, target `dev` — target is the PR destination; for `main`-only repos, both are the default branch; when `.dev-flow/config.json` exists, its `dev_branch` is the default for both — malformed config → warn and ASK, never silently substitute `dev`) and add the index row. Set **Kind** from intent (ask if ambiguous). Invoke `dev-flow:brainstorm` to explore intent, requirements, design — it owns the interview (problem, kind, scope, success), idea-folder ingestion, and the design dialogue. Don't write code. The skill's terminal state is the approved spec under `docs/features/specs/` — it has no handoff; advance to step 2.
 
 If the user's request references an idea folder, the skill ingests its docs as the established brief and the run records the folder path in References. If the run is seeded from an overview spec (brainstorm's decomposition fired on a prior run), the state file's References record the Overview path at creation.
 
@@ -169,7 +169,7 @@ If the user's request references an idea folder, the skill ingests its docs as t
 **Gate:** `spec` → set `planning`. **Invoke `dev-flow:plan` and follow it** — the plan is generated through that skill, not hand-authored. It saves the plan to `docs/features/plans/YYYY-MM-DD-<feat-name>.md` (its own convention — no override needed), produces the contract-complete sections (overview, Global Constraints, Flow Chart, File Structure, Tasks with per-task files and TDD shape), and has no handoff. Copy the task list into the state file's Tasks; add the plan path to References. Verify it's gitignored; advance to step 4.
 
 ## Step 4 — Create issue
-**Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feat/<n>-<name>` (or `fix/<n>-<name>`) branch off `dev`; update the state file's base branch and record the issue number in References.
+**Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feat/<n>-<name>` (or `fix/<n>-<name>`) branch off the state file's Base branch; update the state file's base branch and record the issue number in References.
 
 ## Step 5 — Execute tasks (TDD)
 **Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (its RED step follows `dev-flow:tdd`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 6.
@@ -191,7 +191,7 @@ This is the gate that makes the PR worth a human's review — it does not replac
 - **Drift reveals a deeper code issue** → STOP; don't open a PR with known-bad docs (mirrors review's red). Re-set the status to `execute`; return to step 5.
 
 ## Step 9 — Open PR
-**Gate:** `doc-fix` → set `pr-review`. Invoke `dev-flow:open-pr`. It pushes, opens the PR targeting `dev` with `gh pr create`, links the issue, syncs the issue body (acceptance-criteria checkboxes + `PR: #NN` reference), and records the PR number in the state file's References. Step 10 is manual — the skill never merges.
+**Gate:** `doc-fix` → set `pr-review`. Invoke `dev-flow:open-pr`. It pushes, opens the PR targeting the state file's Target branch with `gh pr create`, links the issue, syncs the issue body (acceptance-criteria checkboxes + `PR: #NN` reference), and records the PR number in the state file's References. Step 10 is manual — the skill never merges.
 
 ## Step 10 — Merge (manual)
 **Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 11 (close-out). `merged` is the intermediate — a crash here lands back on `merged` and re-runs step 11.
@@ -206,13 +206,13 @@ Rules:
 - **Roadmap refresh** — if the state file's References carry an Overview path and that file exists, refresh the overview spec with what the completed run changed and taught: mark the run's entry done, record learnings, adjust later-run entries if direction shifted. Then print the exact next-run bootstrap command: `/new-feature <overview-spec-path> <next-run-name>`. The user starts the next run manually — no cross-run automation. No Overview path, or it doesn't exist → skip silently and say so.
 - **Show the user any proposed memory update before applying** — close-out is guided, not fire-and-forget.
 - **No memory update needed** → say so plainly and mark the run `done`. Don't invent edits to justify the step.
-- **Ask before deleting the branch** — after the merge, offer to clean up: check out the target branch first (`git checkout dev` — you can't delete the branch you're on), then `git branch -d <branch>` locally (safe post-merge) and `git push origin --delete <branch>` for the remote. Only with the user's yes; a declined offer is a normal outcome, not a failure.
+- **Ask before deleting the branch** — after the merge, offer to clean up: check out the state file's Target branch first (you can't delete the branch you're on), then `git branch -d <branch>` locally (safe post-merge) and `git push origin --delete <branch>` for the remote. Only with the user's yes; a declined offer is a normal outcome, not a failure.
 - **Never commit `docs/features/`** — still gitignored.
 
 When done, the run is `done` — fully closed. The state file and index row stay as history.
 
 ## Notes
-- No `dev` branch → ask the user: create `dev` off the default branch (push it, then branch `feat/...`/`fix/...` off it), or run everything off the default branch. Don't silently pick.
+- No `dev` branch (the configured dev branch — `.dev-flow/config.json`'s `dev_branch`, default `dev`) → ask the user: create it off the default branch (push it, then branch `feat/...`/`fix/...` off it), or run everything off the default branch. Don't silently pick.
 - Keep the user in the loop at each checkpoint; this is guided, not fire-and-forget.
 - The state files are the source of truth for resuming — keep them honest. A stale state file is worse than none.
 - The hard gate is the backbone. If you're doing step N's work while the state file is at a different status, stop and fix the state file first.

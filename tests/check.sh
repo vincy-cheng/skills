@@ -250,6 +250,13 @@ else
 fi
 [ -z "$wrap_errs" ] && ok 17 "bootstrap wrapper is thin" || bad 17 "bootstrap wrapper not thin:$wrap_errs"
 
+# 18. new-feature reads the branch config: `.dev-flow/config.json` must be
+#     mentioned in the new-feature skill — the state file's Base/Target are
+#     seeded from it when present (feat/55). Guards the config-read wiring.
+$G -q "dev-flow/config.json" dev-flow/skills/new-feature/SKILL.md \
+  && ok 18 "new-feature mentions branch config" \
+  || bad 18 "new-feature skill missing .dev-flow/config.json read"
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
