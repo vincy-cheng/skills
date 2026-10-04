@@ -5,7 +5,7 @@ description: Use whenever the user wants to create, open, file, or draft a GitHu
 
 # Create a GitHub issue
 
-**Step 4 of dev-flow.** Turns the spec + plan into a tracked GitHub issue, published with `gh`. Steps 1–3 may have produced `docs/features/specs/` and `docs/features/plans/`; this skill translates that material into a self-contained issue. Branch for step 5 is `feat/<n>-<name>` (or `fix/<n>-<name>` off `dev`).
+**Step 4 of dev-flow.** Turns the spec + plan into a tracked GitHub issue, published with `gh`. Steps 1–3 may have produced `docs/features/specs/` and `docs/features/plans/`; this skill translates that material into a self-contained issue. Branch for step 5 is `feat/<n>-<name>` (or `fix/<n>-<name>`) off the state file's Target branch (see *Branches*).
 
 ## Gate check
 
