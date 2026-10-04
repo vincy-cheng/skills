@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 01-green-verdict
+description: Spec-covered diff with no findings beyond a naming nit — verdict must be green and advance to doc-fix without a findings loop and without "helpfully" fixing the nit inline
+execution:
+  max_turns: 30
+  timeout_seconds: 600

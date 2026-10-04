@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 02-trivial-blue
+description: Only trivial findings (stale comment, duplicate import) — verdict must be blue, findings noted for the PR body, no fix-now/note-in-PR user prompt, advance to doc-fix
+execution:
+  max_turns: 30
+  timeout_seconds: 600
