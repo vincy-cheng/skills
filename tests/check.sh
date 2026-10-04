@@ -235,6 +235,21 @@ PY
 )
 if [ -z "$mermaid_errs" ]; then ok 16 "plan mermaid blocks keep changes: inside node labels"; else bad 16 "bare changes: lines in plan mermaid blocks:$mermaid_errs"; fi
 
+# 17. bootstrap wrapper is thin: commands/bootstrap.md exists and carries no
+#     workflow content — it must point at skills/bootstrap/SKILL.md as the
+#     single source (same invariant as commands/new-feature.md). The engine,
+#     not the wrapper, owns the flow.
+wrap_errs=""
+if [ ! -f "dev-flow/commands/bootstrap.md" ]; then
+  wrap_errs="commands/bootstrap.md:missing"
+else
+  $G -q "skills/bootstrap/SKILL.md" dev-flow/commands/bootstrap.md \
+    || wrap_errs="$wrap_errs commands/bootstrap.md:not-thin(no-SKILL-pointer)"
+  $G -qE '\$\{?ARGUMENTS\}?' dev-flow/commands/bootstrap.md \
+    || wrap_errs="$wrap_errs commands/bootstrap.md:no-arguments-passthrough"
+fi
+[ -z "$wrap_errs" ] && ok 17 "bootstrap wrapper is thin" || bad 17 "bootstrap wrapper not thin:$wrap_errs"
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
