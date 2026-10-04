@@ -97,4 +97,4 @@ Keep your own context clean: everything you paste into a dispatch and everything
 - **No skipping verify-RED** — if you didn't watch the test fail (inline) or the implementer's report doesn't show it failing first (subagent), you don't know it tests the right thing.
 - **No committing a red task** — tests must be green before the commit.
 - **No pushing** — this skill commits only. Push is step 9.
-- **No parallel implementers** (subagent mode) — one task at a time; they'd conflict.
+- **No parallel implementers** (subagent mode) — one at a time, and that's a correctness rule, not a convenience one. Conflicts are only the symptom of a shared tree; even with git-worktree isolation the three real reasons survive: TDD verify-RED attribution (a red test must be attributable to its task — across worktrees, that judgment breaks), per-task commit ordering (each commit gates on the prior task's green suite), and integration (serial — tasks are rarely independent enough to parallelize, and coordinator-side review+commit is serial anyway, so worktrees buy little wall-clock for much correctness risk).
