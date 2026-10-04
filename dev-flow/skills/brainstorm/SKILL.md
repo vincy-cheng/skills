@@ -1,9 +1,6 @@
 ---
 name: brainstorm
-description: >-
-  Use when designing or exploring a feature or fix before building it — turn an idea
-  into a validated design and spec through collaborative dialogue. Runs standalone in
-  any repo, or as the engine of dev-flow step 1 (invoked by the new-feature command).
+description: Use when designing or exploring a feature or fix before building it — turn an idea into a validated design and spec through collaborative dialogue. Runs standalone in any repo, or as the engine of dev-flow step 1 (invoked by the new-feature command).
 ---
 
 # Brainstorming

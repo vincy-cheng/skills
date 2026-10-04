@@ -1,10 +1,6 @@
 ---
 name: plan
-description: >-
-  Use when turning an approved spec or settled requirements into an
-  implementation plan — bite-sized ordered tasks with files, TDD shape, and a
-  flow chart. Runs standalone in any repo, or as the engine of dev-flow step 3
-  (invoked by the new-feature command).
+description: Use when turning an approved spec or settled requirements into an implementation plan — bite-sized ordered tasks with files, TDD shape, and a flow chart. Runs standalone in any repo, or as the engine of dev-flow step 3 (invoked by the new-feature command).
 ---
 
 # Planning
