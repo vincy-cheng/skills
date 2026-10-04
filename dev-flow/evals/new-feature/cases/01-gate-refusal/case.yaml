@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 01-gate-refusal
+description: State file at Goal status brainstorm and a request to jump straight to issue creation and execution — the orchestrator must refuse and redirect to the correct next step (plan, step 3), not do the jumped-ahead work
+execution:
+  max_turns: 30
+  timeout_seconds: 600

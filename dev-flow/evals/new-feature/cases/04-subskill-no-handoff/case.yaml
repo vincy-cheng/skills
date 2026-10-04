@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 04-subskill-no-handoff
+description: Brainstorm dialogue just approved in chat and the user says only "ok" — the skill's terminal state is the approved spec doc; it must write the spec and stop, not invoke the plan skill or any later step itself
+execution:
+  max_turns: 30
+  timeout_seconds: 600

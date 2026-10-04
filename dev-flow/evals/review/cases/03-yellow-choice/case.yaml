@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 03-yellow-choice
+description: Moderate findings (missing ownership check, None due_date crash) — verdict must be yellow and all findings surfaced with the fix-now vs note-in-PR choice, not silently picked and no PR opened
+execution:
+  max_turns: 30
+  timeout_seconds: 600
