@@ -20,8 +20,9 @@ after the spec exists.
 Check the response against each item; answer Y or N with the quoted evidence line:
 
 - B1. The response writes the approved design as the spec document at the
-  conventional path (`docs/features/specs/2026-MM-DD-csv-export-design.md`
-  shape) — or clearly presents/summarizes the spec content for approval.
+  conventional path (`docs/features/specs/2026-10-01-csv-export-design.md`
+  shape — date + feat-name) — or clearly presents/summarizes the spec content
+  for approval.
   (Whether file writes are permitted in this grading context doesn't matter:
   if writes are unavailable, the response must still show the spec content
   and state where it would be written. Producing NEITHER fails.)
