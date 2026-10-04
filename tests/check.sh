@@ -264,6 +264,12 @@ $G -qE 'checkout (dev|`dev`)' dev-flow/skills/create-github-issue/SKILL.md \
   && bad 19 "create-github-issue still hardcodes a checkout dev command" \
   || ok 19 "create-github-issue derives branch names from the state file"
 
+# 20. open-pr derives --base from the state file's Target branch: the literal
+#     `--base dev` flag must stay out (feat/55). Concept grep on the flag.
+$G -qE -- '--base (dev|`dev`)' dev-flow/skills/open-pr/SKILL.md \
+  && bad 20 "open-pr still hardcodes --base dev" \
+  || ok 20 "open-pr derives --base from the state file"
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
