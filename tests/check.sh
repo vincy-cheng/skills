@@ -270,6 +270,15 @@ $G -qE -- '--base (dev|`dev`)' dev-flow/skills/open-pr/SKILL.md \
   && bad 20 "open-pr still hardcodes --base dev" \
   || ok 20 "open-pr derives --base from the state file"
 
+# 21. document-structure owns the AGENTS.md entry-point rule (feat/55): the
+#     engine must carry the entry-point rule — AGENTS.md + CLAUDE.md symlink
+#     responsibility and the never-gut-content guard — not a bare mention.
+ds_errs=""
+$G -q 'AGENTS.md' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_errs no-AGENTS-md"
+$G -q -i 'symlink' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_errs no-symlink-rule"
+$G -q 'scope boundary' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_errs no-boundary-exception-mention"
+[ -z "$ds_errs" ] && ok 21 "document-structure owns the AGENTS.md entry-point rule" || bad 21 "entry-point rule missing:$ds_errs"
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
