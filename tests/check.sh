@@ -235,6 +235,50 @@ PY
 )
 if [ -z "$mermaid_errs" ]; then ok 16 "plan mermaid blocks keep changes: inside node labels"; else bad 16 "bare changes: lines in plan mermaid blocks:$mermaid_errs"; fi
 
+# 17. bootstrap wrapper is thin: commands/bootstrap.md exists and carries no
+#     workflow content — it must point at skills/bootstrap/SKILL.md as the
+#     single source (same invariant as commands/new-feature.md). The engine,
+#     not the wrapper, owns the flow.
+wrap_errs=""
+if [ ! -f "dev-flow/commands/bootstrap.md" ]; then
+  wrap_errs="commands/bootstrap.md:missing"
+else
+  $G -q "skills/bootstrap/SKILL.md" dev-flow/commands/bootstrap.md \
+    || wrap_errs="$wrap_errs commands/bootstrap.md:not-thin(no-SKILL-pointer)"
+  $G -qE '\$\{?ARGUMENTS\}?' dev-flow/commands/bootstrap.md \
+    || wrap_errs="$wrap_errs commands/bootstrap.md:no-arguments-passthrough"
+fi
+[ -z "$wrap_errs" ] && ok 17 "bootstrap wrapper is thin" || bad 17 "bootstrap wrapper not thin:$wrap_errs"
+
+# 18. new-feature reads the branch config: `.dev-flow/config.json` must be
+#     mentioned in the new-feature skill — the state file's Base/Target are
+#     seeded from it when present (feat/55). Guards the config-read wiring.
+$G -q "dev-flow/config.json" dev-flow/skills/new-feature/SKILL.md \
+  && ok 18 "new-feature mentions branch config" \
+  || bad 18 "new-feature skill missing .dev-flow/config.json read"
+
+# 19. Branch literals stay out of the branch-deriving skills: create-github-issue
+#     must not carry a literal `git checkout dev` command (feat/55) — branch names
+#     derive from the state file / config. Concept grep, not exact sentences.
+$G -qE 'checkout (dev|`dev`)' dev-flow/skills/create-github-issue/SKILL.md \
+  && bad 19 "create-github-issue still hardcodes a checkout dev command" \
+  || ok 19 "create-github-issue derives branch names from the state file"
+
+# 20. open-pr derives --base from the state file's Target branch: the literal
+#     `--base dev` flag must stay out (feat/55). Concept grep on the flag.
+$G -qE -- '--base (dev|`dev`)' dev-flow/skills/open-pr/SKILL.md \
+  && bad 20 "open-pr still hardcodes --base dev" \
+  || ok 20 "open-pr derives --base from the state file"
+
+# 21. document-structure owns the AGENTS.md entry-point rule (feat/55): the
+#     engine must carry the entry-point rule — AGENTS.md + CLAUDE.md symlink
+#     responsibility and the never-gut-content guard — not a bare mention.
+ds_errs=""
+$G -q 'AGENTS.md' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_errs no-AGENTS-md"
+$G -q -i 'symlink' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_errs no-symlink-rule"
+$G -q 'scope boundary' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_errs no-boundary-exception-mention"
+[ -z "$ds_errs" ] && ok 21 "document-structure owns the AGENTS.md entry-point rule" || bad 21 "entry-point rule missing:$ds_errs"
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;

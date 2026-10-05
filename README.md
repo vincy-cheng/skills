@@ -78,13 +78,13 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 |-------|------|---------|
 | `brainstorm` | 1 | Work through the design and write an approved spec |
 | `plan` | 3 | Turn the spec into a contract-first implementation plan |
-| `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch from `dev` |
+| `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
 | `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; inline or subagent mode |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability |
 | `doc-fix` | 8 | Find and fix documentation drift caused by the run |
-| `open-pr` | 9 | Open a pull request targeting `dev` and sync the issue; never merges |
+| `open-pr` | 9 | Open a pull request targeting the state file's Target branch and sync the issue; never merges |
 
 These skills can also run on their own. The test skill uses each target repository's test and lint commands; this repository's suite is `bash tests/check.sh` and it has no linter.
 
@@ -111,7 +111,7 @@ Before creating files, the command discusses and grills the idea, summarizes the
 
 - `dev-flow/` — plugin commands, skills, evals, and host manifests
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
-- `tests/check.sh` — 15 bash consistency checks; run after editing skills or commands
+- `tests/check.sh` — 20 bash consistency checks; run after editing skills or commands
 - `dev-flow/evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps

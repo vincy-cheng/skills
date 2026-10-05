@@ -16,13 +16,23 @@ Choose at entry, before doing anything:
 - `docs/agents/` **absent** → **generate mode**: full build, all phases.
 - `docs/agents/` **present** → **update mode**: run Phase 1 to find drift, then patch **only** the drifted sections. Never rewrite a whole file wholesale; never delete content the inventory didn't invalidate.
 
+## Entry point — AGENTS.md / CLAUDE.md (both modes)
+
+This engine owns the **convention entry point**, not just the tree: `AGENTS.md` exists as a real file at repo root and `CLAUDE.md` is a **symlink** to it (`ln -s AGENTS.md CLAUDE.md`). Run this check **before** update mode's scoping window (the shortcut in Phase 1) — even a scope-limited update run still checks the entry point.
+
+- **"Correct" is content-agnostic:** AGENTS.md being a real file + CLAUDE.md symlinking to it is correct *whatever the content* — a full layout doc is as correct as a skeleton (this skill's own repo is the canonical example). Never offer to gut, trim, or replace existing content.
+- **Neither exists** → offer to create the pair: `AGENTS.md` as a real file with a **minimal skeleton only** (a one-line purpose statement + a pointer to `docs/agents/INDEX.md`) and `CLAUDE.md` as the symlink. No repo content — architecture/build/testing facts belong in the docs tree, never duplicated here.
+- **`CLAUDE.md` is a real file** → show `diff AGENTS.md CLAUDE.md` first and **ask what happens to the content** (fold into AGENTS.md, then symlink; or leave as-is) before any conversion — content is never destroyed or overwritten silently.
+- **Partial states** (only one exists; symlink pointing elsewhere) → show what's there and offer the completion; never silently overwrite.
+- Declines are normal outcomes — report and skip.
+
 ## The tree and its budgets
 
 Two tiers: **core maps** (always written) and **concern maps** (written only when the inventory finds that concern — the tree is **dynamic, shaped by the project**).
 
 Map filenames are **ALL-CAPS** (`INDEX.md`, `ARCHITECTURE.md`, …), README.md-style.
 
-The `docs/agents/` subdirectory is load-bearing, not cosmetic — keep it mandatory, never flatten to `docs/`. It does double duty: (1) **mode detection** — entry logic checks for `docs/agents/` existence to choose generate vs update; a flat `docs/` layout breaks that. (2) **scope boundary** — "never touch anything outside `docs/agents/`" relies on the directory edge; a flat layout mixes agent maps with human docs and pollutes the agent tree on every update run.
+The `docs/agents/` subdirectory is load-bearing, not cosmetic — keep it mandatory, never flatten to `docs/`. It does double duty: (1) **mode detection** — entry logic checks for `docs/agents/` existence to choose generate vs update; a flat `docs/` layout breaks that. (2) **scope boundary** — "never touch anything outside `docs/agents/`" relies on the directory edge; a flat layout mixes agent maps with human docs and pollutes the agent tree on every update run. The boundary has **one named exception**: the AGENTS.md/CLAUDE.md entry-point pair at repo root (see *Entry point* below).
 
 ```
 docs/agents/
@@ -112,7 +122,7 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 ## Edge cases
 
 - **Monorepo:** `INDEX.md` lists sub-areas; per-area L1 maps only if the repo is genuinely large.
-- **Existing docs:** never overwrite human docs (README, anything under `docs/` outside `docs/agents/`). For each agent-instruction file the repo already has, add a one-line pointer to `docs/agents/INDEX.md` — nothing more. Agent-instruction files include: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `QWEN.md`, `COPILOT.md` / `.github/copilot-instructions.md`, `.cursorrules` / `.cursor/rules/`, `.windsurfrules`. Only add the pointer to files that exist — never create one; never modify any other content in them.
+- **Existing docs:** never overwrite human docs (README, anything under `docs/` outside `docs/agents/`). For each agent-instruction file the repo already has, add a one-line pointer to `docs/agents/INDEX.md` — nothing more. Agent-instruction files include: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `QWEN.md`, `COPILOT.md` / `.github/copilot-instructions.md`, `.cursorrules` / `.cursor/rules/`, `.windsurfrules`. Only add the pointer to files that exist — never create one; never modify any other content in them. Exception: the AGENTS.md/CLAUDE.md entry-point pair, owned by the *Entry point* rule above.
 - **Pointer ordering — never point at nothing.** Write the `docs/agents/` tree first, pointers last: only add pointer lines to agent-instruction files after `docs/agents/INDEX.md` exists on disk. If a generate run fails midway, the pointer step is skipped — no dangling pointers.
 - **Dangling pointers (update mode — and generate mode too):** check the reverse direction too — every agent-instruction file that contains a `docs/agents/INDEX.md` pointer must have a live target. If `docs/agents/INDEX.md` is missing but pointers exist, either regenerate the tree or remove the pointers — ask the user which; never leave a pointer pointing at nothing. Conversely, if the tree exists but a concern map referenced by `INDEX.md` is missing, that's drift: rebuild the row or restore the file in this pass. In generate mode this case self-heals — but before writing, note any existing pointers: the rebuilt tree must land at the path they name.
 
@@ -121,5 +131,5 @@ In update mode, touch only what drifted; a map with no drift is left byte-identi
 - **Don't write for humans** — no narrative, no "welcome to", no marketing prose.
 - **Don't blow budgets** — see the `wc -c` proxy at the budget definition site.
 - **Don't fabricate** to fill a template.
-- **Don't touch anything outside `docs/agents/`** except the one-line pointer per existing agent-instruction file (see *Edge cases*).
+- **Don't touch anything outside `docs/agents/`** except the one-line pointer per existing agent-instruction file and the AGENTS.md/CLAUDE.md entry-point pair (see *Edge cases* and *Entry point*).
 - **Don't create L2 files by default.**

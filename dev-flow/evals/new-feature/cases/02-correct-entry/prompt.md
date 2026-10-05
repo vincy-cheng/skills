@@ -24,5 +24,5 @@ called "csv-export". Here's the current state file:
     - PR: _(pending)_
 
 The issue #12 was created from the plan, and the working branch
-`feat/12-csv-export` exists off `dev` — we're on it. Resume the run from wherever
+`feat/12-csv-export` exists off the state file's Target branch — we're on it. Resume the run from wherever
 it should continue.

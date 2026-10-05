@@ -1,6 +1,6 @@
 ---
 name: open-pr
-description: Use to open a pull request for a feat or fix branch — dev-flow step 9 (after doc-fix, before the manual merge). Pushes, drafts the PR body (issue link, spec/plan summary, closing keyword), shows it for confirmation, opens with `gh pr create` targeting `dev`, links the issue via `Closes #N`, syncs the issue body (flips satisfied acceptance-criteria checkboxes, adds `PR: #NN` to References), and records the PR number in the state file. Also runs standalone for any branch ("open a PR for this branch", "create the PR"). Never merges — step 10 is manual. No AI attribution in the PR body.
+description: Use to open a pull request for a feat or fix branch — dev-flow step 9 (after doc-fix, before the manual merge). Pushes, drafts the PR body (issue link, spec/plan summary, closing keyword), shows it for confirmation, opens with `gh pr create` targeting the state file's Target branch (`dev` by default), links the issue via `Closes #N`, syncs the issue body (flips satisfied acceptance-criteria checkboxes, adds `PR: #NN` to References), and records the PR number in the state file. Also runs standalone for any branch ("open a PR for this branch", "create the PR"). Never merges — step 10 is manual. No AI attribution in the PR body.
 ---
 
 # Open PR
@@ -13,7 +13,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## What you need
 
-- The **base branch** — `dev` (the PR target; never `main`).
+- The **base branch** — the state file's **Target branch** (`dev` by default, or `.dev-flow/config.json`'s `dev_branch`; the PR target; never the default branch in the multi-branch flow).
 - The **branch name** — `feat/<n>-<name>` / `fix/<n>-<name>`.
 - The **issue number** — from the state file's References.
 - The state file's **References** — spec/plan paths are local-only (`docs/features/` is gitignored); their substance is summarized into the PR body, never linked.
@@ -49,17 +49,17 @@ Show the user the drafted title + body. On confirmation:
 
 ```bash
 git push -u origin HEAD
-gh pr create --base dev --title "<title>" --body "$(cat <<'EOF'
+gh pr create --base <target-branch> --title "<title>" --body "$(cat <<'EOF'
 <body>
 EOF
 )"
 ```
 
-Capture the PR URL and number.
+`<target-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`; standalone mode: confirmed with the user). Capture the PR URL and number.
 
 ## Link the issue (sidebar)
 
-A `Closes #N` keyword in the body creates the issue↔PR sidebar cross-reference the moment the PR opens — no extra API call. Because the PR targets `dev` (not the default branch), GitHub won't auto-close the issue on merge — if it should close on this merge, close it explicitly in step 10 or 11 (`gh issue close <N>`).
+A `Closes #N` keyword in the body creates the issue↔PR sidebar cross-reference the moment the PR opens — no extra API call. Because the PR targets the state file's Target branch (not the default branch), GitHub won't auto-close the issue on merge — if it should close on this merge, close it explicitly in step 10 or 11 (`gh issue close <N>`).
 
 ## Sync the issue body
 
@@ -84,7 +84,7 @@ No state file → open a PR for the current branch against its base (ask which b
 
 - **Don't merge** — step 10 is manual, by the human. This skill opens PRs; it never merges.
 - **Don't open before the user confirms the body** — a PR is outward-facing.
-- **Don't target `main`** — PRs target `dev` (branch flow `main` → `dev` → `feat/<n>-<name>`).
+- **Don't target the default branch in the multi-branch flow** — PRs target the state file's Target branch (branch flow: default → configured dev branch → `feat/<n>-<name>`).
 - **Don't commit `docs/features/`** — gitignored; the commit guard checks before pushing.
 - **No AI attribution** in the PR body — no model names, no "generated with", no trailers.
-- **Don't auto-close the issue** — the PR targets `dev`, so closing keywords don't auto-close on merge; close explicitly in step 10 or 11 if intended.
+- **Don't auto-close the issue** — the PR targets the state file's Target branch (not the default branch), so closing keywords don't auto-close on merge; close explicitly in step 10 or 11 if intended.

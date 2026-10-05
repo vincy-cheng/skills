@@ -17,7 +17,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 - The **spec** at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — source of truth.
 - The **plan** at `docs/features/plans/YYYY-MM-DD-<feat-name>.md` — task breakdown.
-- The **base branch** (usually `dev`). If unclear, ask — reviewing against the wrong base makes the diff meaningless.
+- The **base branch** — usually the state file's Base branch (`dev` by default, or `.dev-flow/config.json`'s `dev_branch`); standalone mode: ask if unclear — reviewing against the wrong base makes the diff meaningless.
 
 ## The verifier model (mode-split)
 
