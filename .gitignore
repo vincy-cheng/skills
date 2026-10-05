@@ -1,4 +1,3 @@
 docs/features/
-dev-flow/evals/results/
-dev-flow/evals/*/results/
-/evals/
+evals/results/
+evals/*/results/

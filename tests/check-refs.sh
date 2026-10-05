@@ -12,8 +12,8 @@ ok()  { pass=$((pass+1)); echo "PASS $1"; }
 bad() { fail=$((fail+1)); echo "FAIL $1"; }
 
 # --- cost.md extraction (new-idea) ---
-COST_REF=dev-flow/skills/new-idea/references/cost.md
-COST_SKILL=dev-flow/skills/new-idea/SKILL.md
+COST_REF=skills/new-idea/references/cost.md
+COST_SKILL=skills/new-idea/SKILL.md
 
 # 1. reference file exists
 [ -f "$COST_REF" ] && ok "cost-ref-exists" || bad "cost-ref-exists"
@@ -40,8 +40,8 @@ else
 fi
 
 # --- mermaid.md extraction (document-structure) ---
-MM_REF=dev-flow/skills/document-structure/references/mermaid.md
-MM_SKILL=dev-flow/skills/document-structure/SKILL.md
+MM_REF=skills/document-structure/references/mermaid.md
+MM_SKILL=skills/document-structure/SKILL.md
 
 # 6. reference file exists
 [ -f "$MM_REF" ] && ok "mermaid-ref-exists" || bad "mermaid-ref-exists"
@@ -57,8 +57,8 @@ $G -q "Mermaid is for files humans will open" "$MM_SKILL" && ok "mermaid-rule-li
 $G -q "Mermaid renders in chat" "$MM_SKILL" && bad "mermaid-paragraph-removed" || ok "mermaid-paragraph-removed"
 
 # --- clean-code.md extraction (review) ---
-CC_REF=dev-flow/skills/review/references/clean-code.md
-CC_SKILL=dev-flow/skills/review/SKILL.md
+CC_REF=skills/review/references/clean-code.md
+CC_SKILL=skills/review/SKILL.md
 
 # 9. reference file exists
 [ -f "$CC_REF" ] && ok "clean-code-ref-exists" || bad "clean-code-ref-exists"

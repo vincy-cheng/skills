@@ -8,7 +8,7 @@
       "name": "dev-flow",
       "source": {
         "source": "local",
-        "path": "./dev-flow"
+        "path": "./"
       },
       "policy": {
         "installation": "AVAILABLE",
