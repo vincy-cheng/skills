@@ -279,6 +279,16 @@ $G -q -i 'symlink' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_e
 $G -q 'scope boundary' dev-flow/skills/document-structure/SKILL.md || ds_errs="$ds_errs no-boundary-exception-mention"
 [ -z "$ds_errs" ] && ok 21 "document-structure owns the AGENTS.md entry-point rule" || bad 21 "entry-point rule missing:$ds_errs"
 
+# 22. Unwrapped layout (plugin-layout run): the plugin components live at the repo
+#     root, so dev-flow/ path literals must stay gone. Allowlist is built into the
+#     pattern: the leading [^.] class never matches .dev-flow/ (the branch-config
+#     path), and dev-flow:<name> invoke names contain no dev-flow/ path. Concept
+#     grep on path patterns, never sentences; check.sh excluded (carries the pattern).
+lit_hits=$(git grep -nE '(^|[^.a-zA-Z0-9_-])dev-flow/(skills|commands|evals|plugin\.json|\.claude-plugin)' -- ':!tests/check.sh' || true)
+if [ -n "$lit_hits" ]; then
+  bad 22 "dev-flow/ path literal still present (unwrapped layout):"; printf '%s\n' "$lit_hits"
+else ok 22 "no dev-flow/ path literals (unwrapped layout)"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
