@@ -30,7 +30,7 @@ claude plugin eval /path/to/skills/dev-flow --eval-dir evals/new-feature \
   --model <target-model> --judge-model <judge-model>
 ```
 
-Results land under `dev-flow/evals/results/<timestamp>/` (`aggregate-result.json`;
+Results land under `evals/results/<timestamp>/` (`aggregate-result.json`;
 `report.html` when the run produces one — observed layouts have varied).
 
 ## Known quirks

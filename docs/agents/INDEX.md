@@ -11,9 +11,9 @@ One plugin (`dev-flow`) with Claude Code and Codex packaging. No app code — Ma
 
 ## Quick facts
 
-- **Plugin:** `dev-flow` v0.2.1, fully self-contained (no peer dependencies); Claude metadata is in `.claude-plugin/`, Codex manifest in `dev-flow/plugin.json`.
-- **Orchestrator:** `dev-flow/skills/new-feature/SKILL.md` — single source of the 11-step gated workflow; `dev-flow/commands/new-feature.md` (`/new-feature`) is a thin wrapper delegating to it.
-- **Test suite: `bash tests/check.sh`** (no build, no linter) — 20 consistency checks; verification is the suite + read-through; skill evals under `dev-flow/evals/` run manually.
+- **Plugin:** `dev-flow` v0.2.1, fully self-contained (no peer dependencies); Claude metadata is in `.claude-plugin/`, Codex manifest in `.codex-plugin/plugin.json`.
+- **Orchestrator:** `skills/new-feature/SKILL.md` — single source of the 11-step gated workflow; `commands/new-feature.md` (`/new-feature`) is a thin wrapper delegating to it.
+- **Test suite: `bash tests/check.sh`** (no build, no linter) — 20 consistency checks; verification is the suite + read-through; skill evals under `evals/` run manually.
 - **Repo setup:** `/bootstrap` prepares a repo for dev-flow in one idempotent pass; branch names come from `.dev-flow/config.json` (written by bootstrap, read by `new-feature` step 1), never from literals.
 - **Commits:** Conventional Commits, **no AI attribution**; docs as separate `docs:` commits. Details: DEVOPS.md.
 - **Pipeline, state files, the hard gate:** ARCHITECTURE.md.
