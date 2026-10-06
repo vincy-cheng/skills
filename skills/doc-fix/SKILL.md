@@ -13,7 +13,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## What to scan, in order of drift likelihood
 
-1. **This plugin's docs** — `AGENTS.md`/`CLAUDE.md`, `README.md`, and any `dev-flow/skills/*/SKILL.md` touched by the work. Did the run change behavior a doc still describes the old way? Did a new convention emerge (e.g. a new state-file column this run added)?
+1. **This plugin's docs** — `AGENTS.md`/`CLAUDE.md`, `README.md`, and any `skills/*/SKILL.md` touched by the work. Did the run change behavior a doc still describes the old way? Did a new convention emerge (e.g. a new state-file column this run added)?
 2. **The target repo's docs** — `AGENTS.md`/`README`/arch docs in the repo the feature landed in. Did the change add a new module, command, or convention the docs should mention?
 
 The scan scope is the **run's diff** (`git diff <base>...HEAD`), not the whole repo — drift caused by *this* run. If a piece of drift predates the run, note it to the user but don't fix it here; that's the `dev-flow:whats-new`/`document-structure` territory.

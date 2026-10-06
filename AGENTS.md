@@ -1,18 +1,19 @@
 # AGENTS.md
 
-This repo publishes AI coding-agent plugins. There is no application code and no build step; the test suite is `tests/check.sh` (bash consistency checks). Each top-level directory is one plugin, with host-specific metadata where needed. `CLAUDE.md` is a symlink to this file so Claude Code, Codex, GitHub Copilot, and other agents all read the same guidance.
+This repo publishes an AI coding-agent plugin (`dev-flow`). There is no application code and no build step; the test suite is `tests/check.sh` (bash consistency checks). Single-plugin repo: the repo root **is** the plugin root — components at the top level, host manifests in per-harness dot-dirs. `CLAUDE.md` is a symlink to this file so Claude Code, Codex, GitHub Copilot, and other agents all read the same guidance.
 
 Agent-facing docs (progressive-disclosure tree): `docs/agents/INDEX.md` — start there.
 
 ## Layout convention
 
-A plugin directory follows the plugin format:
-- `plugin.json` — portable plugin identity and metadata for Codex.
-- `.claude-plugin/plugin.json` — metadata (name, description, version, author, keywords).
+The repo root follows the plugin format:
+- `.claude-plugin/plugin.json` — Claude Code metadata (name, description, version, author, keywords).
+- `.codex-plugin/plugin.json` — portable plugin identity and metadata for Codex, with an explicit `"skills": "./skills/"` pointer.
 - `commands/<name>.md` — slash commands, each with YAML frontmatter (`description`) and a Markdown body. `$ARGUMENTS` interpolates user input.
 - `skills/<name>/SKILL.md` — skills, each with YAML frontmatter (`name`, `description`) and a Markdown body that tells the agent how to run the skill.
+- `evals/` — behavioral evals per skill, run manually.
 
-The repository-level `.agents/plugins/marketplace.json` catalogs local Codex plugins; its paths point to plugin directories.
+The repository-level `.agents/plugins/marketplace.json` catalogs local Codex plugins; its path points at the repo root (`"./"`) — the repo root is the plugin root.
 
 These skill files are Markdown consumed by AI coding agents (Claude Code, Copilot, etc.), not application source.
 

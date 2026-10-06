@@ -18,19 +18,19 @@ Target the plugin by **path**, not name, and the suite via `--eval-dir` below
 the plugin root:
 
 ```bash
-claude plugin eval /path/to/skills/dev-flow --eval-dir evals/new-feature
-claude plugin eval /path/to/skills/dev-flow --eval-dir evals/review
+claude plugin eval /path/to/plugin --eval-dir evals/new-feature
+claude plugin eval /path/to/plugin --eval-dir evals/review
 ```
 
 Under a model proxy (e.g. OmniRoute), pass explicit model/judge overrides —
 the default model resolution doesn't reach proxy-routed models:
 
 ```bash
-claude plugin eval /path/to/skills/dev-flow --eval-dir evals/new-feature \
+claude plugin eval /path/to/plugin --eval-dir evals/new-feature \
   --model <target-model> --judge-model <judge-model>
 ```
 
-Results land under `dev-flow/evals/results/<timestamp>/` (`aggregate-result.json`;
+Results land under `evals/results/<timestamp>/` (`aggregate-result.json`;
 `report.html` when the run produces one — observed layouts have varied).
 
 ## Known quirks

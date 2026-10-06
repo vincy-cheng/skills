@@ -16,5 +16,6 @@
     "git",
     "pull-requests",
     "tdd"
-  ]
+  ],
+  "skills": "./skills/"
 }

@@ -109,10 +109,10 @@ Before creating files, the command discusses and grills the idea, summarizes the
 
 ## Repository guide
 
-- `dev-flow/` — plugin commands, skills, evals, and host manifests
+- Repo root = plugin root: `skills/`, `commands/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
-- `tests/check.sh` — 20 bash consistency checks; run after editing skills or commands
-- `dev-flow/evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
+- `tests/check.sh` — 22 bash consistency checks; run after editing skills or commands
+- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
 
@@ -122,4 +122,4 @@ The `dev-flow` workflow and its early planning engine were inspired by [obra/sup
 
 The `tdd` skill's **seams** concept (testing at public boundaries rather than internals) comes from Kent Beck's *Test-Driven Development: By Example*, encountered through Matt Pocock's skill collections ([mattpocock-skills](https://github.com/mattpocock/skills)).
 
-The `review` skill's clean-code pass draws on Robert C. Martin's *Clean Code*, [wojteklu's clean-code checklist](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29), and the r/cleancode community guide; it is housed at `dev-flow/skills/review/references/clean-code.md`.
+The `review` skill's clean-code pass draws on Robert C. Martin's *Clean Code*, [wojteklu's clean-code checklist](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29), and the r/cleancode community guide; it is housed at `skills/review/references/clean-code.md`.
