@@ -22,7 +22,7 @@ for f in commands/*.md; do
 done
 [ -z "$fm_errs" ] && ok 1 "frontmatter well-formed" || bad 1 "frontmatter broken:$fm_errs"
 
-# 2. No docs/superpowers/ artifact paths in dev-flow/. Guard mentions are legitimate:
+# 2. No docs/superpowers/ artifact paths in skills/ or commands/. Guard mentions are legitimate:
 # each mention is exempt only if the 40 chars BEFORE it carry a guard cue (never /
 # default / contrast with docs/features/) — context-scoped, not whole-line, so a real
 # artifact path elsewhere on a guard-word line is still caught. evals/ is
@@ -40,7 +40,7 @@ if [ -n "$sp_hits" ]; then
   bad 2 "docs/superpowers/ path present (non-guard):"; printf '%s\n' "$sp_hits"
 else ok 2 "no docs/superpowers/ artifact paths"; fi
 
-# 3. No superpowers:* references in tracked files outside dev-flow/ (git grep skips
+# 3. No superpowers:* references in tracked files outside the plugin dirs (git grep skips
 #    gitignored docs/features/; tests/check.sh excluded — it carries the pattern itself;
 #    README/AGENTS.md excluded — intentional inspiration-credit prose is legitimate)
 if git grep -qE 'superpowers:[a-z-]+' -- ':!tests/check.sh' ':!README.md' ':!AGENTS.md' 2>/dev/null; then
@@ -127,6 +127,16 @@ else:
             print("marketplace-installation-policy-missing")
         if plugin.get("policy", {}).get("authentication") != "ON_INSTALL":
             print("marketplace-authentication-policy-missing")
+    try:
+        claude_marketplace = json.loads(Path(".claude-plugin/marketplace.json").read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"invalid-or-missing-json:{error}")
+    else:
+        entry = next((item for item in claude_marketplace.get("plugins", []) if item.get("name") == "dev-flow"), None)
+        if entry is None:
+            print("claude-marketplace-plugin-missing")
+        elif entry.get("source") != "./":
+            print("claude-marketplace-source-mismatch")
 PY
 )
 if [ -z "$codex_errs" ]; then ok 13 "Codex manifest and marketplace wiring are valid"; else bad 13 "Codex package metadata broken:$codex_errs"; fi
