@@ -1,5 +1,6 @@
 ---
 description: Prepare this repo for dev-flow in one pass — gitignore for the state folder, gh auth check, branch config (main + dev names persisted to .dev-flow/config.json), and agent docs via the document-structure engine. Idempotent per component; re-runs are green no-ops that double as a health check. Standalone — not a dev-flow step.
+user-invocable: false
 ---
 
 # Bootstrap this repo
