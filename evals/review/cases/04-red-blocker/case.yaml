@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 04-red-blocker
+description: Blocker findings — spec gap (status filter unimplemented), missing plan task (filename), and a real bug (corrupt CSV) — verdict must be red, no PR opened, return to step 5 with the findings
+execution:
+  max_turns: 30
+  timeout_seconds: 600

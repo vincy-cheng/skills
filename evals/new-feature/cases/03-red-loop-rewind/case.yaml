@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 03-red-loop-rewind
+description: Tester verdict red at step 6 — the orchestrator must re-set Goal status to execute and return to step 5 as fix-continue work, not restart the workflow or re-run the whole flow from the top
+execution:
+  max_turns: 30
+  timeout_seconds: 600

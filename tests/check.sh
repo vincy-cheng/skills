@@ -12,20 +12,20 @@ wn()  { warn=$((warn+1)); echo "WARN $1: $2"; }
 
 # 1. Frontmatter: every SKILL.md has `---` line 1 and a `name:`; every command .md has `---` and `description:`
 fm_errs=""
-for f in dev-flow/skills/*/SKILL.md; do
+for f in skills/*/SKILL.md; do
   head -1 "$f" | $G -q '^---' || fm_errs="$fm_errs $f:no-fence"
   $G -q '^name:' "$f" || fm_errs="$fm_errs $f:no-name"
 done
-for f in dev-flow/commands/*.md; do
+for f in commands/*.md; do
   head -1 "$f" | $G -q '^---' || fm_errs="$fm_errs $f:no-fence"
   $G -q '^description:' "$f" || fm_errs="$fm_errs $f:no-description"
 done
 [ -z "$fm_errs" ] && ok 1 "frontmatter well-formed" || bad 1 "frontmatter broken:$fm_errs"
 
-# 2. No docs/superpowers/ artifact paths in dev-flow/. Guard mentions are legitimate:
+# 2. No docs/superpowers/ artifact paths in skills/ or commands/. Guard mentions are legitimate:
 # each mention is exempt only if the 40 chars BEFORE it carry a guard cue (never /
 # default / contrast with docs/features/) — context-scoped, not whole-line, so a real
-# artifact path elsewhere on a guard-word line is still caught. dev-flow/evals/ is
+# artifact path elsewhere on a guard-word line is still caught. evals/ is
 # excluded — eval fixtures quote forbidden paths as grading criteria by design.
 sp_hits=""
 while IFS= read -r line; do
@@ -34,13 +34,13 @@ while IFS= read -r line; do
   [ "${ung:-0}" -gt 0 ] && sp_hits="$sp_hits$line
 "
 done <<EOF
-$(git grep -n 'docs/superpowers/' -- 'dev-flow/' ':!dev-flow/evals/' || true)
+$(git grep -n 'docs/superpowers/' -- 'skills/' 'commands/' ':!evals/' || true)
 EOF
 if [ -n "$sp_hits" ]; then
   bad 2 "docs/superpowers/ path present (non-guard):"; printf '%s\n' "$sp_hits"
 else ok 2 "no docs/superpowers/ artifact paths"; fi
 
-# 3. No superpowers:* references in tracked files outside dev-flow/ (git grep skips
+# 3. No superpowers:* references in tracked files outside the plugin dirs (git grep skips
 #    gitignored docs/features/; tests/check.sh excluded — it carries the pattern itself;
 #    README/AGENTS.md excluded — intentional inspiration-credit prose is legitimate)
 if git grep -qE 'superpowers:[a-z-]+' -- ':!tests/check.sh' ':!README.md' ':!AGENTS.md' 2>/dev/null; then
@@ -49,7 +49,7 @@ else ok 3 "no superpowers:* references outside dev-flow"; fi
 
 # 5. Spec path convention: file-shaped paths under docs/features/specs/ must be the
 #    design-doc or overview-doc pattern. Bare directory mentions are legitimate prose.
-spec_bad=$(git grep -nE 'docs/features/specs/[^ )`]*\.md' -- 'dev-flow/' 'README.md' 'AGENTS.md' \
+spec_bad=$(git grep -nE 'docs/features/specs/[^ )`]*\.md' -- 'skills/' 'commands/' 'README.md' 'AGENTS.md' \
   | $G -vE 'docs/features/specs/(YYYY-MM-DD-<feat-name>-(design|overview)|[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+-(design|overview))\.md' || true)
 if [ -n "$spec_bad" ]; then
   bad 5 "spec path deviates from convention:"; echo "$spec_bad"
@@ -57,8 +57,8 @@ else ok 5 "spec paths consistent"; fi
 
 # 6. plugin.json valid JSON + fully self-contained: no peerDependencies key, no
 #    superpowers:* invocations anywhere in dev-flow (guards the dependency creeping back).
-if python3 -c "import json;json.load(open('dev-flow/.claude-plugin/plugin.json'))" 2>/dev/null; then
-  if python3 -c "import json;import sys;sys.exit(0 if 'peerDependencies' in json.load(open('dev-flow/.claude-plugin/plugin.json')) else 1)" 2>/dev/null; then
+if python3 -c "import json;json.load(open('.claude-plugin/plugin.json'))" 2>/dev/null; then
+  if python3 -c "import json;import sys;sys.exit(0 if 'peerDependencies' in json.load(open('.claude-plugin/plugin.json')) else 1)" 2>/dev/null; then
     bad 6 "plugin.json still declares peerDependencies"
   else
     ok 6 "plugin.json valid; no peerDependencies"
@@ -67,15 +67,15 @@ else bad 6 "plugin.json is not valid JSON"; fi
 
 # 7. Invoke list maps to real skill files: every `dev-flow:<name>` mention has skills/<name>/SKILL.md with matching name:
 inv_errs=""
-for name in $($G -rhoE 'dev-flow:[a-z][a-z-]+' dev-flow/commands/ README.md AGENTS.md 2>/dev/null | sort -u | $G -oE '[a-z][a-z-]+$'); do
-  sk="dev-flow/skills/$name/SKILL.md"
+for name in $($G -rhoE 'dev-flow:[a-z][a-z-]+' commands/ README.md AGENTS.md 2>/dev/null | sort -u | $G -oE '[a-z][a-z-]+$'); do
+  sk="skills/$name/SKILL.md"
   [ -f "$sk" ] || inv_errs="$inv_errs dev-flow:$name:no-skill-file"
   [ -f "$sk" ] && ! $G -q "^name: $name" "$sk" && inv_errs="$inv_errs dev-flow:$name:name-mismatch"
 done
 [ -z "$inv_errs" ] && ok 7 "invocations map to real skills" || bad 7 "invocation errors:$inv_errs"
 
 # 8. plan skill exists with correct frontmatter and its contract-first mandates
-PLAN_SKILL="dev-flow/skills/plan/SKILL.md"
+PLAN_SKILL="skills/plan/SKILL.md"
 plan_errs=""
 if [ ! -f "$PLAN_SKILL" ]; then
   plan_errs=" $PLAN_SKILL:missing"
@@ -89,8 +89,8 @@ fi
 # 9. No superpowers:* skill invocations in tracked dev-flow files (evals excluded —
 #    fixtures quote forbidden invocations as grading criteria; check.sh excluded —
 #    it carries the pattern itself). Guards the dependency creeping back.
-if git grep -qE 'superpowers:[a-z-]+' -- 'dev-flow/' ':!dev-flow/evals/' ':!tests/check.sh' 2>/dev/null; then
-  bad 9 "superpowers:* invocation still referenced:"; git grep -nE 'superpowers:[a-z-]+' -- 'dev-flow/' ':!dev-flow/evals/' ':!tests/check.sh'
+if git grep -qE 'superpowers:[a-z-]+' -- 'skills/' 'commands/' ':!evals/' ':!tests/check.sh' 2>/dev/null; then
+  bad 9 "superpowers:* invocation still referenced:"; git grep -nE 'superpowers:[a-z-]+' -- 'skills/' 'commands/' ':!evals/' ':!tests/check.sh'
 else ok 9 "no superpowers:* invocations in dev-flow"; fi
 
 # 10. docs/features/ gitignored
@@ -101,9 +101,9 @@ codex_errs=$(python3 - <<'PY'
 import json
 from pathlib import Path
 
-portable_path = Path("dev-flow/plugin.json")
+portable_path = Path(".codex-plugin/plugin.json")
 marketplace_path = Path(".agents/plugins/marketplace.json")
-claude_path = Path("dev-flow/.claude-plugin/plugin.json")
+claude_path = Path(".claude-plugin/plugin.json")
 try:
     portable = json.loads(portable_path.read_text())
     marketplace = json.loads(marketplace_path.read_text())
@@ -113,18 +113,30 @@ except (OSError, json.JSONDecodeError) as error:
 else:
     if portable.get("name") != "dev-flow":
         print("portable-name-mismatch")
+    if portable.get("skills") != "./skills/":
+        print("codex-manifest-skills-pointer-missing")
     if portable.get("version") != claude.get("version"):
         print("portable-version-mismatch")
     plugin = next((item for item in marketplace.get("plugins", []) if item.get("name") == "dev-flow"), None)
     if plugin is None:
         print("marketplace-plugin-missing")
     else:
-        if plugin.get("source", {}).get("source") != "local" or plugin.get("source", {}).get("path") != "./dev-flow":
+        if plugin.get("source", {}).get("source") != "local" or plugin.get("source", {}).get("path") != "./":
             print("marketplace-source-mismatch")
         if plugin.get("policy", {}).get("installation") != "AVAILABLE":
             print("marketplace-installation-policy-missing")
         if plugin.get("policy", {}).get("authentication") != "ON_INSTALL":
             print("marketplace-authentication-policy-missing")
+    try:
+        claude_marketplace = json.loads(Path(".claude-plugin/marketplace.json").read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"invalid-or-missing-json:{error}")
+    else:
+        entry = next((item for item in claude_marketplace.get("plugins", []) if item.get("name") == "dev-flow"), None)
+        if entry is None:
+            print("claude-marketplace-plugin-missing")
+        elif entry.get("source") != "./":
+            print("claude-marketplace-source-mismatch")
 PY
 )
 if [ -z "$codex_errs" ]; then ok 13 "Codex manifest and marketplace wiring are valid"; else bad 13 "Codex package metadata broken:$codex_errs"; fi
@@ -134,7 +146,7 @@ skill_errs=$(python3 - <<'PY'
 import re
 from pathlib import Path
 
-path = Path("dev-flow/skills/new-feature/SKILL.md")
+path = Path("skills/new-feature/SKILL.md")
 try:
     text = path.read_text()
 except FileNotFoundError:
@@ -192,8 +204,8 @@ checks = {
     "README Codex skill invocation": "$dev-flow:new-feature" in readme,
     "README Claude command retained": "/new-feature" in readme,
     "AGENTS dual-host packaging": "Codex" in agents and "Claude Code" in agents,
-    "INDEX Codex skill route": "dev-flow/skills/new-feature/SKILL.md" in index,
-    "ARCHITECTURE portable manifest": "dev-flow/plugin.json" in architecture,
+    "INDEX Codex skill route": "skills/new-feature/SKILL.md" in index,
+    "ARCHITECTURE portable manifest": ".codex-plugin/plugin.json" in architecture,
     "DEVOPS local marketplace setup": "marketplace add" in devops and "Plugins Directory" in devops,
 }
 for label, present in checks.items():
@@ -202,6 +214,92 @@ for label, present in checks.items():
 PY
 )
 if [ -z "$docs_errs" ]; then ok 15 "dual-host setup documentation is linked and complete"; else bad 15 "host setup docs incomplete:$docs_errs"; fi
+
+# 16. Plan mermaid blocks: file lists must live inside node labels. The plan
+#     skill's flow-chart rule (fixed in #51) once showed 'Task N changes:'
+#     under its node; agents took it literally and emitted bare lines inside
+#     mermaid fences — invalid flowchart syntax (parse error in run #48).
+#     Structural check: any line inside a mermaid fence containing 'changes:'
+#     must be part of a quoted node label on the same line.
+mermaid_errs=$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+FENCE = chr(96) * 3  # backtick triplet, kept out of the script to stay bash-safe
+
+for path in sorted(Path("docs/features/plans").glob("*.md")):
+    in_fence = False
+    for lineno, line in enumerate(path.read_text().splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith(FENCE + "mermaid"):
+            in_fence = True
+            continue
+        if in_fence and stripped == FENCE:
+            in_fence = False
+            continue
+        if not in_fence or "changes:" not in line:
+            continue
+        # a quoted node label containing changes: on the same line is valid
+        if re.search(r'"[^"]*changes:[^"]*"', line):
+            continue
+        print(f"{path.name}:{lineno}:bare-changes-in-mermaid")
+PY
+)
+if [ -z "$mermaid_errs" ]; then ok 16 "plan mermaid blocks keep changes: inside node labels"; else bad 16 "bare changes: lines in plan mermaid blocks:$mermaid_errs"; fi
+
+# 17. bootstrap wrapper is thin: commands/bootstrap.md exists and carries no
+#     workflow content — it must point at skills/bootstrap/SKILL.md as the
+#     single source (same invariant as commands/new-feature.md). The engine,
+#     not the wrapper, owns the flow.
+wrap_errs=""
+if [ ! -f "commands/bootstrap.md" ]; then
+  wrap_errs="commands/bootstrap.md:missing"
+else
+  $G -q "skills/bootstrap/SKILL.md" commands/bootstrap.md \
+    || wrap_errs="$wrap_errs commands/bootstrap.md:not-thin(no-SKILL-pointer)"
+  $G -qE '\$\{?ARGUMENTS\}?' commands/bootstrap.md \
+    || wrap_errs="$wrap_errs commands/bootstrap.md:no-arguments-passthrough"
+fi
+[ -z "$wrap_errs" ] && ok 17 "bootstrap wrapper is thin" || bad 17 "bootstrap wrapper not thin:$wrap_errs"
+
+# 18. new-feature reads the branch config: `.dev-flow/config.json` must be
+#     mentioned in the new-feature skill — the state file's Base/Target are
+#     seeded from it when present (feat/55). Guards the config-read wiring.
+$G -q "dev-flow/config.json" skills/new-feature/SKILL.md \
+  && ok 18 "new-feature mentions branch config" \
+  || bad 18 "new-feature skill missing .dev-flow/config.json read"
+
+# 19. Branch literals stay out of the branch-deriving skills: create-github-issue
+#     must not carry a literal `git checkout dev` command (feat/55) — branch names
+#     derive from the state file / config. Concept grep, not exact sentences.
+$G -qE 'checkout (dev|`dev`)' skills/create-github-issue/SKILL.md \
+  && bad 19 "create-github-issue still hardcodes a checkout dev command" \
+  || ok 19 "create-github-issue derives branch names from the state file"
+
+# 20. open-pr derives --base from the state file's Target branch: the literal
+#     `--base dev` flag must stay out (feat/55). Concept grep on the flag.
+$G -qE -- '--base (dev|`dev`)' skills/open-pr/SKILL.md \
+  && bad 20 "open-pr still hardcodes --base dev" \
+  || ok 20 "open-pr derives --base from the state file"
+
+# 21. document-structure owns the AGENTS.md entry-point rule (feat/55): the
+#     engine must carry the entry-point rule — AGENTS.md + CLAUDE.md symlink
+#     responsibility and the never-gut-content guard — not a bare mention.
+ds_errs=""
+$G -q 'AGENTS.md' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-AGENTS-md"
+$G -q -i 'symlink' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-symlink-rule"
+$G -q 'scope boundary' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-boundary-exception-mention"
+[ -z "$ds_errs" ] && ok 21 "document-structure owns the AGENTS.md entry-point rule" || bad 21 "entry-point rule missing:$ds_errs"
+
+# 22. Unwrapped layout (plugin-layout run): the plugin components live at the repo
+#     root, so dev-flow/ path literals must stay gone. Allowlist is built into the
+#     pattern: the leading [^.] class never matches .dev-flow/ (the branch-config
+#     path), and dev-flow:<name> invoke names contain no dev-flow/ path. Concept
+#     grep on path patterns, never sentences; check.sh excluded (carries the pattern).
+lit_hits=$(git grep -nE '(^|[^.a-zA-Z0-9_-])dev-flow/(skills|commands|evals|plugin\.json|\.claude-plugin)' -- ':!tests/check.sh' || true)
+if [ -n "$lit_hits" ]; then
+  bad 22 "dev-flow/ path literal still present (unwrapped layout):"; printf '%s\n' "$lit_hits"
+else ok 22 "no dev-flow/ path literals (unwrapped layout)"; fi
 
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
@@ -214,7 +312,7 @@ if [ -z "$docs_errs" ]; then ok 15 "dual-host setup documentation is linked and 
 #     d) legacy fields (`grader:`, `extra_checks:`, `skill:`) are rejected by the
 #        current CLI's strict schema — old-format cases can't run at all.
 ev_errs=""
-for f in dev-flow/evals/*/cases/*/case.yaml; do
+for f in evals/*/cases/*/case.yaml; do
   dir=$(dirname "$f"); suite=$(dirname "$(dirname "$dir")")
   $G -qE '^max_turns:|^timeout_seconds:' "$f" && ev_errs="$ev_errs $f:turns-top-level"
   if $G -qE '^ *criteria:' "$f" && $G -qE '^ *criteria: *[a-zA-Z0-9_./-]+\.md$' "$f"; then
@@ -228,13 +326,13 @@ done
 [ -z "$ev_errs" ] && ok 12 "eval case.yaml schema sound" || bad 12 "eval schema errors:$ev_errs"
 
 echo "---"
-PLUGIN_VERSION=$(python3 -c "import json;print(json.load(open('dev-flow/.claude-plugin/plugin.json'))['version'])" 2>/dev/null || echo unknown)
+PLUGIN_VERSION=$(python3 -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])" 2>/dev/null || echo unknown)
 CACHE="$HOME/.claude/plugins/cache/vincy-skills/dev-flow/$PLUGIN_VERSION/skills"
 if [ ! -d "$CACHE" ]; then
   wn 11 "plugin cache not found at $CACHE — evals will test nothing until the plugin is installed/refreshed"
 else
   stale=""
-  for f in dev-flow/skills/*/SKILL.md; do
+  for f in skills/*/SKILL.md; do
     name=$(basename "$(dirname "$f")")
     [ -f "$CACHE/$name/SKILL.md" ] || { stale="$stale $name:missing-from-cache"; continue; }
     cmp -s "$f" "$CACHE/$name/SKILL.md" || stale="$stale $name:differs-from-cache"

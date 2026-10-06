@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dev-flow",
+  "version": "0.3.0",
+  "description": "A guided 11-step pipeline that drives a feature or fix end-to-end — brainstorm → spec → plan → GitHub issue → TDD execution → fresh-subagent test and review gates → PR. Resumable via gitignored state files with a hard status gate so no step is ever skipped or reordered. Fully self-contained: every step runs its own in-house skill, no external plugin dependencies. Works standalone in any repo.",
+  "author": {
+    "name": "Vincy-Cheng"
+  },
+  "homepage": "https://github.com/vincy-cheng/skills",
+  "repository": "https://github.com/vincy-cheng/skills",
+  "keywords": [
+    "workflow",
+    "github-issues",
+    "feature",
+    "fix",
+    "git",
+    "pull-requests",
+    "tdd"
+  ],
+  "skills": "./skills/"
+}
