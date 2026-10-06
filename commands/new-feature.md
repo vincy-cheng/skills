@@ -1,5 +1,6 @@
 ---
 description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD) → verify (test → review → doc-fix) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. All step skills are dev-flow's own — no external plugin dependencies.
+user-invocable: false
 ---
 
 # New feature or fix — full workflow

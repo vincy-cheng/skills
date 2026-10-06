@@ -1,5 +1,6 @@
 ---
 description: Create a structured idea folder under ideas/<slug>/ (or ideas/<project>/<slug>/ in an ideas repo) with five self-contained docs — README, research, design, plan, tl-dr — plus cost.md when the user opts in. Asks two questions up front: nesting level, and whether to include cost research. Discusses and grills the idea with the user before writing any files. Pass the idea as arguments. The plan.md is a draft that can be handed straight to /new-feature when you're ready to build. Not part of the step pipeline.
+user-invocable: false
 ---
 
 # new-idea
