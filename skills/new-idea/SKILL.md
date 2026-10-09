@@ -86,6 +86,8 @@ Case A (ideas repo, ideas shared standalone): all slots full — the folder must
 
 Applies **only** when the user answered "include" in Rules §1 — if they declined, skip the file entirely and don't do pricing research. Ground every number in facts from `research.md` or user input; every number carries its official source URL. Never invent a price — an honest unknown beats a confident stale number.
 
+Prior-art and pricing research is **read-only**: fan out parallel research subagents (web + repo searches) freely when the sources are many. The serial one-at-a-time rule exists only for tree-mutating implementers — never for reading.
+
 **Full spec (tier tables, usage-spend scenarios, verification rules):** load `references/cost.md` before writing `cost.md`. If the idea has no running costs, one line saying so — the slot still gets a file (opted-in only).
 
 ## plan.md — the /new-feature draft
