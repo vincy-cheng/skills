@@ -70,6 +70,8 @@ If the path doesn't exist, say so and proceed as a normal fresh start.
 
 Facts are your job, never your human partner's. Before asking design questions, check the current project state: files, docs, recent commits. Anything you could look up yourself, look up — bring findings to the dialogue, don't ask the user for them. Where existing code has problems that affect the work (a file grown too large, unclear boundaries), include targeted improvements as part of the design — but no unrelated refactoring.
 
+Search and research are **read-only**: when the surface is large (many directories, multi-source web research), fan out parallel Explore/research subagents freely. This is the free counterpart to execute-tasks' serial rule — one-at-a-time applies only to tree-mutating implementers, never to reading.
+
 ## The design tree
 
 Map the design as a **tree**: every decision branches into the decisions that hang off it. Work the tree **one question per message**.
