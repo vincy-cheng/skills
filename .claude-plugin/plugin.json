@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
   "description": "Drives a dev workflow end-to-end (feats or fixes) in 4 phases — plan, build, verify, ship: brainstorm → spec → plan → create GitHub issue → execute (TDD) → test → review → doc-fix → open PR → manual merge → close-out. Own brainstorm, plan, tdd, execute-tasks, test, review, doc-fix, open-pr, create-github-issue, commit, new-idea, document-structure, whats-new, and bootstrap skills plus /new-feature, /new-idea, and /bootstrap commands. Fully self-contained — no external plugin dependencies.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "Vincy-Cheng"
   },
