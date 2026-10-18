@@ -301,6 +301,71 @@ if [ -n "$lit_hits" ]; then
   bad 22 "dev-flow/ path literal still present (unwrapped layout):"; printf '%s\n' "$lit_hits"
 else ok 22 "no dev-flow/ path literals (unwrapped layout)"; fi
 
+# 23. Must-ask gates are structurally present (issue #67): the three sub-skills
+#     carry a `## Before starting` read-gate with a stop-and-return consequence,
+#     new-feature's step 5/6 definitions carry the pre-dispatch ask + write
+#     (per-step scoping — a whole-file grep would false-positive on keywords
+#     landing in Resume or notes), and brainstorm carries the Viability pass
+#     spec-section mandate. Concept grep only, never exact sentences (#38).
+gate23_errs=$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+
+def section(text, heading):
+    # body of a `## <heading>` section (heading may carry a trailing title,
+    # e.g. `## Step 5 — Execute tasks (TDD)`), up to the next `## ` heading
+    m = re.search(rf"^## {re.escape(heading)}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    return m.group(1) if m else ""
+
+
+for rel in ("skills/execute-tasks/SKILL.md", "skills/test/SKILL.md", "skills/review/SKILL.md"):
+    try:
+        text = Path(rel).read_text()
+    except FileNotFoundError:
+        print(f"{rel}:missing")
+        continue
+    body = section(text, "Before starting")
+    if not body:
+        print(f"{rel}:no-before-starting-block")
+        continue
+    # stop-and-return consequence, concept-matched (stop + skip reporting)
+    if not re.search(r"stop", body) or not re.search(r"report", body):
+        print(f"{rel}:no-stop-report-consequence")
+
+nf_path = Path("skills/new-feature/SKILL.md")
+try:
+    nf = nf_path.read_text()
+except FileNotFoundError:
+    print("skills/new-feature/SKILL.md:missing")
+else:
+    step5 = section(nf, "Step 5")
+    step6 = section(nf, "Step 6")
+    # step 5: Implementer mode concept + ask-and-write before invoking execute-tasks
+    if not re.search(r"Implementer mode", step5):
+        print("new-feature:step5-no-implementer-mode-ask")
+    if not re.search(r"[Bb]efore invoking.*execute-tasks", step5):
+        print("new-feature:step5-no-before-invoke-rule")
+    # step 6: Verifier model concept + before-dispatch consequence
+    if not re.search(r"Verifier model", step6):
+        print("new-feature:step6-no-verifier-model-ask")
+    if not re.search(r"[Dd]o not dispatch", step6):
+        print("new-feature:step6-no-do-not-dispatch-rule")
+
+try:
+    br = Path("skills/brainstorm/SKILL.md").read_text()
+except FileNotFoundError:
+    print("skills/brainstorm/SKILL.md:missing")
+else:
+    # the viability pass must mandate a spec artifact (section-in-spec + approvability), not just the dispatch
+    if not re.search(r"[Vv]iability pass.{0,400}section", br, re.S):
+        print("brainstorm:no-viability-spec-section-mandate")
+    if not re.search(r"not approvable", br):
+        print("brainstorm:no-approvability-tie")
+PY
+)
+if [ -z "$gate23_errs" ]; then ok 23 "must-ask gates structurally present (Before starting + step 5/6 pre-dispatch + viability artifact)"; else bad 23 "must-ask gate missing:$gate23_errs"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
