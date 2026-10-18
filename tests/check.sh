@@ -366,6 +366,72 @@ PY
 )
 if [ -z "$gate23_errs" ]; then ok 23 "must-ask gates structurally present (Before starting + step 5/6 pre-dispatch + viability artifact)"; else bad 23 "must-ask gate missing:$gate23_errs"; fi
 
+# 24. Risk-tiered review structurally present (issue #71): plan skill requires a
+#     per-task Risk line (fail-closed, unmarked is not low), new-feature step 7
+#     carries the pre-invoke risk recheck (escalation-only + waiver recording),
+#     and review skill carries the focused-reviewer branch with its read-gate
+#     stops and separate report path. Concept grep only, never exact sentences
+#     (#38); per-step extraction via the section() helper (check 23's pattern).
+gate24_errs=$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+
+def section(text, heading):
+    m = re.search(rf"^## {re.escape(heading)}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+    return m.group(1) if m else ""
+
+
+try:
+    plan = Path("skills/plan/SKILL.md").read_text()
+except FileNotFoundError:
+    print("skills/plan/SKILL.md:missing")
+else:
+    # per-task Risk line requirement + unmarked-is-not-low (fail-closed)
+    if not re.search(r"Risk line", plan):
+        print("plan:no-risk-line-requirement")
+    if not re.search(r"unmarked", plan):
+        print("plan:no-unmarked-not-low-rule")
+
+try:
+    nf = Path("skills/new-feature/SKILL.md").read_text()
+except FileNotFoundError:
+    print("skills/new-feature/SKILL.md:missing")
+else:
+    step7 = section(nf, "Step 7")
+    # pre-invoke risk recheck + escalation-only combination + waiver recording
+    if not re.search(r"[Rr]isk recheck", step7):
+        print("new-feature:step7-no-risk-recheck")
+    if not re.search(r"escalation-only|never downgrades", step7):
+        print("new-feature:step7-no-escalation-only")
+    if not re.search(r"waiv", step7):
+        print("new-feature:step7-no-waiver-hook")
+    # state template carries both new fields
+    if not re.search(r"Risk tier", nf) or not re.search(r"Focused verdict", nf):
+        print("new-feature:state-template-missing-risk-fields")
+
+try:
+    rv = Path("skills/review/SKILL.md").read_text()
+except FileNotFoundError:
+    print("skills/review/SKILL.md:missing")
+else:
+    # focused-reviewer section (exact heading — the structural contract)
+    if not section(rv, "Focused review"):
+        print("review:no-focused-review-section")
+    # both read-gate stop concepts (skipped recheck + skipped focused review)
+    if not re.search(r"risk recheck was skipped", rv):
+        print("review:no-skipped-recheck-stop")
+    if not re.search(r"focused review was skipped", rv):
+        print("review:no-skipped-focused-stop")
+    # separate report path + standalone scope-out
+    if not re.search(r"review-report-focused", rv):
+        print("review:no-focused-report-path")
+    if not re.search(r"[Ss]tandalone.*risk|no tier", rv):
+        print("review:no-standalone-scope-out")
+PY
+)
+if [ -z "$gate24_errs" ]; then ok 24 "risk-tiered review structurally present (plan Risk line + step-7 recheck + focused reviewer)"; else bad 24 "risk-tier concept missing:$gate24_errs"; fi
+
 # 12. Eval case.yaml schema invariants (silent-failure guards, learned the hard way):
 #     a) turn/timeout settings must nest under `execution:` — top-level they are
 #        silently ignored and runs die at the default 10 turns;
