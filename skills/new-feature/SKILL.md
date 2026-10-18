@@ -87,8 +87,9 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 - **Goal status:** <status>
 - **Kind:** feature | fix
 - **Last verification:** YYYY-MM-DD HH:MM±HH:MM — <test cmd> <passed|failed>, <lint cmd> <clean|warnings>
+- **Implementer mode:** <inline | subagent | _(not asked)_>
 - **Implementer model:** <model or _(inline — not asked)_>
-- **Verifier model:** <model or _(not asked yet)_>
+- **Verifier model:** <model or _(not asked)_>
 
 ## Tasks
 - [ ] <task description>
@@ -107,7 +108,9 @@ Field rules:
 - **Goal status** — the gate's input; set to the current step *before* the work.
 - **Kind** — `feature` or `fix`, set in step 1 from intent. Drives the branch prefix and issue framing. Ambiguous → ask; default `feature`.
 - **Last verification** — most recent test + lint result during execute (the repo's commands). The resume signal: "was it green when I stopped?" `_(not run yet)_` until first run.
-- **Implementer model** / **Verifier model** — subagent model picks, one per phase that dispatches subagents. **Implementer model** is asked and written by `execute-tasks` (with its mode question, subagent mode only; `_(inline — not asked)_` when execute ran inline). **Verifier model** is asked and written by the orchestrator at step 6 (default: same as orchestrator), shared by tester + reviewer. On resume, read from the state file; if absent, re-ask.
+- **Implementer mode** — `inline` or `subagent`, asked and written by the orchestrator at step 5 **before invoking `dev-flow:execute-tasks`** (with the plan's task-shape recommendation). `_(not asked)_` means the mode ask was skipped → execute-tasks' entry read-gate stops on it. On resume, read the stored mode and proceed; do not re-ask. A state file predating this field has no mode line: on resume, `Implementer model: _(inline — not asked)_` with no mode line is read as `inline`; no mode line with no model pick → treat as a skipped ask (stop + report), not as inline.
+- **Implementer model** — the subagent implementer's model. Asked only when the mode is `subagent` (written together with the mode at step 5); `_(inline — not asked)_` when the mode is `inline`. On resume, read from the state file; if absent in subagent mode, re-ask.
+- **Verifier model** — asked and written by the orchestrator at step 6 (default: same as orchestrator), shared by tester + reviewer. `_(not asked)_` means the step-6 ask was skipped → the test/review entry read-gates stop on it. On resume, read from the state file; if absent, re-ask.
 - **Tasks** — mirrors the plan's task list as `- [ ]` / `- [x]`; flip on every status change. Live progress; the plan doc is static design. Annotate a task `— ⚠ test failing: <reason>` only when its test exists and is currently red; clear when green. Don't annotate passing/pending tasks — a `[x]` already means its test passed.
 - **References** — overview (step 1, only when the run came from a decomposed roadmap — else `_(none)_`), spec (step 2), plan (step 3), issue (step 4), PR (step 9). Test (step 6) and review (step 7) add no reference. Replace `_(pending)_` with the real value when it exists.
 
