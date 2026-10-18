@@ -31,7 +31,7 @@ Signal to read: **task count**, **file spread** (how many files the tasks touch)
 
 Example: "4 tasks, all in `new-feature.md` (one file, tightly coupled — each edit builds on the prior's wording) → inline. Override to subagent?"
 
-**Implementer model (subagent mode only).** When the user picks **subagent mode**, also ask the **Implementer model** (default: same as the current session) and write it to the state file's **Model picks** block — one pick for all per-task implementer subagents. Inline mode → write `_(inline — not asked)_` to the **Model picks** block. This is the Build phase's one model pick; the Verify phase's **Verifier model** is asked separately at step 6.
+**Implementer model (subagent mode only).** When the user picks **subagent mode**, also ask the **Implementer model** (default: same as the current session) and write it to the state file's **Implementer model** field — one pick for all per-task implementer subagents. Inline mode → write `_(inline — not asked)_` to the **Implementer model** field. In dev-flow mode the orchestrator asked mode + model at step 5 and wrote both; in standalone mode this skill asks (see `## Choose a mode`). This is the Build phase's one model pick; the Verify phase's **Verifier model** is asked separately at step 6.
 
 The rest of this skill has a shared core (state-file updates, stuck handling, after-all-tasks) plus a per-task loop that differs by mode.
 
