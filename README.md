@@ -82,7 +82,7 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; inline or subagent mode |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent runs the repo's test and lint commands and scans changed tests for honesty |
-| `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability |
+| `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
 | `doc-fix` | 8 | Find and fix documentation drift caused by the run |
 | `open-pr` | 9 | Open a pull request targeting the state file's Target branch and sync the issue; never merges |
 
