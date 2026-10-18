@@ -11,6 +11,15 @@ A pre-review test gate: is the suite green and are the tests honest? It does **n
 
 If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `execute`. Don't advance the status here — step 6 in the orchestrator sets `test`. Wrong status → stop, tell the user which step to run. No state file (standalone) → see *Standalone mode*.
 
+## Before starting
+
+Dev-flow mode — read the state file's **Verifier model** before dispatching the tester:
+
+- Field holds a model → dispatch on it.
+- Field absent or `_(not asked)_` → **stop; report "step 6's Verifier-model ask was skipped"** — do not dispatch the tester, do not re-ask from this skill. Return to new-feature step 6 (the orchestrator asks and writes the pick, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
+
+Standalone mode (no state file) → there is no step 6; ask the tester model yourself (see *Standalone mode* below).
+
 ## What you need
 
 - The **plan** at `docs/features/plans/YYYY-MM-DD-<feat-name>.md` — what the work claims to do.
@@ -19,7 +28,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## The verifier model (dev-flow mode: read, don't ask)
 
-In dev-flow mode the orchestrator already asked the **Verifier model** at step 6 and wrote it to the state file — read it; don't re-ask. In standalone mode ask the user, default same as the current session.
+In dev-flow mode the orchestrator already asked the **Verifier model** at step 6 and wrote it to the state file — read it; don't re-ask. An absent or `_(not asked)_` field is a skipped ask: stop and report it per `## Before starting` — never fill it in from here. In standalone mode ask the user, default same as the current session.
 
 ## Dispatch the tester subagent
 

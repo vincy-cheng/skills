@@ -13,6 +13,16 @@ A pre-PR judgment review gate: does the branch do what the spec said, is anythin
 
 If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `test`. Don't advance the status here — step 7 in the orchestrator sets `review`. Wrong status → stop, tell the user which step to run. No state file (standalone) → see *Standalone mode*.
 
+## Before starting
+
+Dev-flow mode — read the state file's **Verifier model** before dispatching the reviewer:
+
+- Field holds a model → dispatch on it.
+- Field absent or `_(not asked)_` → **stop; report "step 6's Verifier-model ask was skipped"** — do not dispatch the reviewer, do not re-ask from this skill. Return to new-feature step 6 (the orchestrator asks and writes the pick, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
+- **Crash-recovery exception, explicitly scoped:** if the field is missing because the run crashed between steps 5 and 6 — the ask never got its chance — ask once, write it to the state file, proceed. This is the only path that asks from this skill; a field at `_(not asked)_` (the ask happened-or-should-have and wasn't answered) is a skipped ask, not a crash — stop and report.
+
+Standalone mode (no state file) → there is no step 6; ask the reviewer model yourself (see *Standalone mode* below).
+
 ## What you need
 
 - The **spec** at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — source of truth.
@@ -21,7 +31,7 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## The verifier model (mode-split)
 
-- **Dev-flow mode:** the orchestrator asked the **Verifier model** at step 6 and wrote it to the state file — **read it; never ask**. If missing (crash before the write), ask once, write it, proceed.
+- **Dev-flow mode:** the orchestrator asked the **Verifier model** at step 6 and wrote it to the state file — **read it; never ask**. An absent or `_(not asked)_` field follows `## Before starting`: stop and report the skipped ask — the only ask-from-here path is the explicitly scoped crash-recovery exception (run crashed between steps 5 and 6).
 - **Standalone mode:** no state file → ask (default: same as the current session).
 
 ## Dispatch the reviewer subagent

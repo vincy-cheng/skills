@@ -110,6 +110,8 @@ Present the design in sections scaled to their complexity — a few sentences if
 
 **Viability pass — pressure-test before approval.** Before asking your human partner to approve the design, validate that it is actually good to develop. On **architectural** paths this is a fresh-eyes check: spawn a fresh adversarial subagent (same pattern as a fresh reviewer — no model pin; the pick is environment-specific), brief it on the design and the problem it serves, and have it red-team the design: **what breaks, what's over-built, what's the better alternative, does it clear its domain's quality bar** (e.g. UI/UX coherence for frontend designs, latency and error-handling for APIs, data integrity for schemas — the bar the design's own domain sets), **is it solving the right problem — is the idea/direction itself correct, or is there a better target?** Present its findings alongside the design. A *fundamental* finding on any of the five — the design has a real flaw, or solves the wrong problem — **blocks**: restart the design section with that finding addressed before approval is requested. *Minor* findings are advisory: present them as noted risks and let the human partner weigh them at approval time. On **bounded** paths, downgrade to a lightweight self-check: include a one-line "why this could fail or feel wrong" in the design presentation. **Spike** paths are unchanged — a spike's terminal state is a reported recommendation.
 
+**The viability pass leaves a verifiable artifact in the spec.** Every architectural and bounded spec carries a named `## Viability pass` section: on **architectural** paths it records the red-team subagent's findings (FUNDAMENTAL/MINOR tags and their handling — blocked-and-addressed, or noted-risk); an explicit "dispatched, no findings returned" is the honest minimum if the subagent reports nothing. On **bounded** paths it holds the one-line self-check ("why this could fail or feel wrong") — shown in the design presentation *and* written into the spec. A spec without its `## Viability pass` section is **not approvable** — the dispatch itself stays prose inside the dialogue, but the spec-doc section is the structural trace that makes a silently-skipped pass visible.
+
 ## Spec output
 
 Write the validated design to:
@@ -127,7 +129,7 @@ Then self-review the spec with fresh eyes, fixing inline:
 3. **Scope check:** focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** could any requirement be read two ways? Pick one and make it explicit.
 
-Then ask your human partner to review the spec file. Changes requested → revise, re-run the self-review, re-present. **The spec is approved when they say so — not when it's written.**
+Then ask your human partner to review the spec file. Changes requested → revise, re-run the self-review, re-present. **The spec is approved when they say so — and it carries its `## Viability pass` section — not when it's written.**
 
 ## Rationalizations
 

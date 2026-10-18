@@ -87,8 +87,9 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 - **Goal status:** <status>
 - **Kind:** feature | fix
 - **Last verification:** YYYY-MM-DD HH:MM±HH:MM — <test cmd> <passed|failed>, <lint cmd> <clean|warnings>
+- **Implementer mode:** <inline | subagent | _(not asked)_>
 - **Implementer model:** <model or _(inline — not asked)_>
-- **Verifier model:** <model or _(not asked yet)_>
+- **Verifier model:** <model or _(not asked)_>
 
 ## Tasks
 - [ ] <task description>
@@ -107,7 +108,9 @@ Field rules:
 - **Goal status** — the gate's input; set to the current step *before* the work.
 - **Kind** — `feature` or `fix`, set in step 1 from intent. Drives the branch prefix and issue framing. Ambiguous → ask; default `feature`.
 - **Last verification** — most recent test + lint result during execute (the repo's commands). The resume signal: "was it green when I stopped?" `_(not run yet)_` until first run.
-- **Implementer model** / **Verifier model** — subagent model picks, one per phase that dispatches subagents. **Implementer model** is asked and written by `execute-tasks` (with its mode question, subagent mode only; `_(inline — not asked)_` when execute ran inline). **Verifier model** is asked and written by the orchestrator at step 6 (default: same as orchestrator), shared by tester + reviewer. On resume, read from the state file; if absent, re-ask.
+- **Implementer mode** — `inline` or `subagent`, asked and written by the orchestrator at step 5 **before invoking `dev-flow:execute-tasks`** (with the plan's task-shape recommendation). `_(not asked)_` means the Implementer-mode ask was skipped → execute-tasks' entry read-gate stops on it. On resume, read the stored mode and proceed; do not re-ask. A state file predating this field has no mode line: on resume, `Implementer model: _(inline — not asked)_` with no mode line is read as `inline`; no mode line with no model pick → treat as a skipped ask (stop + report), not as inline.
+- **Implementer model** — the subagent implementer's model. Asked only when the mode is `subagent` (written together with the mode at step 5); `_(inline — not asked)_` when the mode is `inline`. On resume, read from the state file; if absent in subagent mode, re-ask.
+- **Verifier model** — asked and written by the orchestrator at step 6 (default: same as orchestrator), shared by tester + reviewer. `_(not asked)_` means the step-6 ask was skipped → the test/review entry read-gates stop on it. On resume, read from the state file; if absent, re-ask.
 - **Tasks** — mirrors the plan's task list as `- [ ]` / `- [x]`; flip on every status change. Live progress; the plan doc is static design. Annotate a task `— ⚠ test failing: <reason>` only when its test exists and is currently red; clear when green. Don't annotate passing/pending tasks — a `[x]` already means its test passed.
 - **References** — overview (step 1, only when the run came from a decomposed roadmap — else `_(none)_`), spec (step 2), plan (step 3), issue (step 4), PR (step 9). Test (step 6) and review (step 7) add no reference. Replace `_(pending)_` with the real value when it exists.
 
@@ -172,10 +175,10 @@ If the user's request references an idea folder, the skill ingests its docs as t
 **Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feat/<n>-<name>` (or `fix/<n>-<name>`) branch off the state file's Base branch; update the state file's base branch and record the issue number in References.
 
 ## Step 5 — Execute tasks (TDD)
-**Gate:** `issue` → set `execute`. Invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (its RED step follows `dev-flow:tdd`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. `execute-tasks` has two modes — **inline** (default, runs in this session) or **subagent** (fresh implementer per task, for isolation on larger work); it asks which. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 6.
+**Gate:** `issue` → set `execute`. **Before invoking `dev-flow:execute-tasks`**: read the plan's task shape (count, file spread, coupling), recommend an Implementer mode with one line of reasoning, ask the user, and write the pick to the state file — **Implementer mode** (`inline` or `subagent`), plus **Implementer model** when the mode is `subagent` (default: same as the current session). Mode not written → do not invoke execute-tasks; the ask happens once here — execute-tasks reads the mode from the state file and does not re-ask (dev-flow mode). Then invoke `dev-flow:execute-tasks` to work the plan task by task with TDD (its RED step follows `dev-flow:tdd`), committing per task via `dev-flow:commit` and updating the state file on every subtask start/complete and every test run. Either way, all artifacts stay under `docs/features/` (no `.superpowers/` workspace). When all tasks are `[x]` and the suite is green, advance to step 6.
 
 ## Step 6 — Test (fresh subagent)
-**Gate:** `execute` → set `test`. Invoke `dev-flow:test`. Ask the user for the **Verifier model** once (default: same as the orchestrator) — the pick is written to the state file's **Model picks** block and reused by the step 7 reviewer; no second prompt. The skill dispatches a fresh tester subagent on that model: it runs the full test suite + lint (hard gate) and a test-honesty scan (per the test skill's pattern list), writes a color-coded report to `docs/features/.test/<feat-name>/test-report.md`, and returns **green / red**:
+**Gate:** `execute` → set `test`. **Ask the user for the **Verifier model** once (default: same as the orchestrator) — the pick is written to the state file's **Verifier model** field and reused by the step 7 reviewer; no second prompt. **Verifier model not written → do not invoke `dev-flow:test` — do not dispatch the tester before the pick is in the state file.** Then invoke `dev-flow:test`: it dispatches a fresh tester subagent on that model — the tester runs the full test suite + lint (hard gate) and a test-honesty scan (per the test skill's pattern list), writes a color-coded report to `docs/features/.test/<feat-name>/test-report.md`, and returns **green / red**:
 - **Green** → update the state file's **Last verification** from the tester's result; advance to step 7.
 - **Red** → do not advance. Re-set the status to `execute` (red-loop rewind); return to step 5 with the findings; fix and re-run test (a fresh tester subagent again).
 

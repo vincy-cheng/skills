@@ -13,6 +13,16 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 Then **verify the branch before any work**: the current branch (`git branch --show-current`) must equal the state file's **Base branch** (the `feat/<n>-<name>` / `fix/<n>-<name>` branch step 4 created). Mismatch → stop and ask — don't switch or commit anything yourself; the user may have uncommitted work where they are. Executing on the wrong branch commits another branch's history into the run — this check is cheap and prevents the most damaging silent mistake in the flow. No state file (standalone) → require a plan path from the user; proceed without the gate.
 
+## Before starting
+
+Dev-flow mode — read the state file's **Implementer mode** (and **Implementer model** when the mode is `subagent`) before any task work:
+
+- Field holds `inline` or `subagent` → proceed in that mode.
+- Field absent or `_(not asked)_` → **stop; report "step 5's Implementer-mode ask was skipped"** — do not do any task work, do not re-ask the mode from this skill. Return to new-feature step 5 (the orchestrator asks and writes the pick, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
+- Pre-fix state file (no mode line): apply the upgrade mapping — `Implementer model: _(inline — not asked)_` with no mode line is read as `inline`; no mode line with no model pick → treat as a skipped ask (stop + report).
+
+Standalone mode (no state file) → there is no step 5 to return to; this skill asks the mode itself in `## Choose a mode` below.
+
 ## What you need before starting
 
 - The **plan** at `docs/features/plans/YYYY-MM-DD-<feat-name>.md` — read it once; note its Global Constraints and task list.
@@ -21,7 +31,9 @@ Then **verify the branch before any work**: the current branch (`git branch --sh
 
 ## Choose a mode
 
-Read the plan's signal first, **recommend** a mode with one line of reasoning, then offer the user an override. Don't punt the choice unguided — but still ask on **every** entry (including when step 4 was skipped, the plan is small, or the run resumed mid-execute; a small or markdown-only plan is not an exemption). Lead with the recommendation, not a bare "which mode?".
+**Dev-flow mode: the mode is already decided** — the orchestrator asked at step 5 and wrote it to the state file; `## Before starting` read it. Do not ask again. This section's recommendation logic ran at step 5 (the orchestrator read the same signal); resume reads the stored mode and proceeds without re-asking.
+
+**Standalone mode (no state file): ask here.** Read the plan's signal first, **recommend** a mode with one line of reasoning, then offer the user an override. Don't punt the choice unguided — and don't skip the ask (a small or markdown-only plan is not an exemption). Lead with the recommendation, not a bare "which mode?".
 
 Signal to read: **task count**, **file spread** (how many files the tasks touch), **task coupling** (do later tasks depend on earlier tasks' exact symbols/wording?).
 
@@ -31,7 +43,7 @@ Signal to read: **task count**, **file spread** (how many files the tasks touch)
 
 Example: "4 tasks, all in `new-feature.md` (one file, tightly coupled — each edit builds on the prior's wording) → inline. Override to subagent?"
 
-**Implementer model (subagent mode only).** When the user picks **subagent mode**, also ask the **Implementer model** (default: same as the current session) and write it to the state file's **Model picks** block — one pick for all per-task implementer subagents. Inline mode → write `_(inline — not asked)_` to the **Model picks** block. This is the Build phase's one model pick; the Verify phase's **Verifier model** is asked separately at step 6.
+**Implementer model (subagent mode only).** When the user picks **subagent mode**, also ask the **Implementer model** (default: same as the current session) and write it to the state file's **Implementer model** field — one pick for all per-task implementer subagents. Inline mode → write `_(inline — not asked)_` to the **Implementer model** field. In dev-flow mode the orchestrator asked mode + model at step 5 and wrote both; in standalone mode this skill asks (see `## Choose a mode`). This is the Build phase's one model pick; the Verify phase's **Verifier model** is asked separately at step 6.
 
 The rest of this skill has a shared core (state-file updates, stuck handling, after-all-tasks) plus a per-task loop that differs by mode.
 
