@@ -90,6 +90,8 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 - **Implementer mode:** <inline | subagent | _(not asked)_>
 - **Implementer model:** <model or _(inline — not asked)_>
 - **Verifier model:** <model or _(not asked)_>
+- **Risk tier:** <low | high — <categories> | high — waived by user, YYYY-MM-DD | _(not asked — step-7 recheck pending)_>
+- **Focused verdict:** <green|blue|yellow|red | _(not required)_>
 
 ## Tasks
 - [ ] <task description>
@@ -111,6 +113,8 @@ Field rules:
 - **Implementer mode** — `inline` or `subagent`, asked and written by the orchestrator at step 5 **before invoking `dev-flow:execute-tasks`** (with the plan's task-shape recommendation). `_(not asked)_` means the Implementer-mode ask was skipped → execute-tasks' entry read-gate stops on it. On resume, read the stored mode and proceed; do not re-ask. A state file predating this field has no mode line: on resume, `Implementer model: _(inline — not asked)_` with no mode line is read as `inline`; no mode line with no model pick → treat as a skipped ask (stop + report), not as inline.
 - **Implementer model** — the subagent implementer's model. Asked only when the mode is `subagent` (written together with the mode at step 5); `_(inline — not asked)_` when the mode is `inline`. On resume, read from the state file; if absent in subagent mode, re-ask.
 - **Verifier model** — asked and written by the orchestrator at step 6 (default: same as orchestrator), shared by tester + reviewer. `_(not asked)_` means the step-6 ask was skipped → the test/review entry read-gates stop on it. On resume, read from the state file; if absent, re-ask.
+- **Risk tier** — written by the orchestrator at step-7 entry (the risk recheck's output; see the step 7 gate line). `low` or `high — <categories>`, or `high — waived by user, YYYY-MM-DD` when the user waived the focused review — the waiver is the field's value, recorded honestly, not a separate field. `_(not asked — step-7 recheck pending)_` is the creation default, so a missing recheck is distinguishable from a decided low. Fail-closed: the review read-gate treats an absent/not-run field as a skipped recheck (stop + report), never as low. A state file predating this field has no Risk tier line: on resume, the review read-gate stops and returns to step 7, which re-runs the recheck and writes the tier — the recheck is cheap and resume-safe; no low-with-warning branch.
+- **Focused verdict** — the focused reviewer's verdict (green/blue/yellow/red), written by the review skill when a focused review runs; `_(not required)_` when the tier is low or waived. Absent or `_(not required)_` on a live (not waived) high tier → the review read-gate stops; the focused review was skipped. On a resumed pre-fix state file the same rule applies after step 7 re-writes the Risk tier.
 - **Tasks** — mirrors the plan's task list as `- [ ]` / `- [x]`; flip on every status change. Live progress; the plan doc is static design. Annotate a task `— ⚠ test failing: <reason>` only when its test exists and is currently red; clear when green. Don't annotate passing/pending tasks — a `[x]` already means its test passed.
 - **References** — overview (step 1, only when the run came from a decomposed roadmap — else `_(none)_`), spec (step 2), plan (step 3), issue (step 4), PR (step 9). Test (step 6) and review (step 7) add no reference. Replace `_(pending)_` with the real value when it exists.
 
