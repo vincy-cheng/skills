@@ -111,7 +111,7 @@ Before creating files, the command discusses and grills the idea, summarizes the
 
 - Repo root = plugin root: `skills/`, `commands/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
-- `tests/check.sh` — 22 bash consistency checks; run after editing skills or commands
+- `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
 - `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
