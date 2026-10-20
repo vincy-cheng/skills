@@ -13,12 +13,14 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## Before starting
 
-Dev-flow mode — read the state file's **Verifier model** before dispatching the tester:
+Dev-flow mode — read the state file's **Roles block** (the Tester line) before dispatching the tester:
 
-- Field holds a model → dispatch on it.
-- Field absent or `_(not asked)_` → **stop; report "step 6's Verifier-model ask was skipped"** — do not dispatch the tester, do not re-ask from this skill. Return to new-feature step 6 (the orchestrator asks and writes the pick, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
+- Block has a Tester lane value (`session`, `claude:<name>`, `cli:<tool>/<model>`) → dispatch on it per `## Model routing`.
+- Block missing, empty, or the Tester line absent → **stop; report "step 5's combined Roles ask was skipped"** — do not dispatch the tester, do not re-ask from this skill. Return to new-feature step 5 (the orchestrator asks and writes the picks, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
+- Malformed lane value → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
+- Pre-Roles state file: apply the upgrade mapping in new-feature's field rules (an old `Verifier model` pick → the Tester line) — read-only, never migrated on disk.
 
-Standalone mode (no state file) → there is no step 6; ask the tester model yourself (see *Standalone mode* below).
+Standalone mode (no state file) → there is no step 6; ask the Tester lane yourself (see *Standalone mode* below).
 
 ## What you need
 
@@ -26,13 +28,18 @@ Standalone mode (no state file) → there is no step 6; ask the tester model you
 - The **base branch** — from the state file's **Base branch**; ask if unclear.
 - The repo's **test + lint commands** (e.g. `flutter test`, `pytest`, `npm test`, `cargo test`).
 
-## The verifier model (dev-flow mode: read, don't ask)
+## The tester lane (dev-flow mode: read, don't ask)
 
-In dev-flow mode the orchestrator already asked the **Verifier model** at step 6 and wrote it to the state file — read it; don't re-ask. An absent or `_(not asked)_` field is a skipped ask: stop and report it per `## Before starting` — never fill it in from here. In standalone mode ask the user, default same as the current session.
+In dev-flow mode the orchestrator already asked the combined Roles ask at step 5 and wrote the picks to the state file's Roles block — read the Tester line; don't re-ask. A missing block or line is a skipped ask: stop and report it per `## Before starting` — never fill it in from here. In standalone mode ask the user, default `session`.
 
 ## Dispatch the tester subagent
 
-Spawn **one** fresh tester subagent (Agent tool) on the Verifier model. Never run the gate inline — fresh eyes are the point; the author of the work biases its own test review.
+Spawn **one** fresh tester subagent on the Tester lane. Never run the gate inline — fresh eyes are the point; the author of the work biases its own test review.
+
+**Lane shapes:**
+
+- **`session` / `claude:<name>`** → Agent-tool dispatch, shape per `## Model routing`'s resolution rule.
+- **`cli:<tool>/<model>`** (v1: `cli:codex/<model>`) → thin-driver flow per `references/model-routing.md`: the driver composes the brief + report contract (copied **verbatim at runtime** from this skill's brief/report sections above) into `docs/features/.routing/<feat>/`, runs the CLI (`--sandbox workspace-write` per the routing doc's sandbox map), and the external model writes its full report to the same `docs/features/.test/<feat-name>/test-report.md` path. **Known limitation:** a suite needing network installs fails under the sandbox — a known BLOCKED with a resume hint, never a false red. Availability failures → BLOCKED stop-and-ask, never a silent downgrade.
 
 The brief gives the subagent:
 
@@ -44,6 +51,10 @@ The brief gives the subagent:
 6. The **report contract:** full findings written to `docs/features/.test/<feat-name>/test-report.md` (gitignored); the return message holds only the verdict (`green`/`red`), a one-line summary, and counts (tests passed/failed, findings). **Re-run: archive, never overwrite** — if `test-report.md` exists, rename it to `test-report-<n>.md` (next free number) before writing the new one.
 
 Never dispatch more than one tester at a time.
+
+## Model routing
+
+Lane semantics, availability checks, and the thin-driver flow live in `references/model-routing.md` — the single source; this skill does not re-derive them. This skill's Tester line comes from the state file's Roles block (dev-flow mode) or the standalone ask. Roles block missing → stop per `## Before starting`; malformed lane → BLOCKED stop-and-ask; any lane unavailable → BLOCKED stop-and-ask, never a silent downgrade.
 
 ## The test gate (run by the tester subagent)
 
@@ -74,7 +85,7 @@ Keep the report file. Never delete or overwrite — archive per the re-run rule 
 
 ## Standalone mode (outside dev-flow)
 
-No state file → ask for the base branch (or infer via `git merge-base <default>...HEAD`), **ask for the tester model** (no Verifier pick exists to reuse; default: same as the current session), and dispatch the same subagent. Report home: `docs/features/.test/<branch-name>/test-report.md` (slashes flattened to dashes).
+No state file → ask for the base branch (or infer via `git merge-base <default>...HEAD`), **ask for the Tester lane** (no Roles block exists to read; default: `session`), and dispatch the same subagent. Report home: `docs/features/.test/<branch-name>/test-report.md` (slashes flattened to dashes).
 
 ## What not to do
 
