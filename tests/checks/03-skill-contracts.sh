@@ -126,16 +126,18 @@ except FileNotFoundError:
 else:
     step5 = section(nf, "Step 5")
     step6 = section(nf, "Step 6")
-    # step 5: Implementer mode concept + ask-and-write before invoking execute-tasks
-    if not re.search(r"Implementer mode", step5):
-        print("new-feature:step5-no-implementer-mode-ask")
+    # step 5: combined Roles ask (all three roles, one prompt, before invoking execute-tasks)
+    if not re.search(r"[Cc]ombined Roles ask", step5):
+        print("new-feature:step5-no-combined-roles-ask")
+    if not re.search(r"Implementer.*Tester.*Reviewer", step5, re.S) and not re.search(r"Implementer", step5):
+        print("new-feature:step5-missing-role-lines")
     if not re.search(r"[Bb]efore invoking.*execute-tasks", step5):
         print("new-feature:step5-no-before-invoke-rule")
-    # step 6: Verifier model concept + before-dispatch consequence
-    if not re.search(r"Verifier model", step6):
-        print("new-feature:step6-no-verifier-model-ask")
-    if not re.search(r"[Dd]o not dispatch", step6):
-        print("new-feature:step6-no-do-not-dispatch-rule")
+    # step 6: silent read of the Roles block, no orchestrator model ask
+    if not re.search(r"[Rr]oles block", step6):
+        print("new-feature:step6-no-roles-block-read")
+    if not re.search(r"[Nn]o model ask", step6):
+        print("new-feature:step6-no-silent-read-rule")
 
 try:
     br = Path("skills/brainstorm/SKILL.md").read_text()
