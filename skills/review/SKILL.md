@@ -47,8 +47,6 @@ Standalone mode (no state file) → there is no step 5 ask and no risk tier; ask
 Spawn **one** fresh reviewer subagent on the Reviewer lane. It has no prior context — hand it everything as a brief:
 
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
-
-1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
 4. **The methodology** (R1–R4) — give the subagent the **absolute path** to this skill's `references/clean-code.md` (resolved from the skill's base directory — not repo-relative: in a target repo the file lives in the plugin directory), with the instruction to read it first as the review's checklist; the subagent reads it itself. Paste **R1–R2's and R3's section bodies** (spec coverage / plan coverage / obvious-issue scan) into the dispatch — the reference file carries only the R4 clean-code checklist, not the full methodology — and paste the **verdict contract** (R5) too.

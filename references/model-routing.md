@@ -15,7 +15,7 @@ A lane value pins where a role's work executes. Four values:
 | `claude:<name>` | claude lane on a named model — `<name>` is any name the session's model picker shows (`sonnet`-family names, gateway names like `github/gpt-5.4`, `github/claude-haiku-4.5-high`). | Agent tool via the resolution rule |
 | `cli:<tool>/<model>` | an external CLI's model. v1 tool: `codex` (e.g. `cli:codex/gpt-5.3-codex`). | thin-driver flow |
 
-`session` is the claude lane's unpinned shorthand, not a separate lane. Tester/reviewer are separate picks (pre-filled identically at the combined ask, but independently overridable from v2 on — v1 keeps them one answer unless the user overrides).
+`session` is the claude lane's unpinned shorthand, not a separate lane. Tester/reviewer are separate picks — pre-filled identically at the combined ask, each line independently overridable by the user in that same turn.
 
 ## Resolution rule (`claude:<name>`)
 
