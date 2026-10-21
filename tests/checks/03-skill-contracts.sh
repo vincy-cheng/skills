@@ -129,7 +129,7 @@ else:
     # step 5: combined Roles ask (all three roles, one prompt, before invoking execute-tasks)
     if not re.search(r"[Cc]ombined Roles ask", step5):
         print("new-feature:step5-no-combined-roles-ask")
-    if not re.search(r"Implementer.*Tester.*Reviewer", step5, re.S) and not re.search(r"Implementer", step5):
+    if not re.search(r"Implementer", step5) or not re.search(r"Tester", step5) or not re.search(r"Reviewer", step5):
         print("new-feature:step5-missing-role-lines")
     if not re.search(r"[Bb]efore invoking.*execute-tasks", step5):
         print("new-feature:step5-no-before-invoke-rule")
@@ -239,7 +239,7 @@ else:
             print(name)
     for head in ("## Lanes", "## Config schema", "## Resolution rule", "## Sandbox map",
                  "## Thin-driver flow", "## Error contract"):
-        if section(text, head.strip("# ").strip()) is None:
+        if not section(text, head.strip("# ").strip()):
             print(f"routing:no-{head.strip('#').strip().lower().replace(' ', '-')}-section")
     # a JSON roles example lives on the page (config schema section carries the shape)
     if '"roles"' not in text or '"implementer"' not in text:
@@ -266,7 +266,7 @@ for rel in ("skills/execute-tasks/SKILL.md", "skills/test/SKILL.md", "skills/rev
         print(f"{rel}:missing")
         continue
     body = section(text, "Model routing")
-    if body is None:
+    if not body:
         print(f"{rel}:no-model-routing-section")
         continue
     if "references/model-routing.md" not in body:
