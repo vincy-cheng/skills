@@ -126,16 +126,18 @@ except FileNotFoundError:
 else:
     step5 = section(nf, "Step 5")
     step6 = section(nf, "Step 6")
-    # step 5: Implementer mode concept + ask-and-write before invoking execute-tasks
-    if not re.search(r"Implementer mode", step5):
-        print("new-feature:step5-no-implementer-mode-ask")
+    # step 5: combined Roles ask (all three roles, one prompt, before invoking execute-tasks)
+    if not re.search(r"[Cc]ombined Roles ask", step5):
+        print("new-feature:step5-no-combined-roles-ask")
+    if not re.search(r"Implementer", step5) or not re.search(r"Tester", step5) or not re.search(r"Reviewer", step5):
+        print("new-feature:step5-missing-role-lines")
     if not re.search(r"[Bb]efore invoking.*execute-tasks", step5):
         print("new-feature:step5-no-before-invoke-rule")
-    # step 6: Verifier model concept + before-dispatch consequence
-    if not re.search(r"Verifier model", step6):
-        print("new-feature:step6-no-verifier-model-ask")
-    if not re.search(r"[Dd]o not dispatch", step6):
-        print("new-feature:step6-no-do-not-dispatch-rule")
+    # step 6: silent read of the Roles block, no orchestrator model ask
+    if not re.search(r"[Rr]oles block", step6):
+        print("new-feature:step6-no-roles-block-read")
+    if not re.search(r"[Nn]o model ask", step6):
+        print("new-feature:step6-no-silent-read-rule")
 
 try:
     br = Path("skills/brainstorm/SKILL.md").read_text()
@@ -213,3 +215,107 @@ else:
 PY
 )
 if [ -z "$gate24_errs" ]; then ok "risk-tiered review structurally present (plan Risk line + step-7 recheck + focused reviewer)"; else bad "risk-tier concept missing:$gate24_errs"; fi
+# gate25: model routing — lanes doc, dispatch-skill pointers, combined ask, sandbox/errors
+gate25_errs=$(python3 -B - <<'PY'
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+
+rt = "references/model-routing.md"
+try:
+    text = Path(rt).read_text()
+except FileNotFoundError:
+    print(f"{rt}:missing")
+else:
+    # lane grammar keywords + config schema example + resolution rule + sandbox + error contract
+    for kw, name in ((r"claude:<name>", "routing:no-claude-lane"),
+                     (r"cli:<tool>/<model>", "routing:no-cli-lane"),
+                     (r"inline", "routing:no-inline"),
+                     (r"session", "routing:no-session"),
+                     (r"red-team", "routing:no-red-team")):
+        if not re.search(kw, text):
+            print(name)
+    # each lane value must appear as a Lanes-table row (a dropped row fails even
+    # if the keyword survives elsewhere in prose — row-anchor, not bare keyword)
+    lanes = section(text, "Lanes")
+    if not lanes:
+        print("routing:no-lanes-section")
+    else:
+        for lane_kw in ("inline", "session", "claude:<name>", "cli:<tool>/<model>"):
+            if not re.search(r"^\|\s*`" + re.escape(lane_kw) + r"`\s*\|", lanes, re.M):
+                print(f"routing:lanes-row-missing:{lane_kw}")
+    for head in ("## Lanes", "## Config schema", "## Resolution rule", "## Sandbox map",
+                 "## Thin-driver flow", "## Error contract"):
+        if not section(text, head.strip("# ").strip()):
+            print(f"routing:no-{head.strip('#').strip().lower().replace(' ', '-')}-section")
+    # a JSON roles example lives on the page (config schema section carries the shape)
+    if '"roles"' not in text or '"implementer"' not in text:
+        print("routing:no-config-schema-example")
+    # stop-and-ask error contract + no-silent-downgrade
+    if not re.search(r"stop-and-ask", text):
+        print("routing:no-stop-and-ask")
+    if not re.search(r"[Nn]o silent downgrade|never a silent downgrade|silent downgrade", text):
+        print("routing:no-silent-downgrade-rule")
+    # commit ownership: external model prohibited, driver commits via dev-flow:commit
+    if not re.search(r"prohibited from committing|never commits", text):
+        print("routing:no-commit-ownership")
+    # sandbox map: workspace-write + read-only + known network limitation
+    if not re.search(r"workspace-write", text) or not re.search(r"read-only", text):
+        print("routing:no-sandbox-map-values")
+    if not re.search(r"network", text):
+        print("routing:no-network-limitation")
+
+for rel in ("skills/execute-tasks/SKILL.md", "skills/test/SKILL.md", "skills/review/SKILL.md",
+            "skills/brainstorm/SKILL.md"):
+    try:
+        text = Path(rel).read_text()
+    except FileNotFoundError:
+        print(f"{rel}:missing")
+        continue
+    body = section(text, "Model routing")
+    if not body:
+        print(f"{rel}:no-model-routing-section")
+        continue
+    if "references/model-routing.md" not in body:
+        print(f"{rel}:no-routing-doc-pointer")
+
+nf_path = Path("skills/new-feature/SKILL.md")
+try:
+    nf = nf_path.read_text()
+except FileNotFoundError:
+    print("skills/new-feature/SKILL.md:missing")
+else:
+    # Roles template block + combined ask concept
+    if not re.search(r"## Roles", nf):
+        print("new-feature:no-roles-block")
+    if not re.search(r"[Cc]ombined Roles ask", section(nf, "Step 5") or ""):
+        print("new-feature:step5-no-combined-roles-ask")
+    # steps 6/7 silent: concept-level — no orchestrator model-ask phrase in dev-flow mode.
+    # "Verifier model" legitimately survives in upgrade-mapping text; grep the ask phrases.
+    for step_no in ("6", "7"):
+        step = section(nf, f"Step {step_no}") or ""
+        if re.search(r"[Aa]sk the user for the .{0,40}model", step):
+            print(f"new-feature:step{step_no}-orchestrator-model-ask-phrase")
+
+# bootstrap covers both ignore lines
+try:
+    bs = Path("skills/bootstrap/SKILL.md").read_text()
+except FileNotFoundError:
+    print("skills/bootstrap/SKILL.md:missing")
+else:
+    if ".dev-flow/" not in bs or "docs/features/" not in bs:
+        print("bootstrap:gitignore-coverage-missing")
+
+# gitignore actually carries .dev-flow/
+try:
+    gi = Path(".gitignore").read_text()
+except FileNotFoundError:
+    print(".gitignore:missing")
+else:
+    if not re.search(r"^\.dev-flow/$", gi, re.M):
+        print("gitignore:no-dev-flow-line")
+PY
+)
+if [ -z "$gate25_errs" ]; then ok "model routing structurally present (lanes doc + dispatch pointers + combined ask + gitignore)"; else bad "model-routing concept missing:$gate25_errs"; fi
