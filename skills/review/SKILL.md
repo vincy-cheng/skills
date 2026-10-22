@@ -107,7 +107,7 @@ Example (blue):
    1. [minor] review/SKILL.md:42 — wording says "self-review" in one spot; should say "fresh subagent".
    2. [minor] README.md:48 — stale description; doesn't mention subagent dispatch.
 
-   (Blue advances to doc-fix with no prompt — findings noted for the PR body.)
+   (Blue asks the user — fix now vs. note-in-PR.)
 ```
 
 ### R1. Spec coverage
@@ -142,7 +142,7 @@ Read the changed code in place (open the files, not just the diff hunks) — ful
 Return one of (verdict inline, detail in the report file):
 
 - **Green** — step 6's test gate already green; spec covered, no obvious issues. Ready for step 8.
-- **Blue** — trivial findings, not worth a loop. List them in the report; no prompt. Note the findings for the PR body; advance to step 8.
+- **Blue** — trivial findings, not worth a loop. List them in the report, then **ask the user: fix now vs. note-in-PR** (fix is the default recommendation — a trivial fix is cheap and the user may want it; but the choice is theirs, not the skill's). Fix now → treat as yellow's fix-now path (red-loop rewind with the findings). Note in PR → note the findings for the PR body; advance to step 8.
 - **Yellow** — findings that should be fixed. Surface **all** of them and ask the user: fix now (recommended) vs. note-in-PR.
   - **Fix now** → orchestrator re-sets the status to `execute` (red-loop rewind); return to step 5 with the findings; fix, then re-run test (step 6) and review (step 7) with fresh subagents.
   - **Note in PR** → note the findings for the PR body; advance to step 8.
@@ -150,7 +150,7 @@ Return one of (verdict inline, detail in the report file):
 
 ## Act on the verdict (orchestrator)
 
-The orchestrator acts on the verdict per contract R5 above — it does not re-run the review and does not restate the handling inline. Green/blue → advance to step 8; yellow → the fix-now / note-in-PR choice per R5; red → red-loop rewind to step 5. R5 owns the detail; the one-line mapping suffices.
+The orchestrator acts on the verdict per contract R5 above — it does not re-run the review and does not restate the handling inline. Green → advance to step 8; blue → the fix-now / note-in-PR choice per R5; yellow → the fix-now / note-in-PR choice per R5; red → red-loop rewind to step 5. R5 owns the detail; the one-line mapping suffices.
 
 Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule. A focused review's report lives beside it at `review-report-focused.md`, same rules.
 

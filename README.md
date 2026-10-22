@@ -60,7 +60,9 @@ flowchart TD
     test -- red --> execute
     test -- green --> review[7 review gate]
     review -- red --> execute
-    review -- blue --> docfix[8 doc-fix]
+    review -- blue --> bluechoice{Fix blue findings?}
+    bluechoice -- yes --> execute
+    bluechoice -- no, note in PR --> docfix
     review -- yellow --> choice{Fix findings now?}
     choice -- yes --> execute
     choice -- no, note in PR --> docfix
