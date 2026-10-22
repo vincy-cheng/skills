@@ -20,7 +20,7 @@ Dev-flow mode — read the state file's **Roles block** (the Reviewer line) befo
 - Block has a Reviewer lane value (`session`, `claude:<name>`, `cli:<tool>/<model>`) → dispatch on it per `## Model routing`.
 - Block missing, empty, or the Reviewer line absent → **stop; report "step 5's combined Roles ask was skipped"** — do not dispatch the reviewer, do not re-ask from this skill. Return to new-feature step 5 (the orchestrator asks and writes the picks, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
 - Malformed lane value → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
-- **Crash-recovery exception, explicitly scoped:** if the block is missing because the run crashed between steps 5 and 6 — the ask never got its chance — ask once, write the picks to the state file, proceed. This is the only path that asks from this skill; a run where step 5 happened-or-should-have and the block is absent is a skipped ask, not a crash — stop and report.
+- **Crash-recovery exception, explicitly scoped:** if the block is missing because the run crashed during step 5, before the combined ask got its chance — ask once, write the picks to the state file, proceed. This is the only path that asks from this skill; a run where the ask happened-or-should-have and the block is absent is a skipped ask, not a crash — stop and report.
 - Pre-Roles state file: apply the upgrade mapping in new-feature's field rules (an old `Verifier model` pick → the Reviewer line) — read-only, never migrated on disk.
 
 Then read the state file's **Risk tier**:
@@ -39,7 +39,7 @@ Standalone mode (no state file) → there is no step 5 ask and no risk tier; ask
 
 ## The reviewer lane (mode-split)
 
-- **Dev-flow mode:** the orchestrator asked the combined Roles ask at step 5 and wrote the picks to the state file's Roles block — **read the Reviewer line; never ask**. A missing block or line follows `## Before starting`: stop and report the skipped ask — the only ask-from-here path is the explicitly scoped crash-recovery exception (run crashed between steps 5 and 6).
+- **Dev-flow mode:** the orchestrator asked the combined Roles ask at step 5 and wrote the picks to the state file's Roles block — **read the Reviewer line; never ask**. A missing block or line follows `## Before starting`: stop and report the skipped ask — the only ask-from-here path is the explicitly scoped crash-recovery exception (run crashed during step 5, before the ask).
 - **Standalone mode:** no state file → ask (default: `session`).
 
 ## Dispatch the reviewer subagent

@@ -237,6 +237,15 @@ else:
                      (r"red-team", "routing:no-red-team")):
         if not re.search(kw, text):
             print(name)
+    # each lane value must appear as a Lanes-table row (a dropped row fails even
+    # if the keyword survives elsewhere in prose — row-anchor, not bare keyword)
+    lanes = section(text, "Lanes")
+    if not lanes:
+        print("routing:no-lanes-section")
+    else:
+        for lane_kw in ("inline", "session", "claude:<name>", "cli:<tool>/<model>"):
+            if not re.search(r"^\|\s*`" + re.escape(lane_kw) + r"`\s*\|", lanes, re.M):
+                print(f"routing:lanes-row-missing:{lane_kw}")
     for head in ("## Lanes", "## Config schema", "## Resolution rule", "## Sandbox map",
                  "## Thin-driver flow", "## Error contract"):
         if not section(text, head.strip("# ").strip()):
