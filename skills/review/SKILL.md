@@ -20,14 +20,14 @@ Dev-flow mode — read the state file's **Roles block** (the Reviewer line) befo
 - Block has a Reviewer lane value (`session`, `claude:<name>`, `cli:<tool>/<model>`) → dispatch on it per `## Model routing`.
 - Block missing, empty, or the Reviewer line absent → **stop; report "step 5's combined Roles ask was skipped"** — do not dispatch the reviewer, do not re-ask from this skill. Return to new-feature step 5 (the orchestrator asks and writes the picks, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
 - Malformed lane value → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
-- **Crash-recovery exception, explicitly scoped:** if the block is missing because the run crashed during step 5, before the combined ask got its chance — ask once, write the picks to the state file, proceed. This is the only path that asks from this skill; a run where the ask happened-or-should-have and the block is absent is a skipped ask, not a crash — stop and report.
+- **Crash-recovery exception, explicitly scoped and verified:** if the block is missing and the user **confirms** the run crashed during step 5 before the combined ask completed its write — ask once, write the picks to the state file, proceed. Never accept an unconditional "it crashed": if the user can't confirm the crash, treat it as the skipped-ask case above — stop and report. This is the only path that asks from this skill; every other missing-block shape stays a stop.
 - Pre-Roles state file: apply the upgrade mapping in new-feature's field rules (an old `Verifier model` pick → the Reviewer line) — read-only, never migrated on disk.
 
 Then read the state file's **Risk tier**:
 
 - Field `low`, `high — <categories>`, or `high — waived by user, <date>` → proceed per the tier: `high` (not waived) adds the focused review below; `low` and waived-high run the main reviewer only.
 - Field absent or `_(not asked — step-7 recheck pending)_` → **stop; report "step 7's risk recheck was skipped"** — do not dispatch any reviewer, do not re-run the recheck from this skill. Return to new-feature step 7 (the orchestrator runs the recheck, writes the tier, then re-invokes). Fail-closed: a missing tier is a skipped recheck, never a low.
-- Tier `high` (not waived) and **Focused verdict** absent or `_(not required)_` after this gate round → **stop; report "the focused review was skipped"** — no dispatch-then-advance; the focused review is part of this gate round (see *Focused review* below).
+- Tier `high` (not waived) and **Focused verdict** `_(skipped)_` → stop; report "the focused review was skipped" — the field only ever gets `_(skipped)_` out-of-band (a user dropping the requirement after the fact); a fresh or reset gate round carries `_(pending — run in this gate round)_` and dispatches the focused review as usual after the main reviewer clears green/blue. Absent field on a live high tier → treat as `_(pending — run in this gate round)_` — never as "already covered", and never as `_(not required)_`.
 
 Standalone mode (no state file) → there is no step 5 ask and no risk tier; ask the Reviewer lane yourself (see *Standalone mode* below).
 
@@ -39,7 +39,7 @@ Standalone mode (no state file) → there is no step 5 ask and no risk tier; ask
 
 ## The reviewer lane (mode-split)
 
-- **Dev-flow mode:** the orchestrator asked the combined Roles ask at step 5 and wrote the picks to the state file's Roles block — **read the Reviewer line; never ask**. A missing block or line follows `## Before starting`: stop and report the skipped ask — the only ask-from-here path is the explicitly scoped crash-recovery exception (run crashed during step 5, before the ask).
+- **Dev-flow mode:** the orchestrator asked the combined Roles ask at step 5 and wrote the picks to the state file's Roles block — **read the Reviewer line; never ask**. A missing block or line follows `## Before starting`: stop and report the skipped ask — the only ask-from-here path is the user-confirmed crash-recovery exception.
 - **Standalone mode:** no state file → ask (default: `session`).
 
 ## Dispatch the reviewer subagent
@@ -154,7 +154,7 @@ The orchestrator acts on the verdict per contract R5 above — it does not re-ru
 
 Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule. A focused review's report lives beside it at `review-report-focused.md`, same rules.
 
-On a high (not waived) tier, the act-on-verdict step also covers the focused reviewer's verdict once it returns: record it in the state's **Focused verdict** field, then apply the same R5 handling — both reviewers must clear.
+On a high (not waived) tier, the act-on-verdict step also covers the focused reviewer's verdict once it returns: record it in the state's **Focused verdict** field (replacing `_(pending — run in this gate round)_`), then apply the same R5 handling — both reviewers must clear.
 
 ## Focused review (high risk tier only)
 

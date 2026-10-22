@@ -1,6 +1,6 @@
 schema_version: "1.0"
 name: 02-trivial-blue
-description: Only trivial findings (stale comment, duplicate import) — verdict must be blue, findings noted for the PR body, no fix-now/note-in-PR user prompt, advance to doc-fix
+description: Only trivial findings (stale comment, duplicate import) — verdict must be blue, findings listed, then the fix-now/note-in-PR ask per R5 blue (fix recommended, note-in-PR rides in the PR body)
 execution:
   max_turns: 30
   timeout_seconds: 600

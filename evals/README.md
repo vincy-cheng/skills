@@ -9,8 +9,9 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `brainstorm` | `dev-flow:brainstorm` | 4 | interview-first, idea-folder confirmation, iron law, spec path |
 | `plan` | `dev-flow:plan` | 5 | contract-complete, flow chart, no-handoff, no-spec refusal |
 | `tdd` | `dev-flow:tdd` | 4 | red-first, atomic steps, no skipping ahead, commit discipline |
-| `new-feature` | `dev-flow:new-feature` | 4 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff |
+| `new-feature` | `dev-flow:new-feature` | 5 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask |
 | `review` | `dev-flow:review` | 4 | R5 verdict contract: green/blue/yellow/red + follow-on action |
+| `test` | `dev-flow:test` | 1 | unavailable cli lane → BLOCKED stop-and-ask, never a silent downgrade |
 
 ## How to run
 

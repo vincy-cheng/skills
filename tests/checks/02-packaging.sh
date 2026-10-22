@@ -75,6 +75,10 @@ else:
         print("portable-name-mismatch")
     if portable.get("skills") != "./skills/":
         print("codex-manifest-skills-pointer-missing")
+    if portable.get("references") != "./references/":
+        print("codex-manifest-references-pointer-missing")
+    if not Path("references/model-routing.md").is_file():
+        print("references/model-routing.md:missing")
     if portable.get("version") != claude.get("version"):
         print("portable-version-mismatch")
     plugin = next((item for item in marketplace.get("plugins", []) if item.get("name") == "dev-flow"), None)
@@ -97,6 +101,8 @@ else:
             print("claude-marketplace-plugin-missing")
         elif entry.get("source") != "./":
             print("claude-marketplace-source-mismatch")
+        elif entry.get("version") != claude.get("version"):
+            print("claude-marketplace-version-mismatch")
 PY
 )
 if [ -z "$codex_errs" ]; then ok "Codex manifest and marketplace wiring are valid"; else bad "Codex package metadata broken:$codex_errs"; fi

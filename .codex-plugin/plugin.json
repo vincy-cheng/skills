@@ -17,5 +17,6 @@
     "pull-requests",
     "tdd"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "references": "./references/"
 }
