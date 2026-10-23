@@ -1,0 +1,106 @@
+import { describe, expect, test } from 'claude-code/testing'
+
+import { stepOf, type GoalStatus } from './state'
+
+/**
+ * Task 3 behaviors: status-line text shaping and the toast's status-diff +
+ * main-loop filter. The functions under test are pure — exported from
+ * register.tsx alongside the hooks wiring (same module, testable seams).
+ */
+import { humanizeSince, nextOf, statusLine, toastsFor } from './register'
+
+const NOW = new Date('2026-10-23T22:14:00+08:00')
+
+describe('humanizeSince — Status since → short duration', () => {
+  test('humanizes 45 minutes', () => {
+    expect(humanizeSince('2026-10-23 21:29+08:00', NOW)).toBe('45m')
+  })
+
+  test('humanizes 2h 15m', () => {
+    expect(humanizeSince('2026-10-23 19:59+08:00', NOW)).toBe('2h 15m')
+  })
+
+  test('omits the duration when since is absent (old state files)', () => {
+    expect(humanizeSince(undefined, NOW)).toBeUndefined()
+  })
+
+  test('returns undefined for an unparseable timestamp', () => {
+    expect(humanizeSince('not a date', NOW)).toBeUndefined()
+  })
+})
+
+describe('statusLine — the ambient text', () => {
+  test('composes feat, step, status, duration', () => {
+    const run = {
+      feat: 'demo',
+      status: 'test' as GoalStatus,
+      since: '2026-10-23 21:29+08:00',
+      updated: '',
+      tasksDone: 0,
+      tasksTotal: 0,
+      issue: '',
+      pr: '',
+      branch: '',
+    }
+    expect(statusLine(run, NOW)).toBe('dev-flow: demo · step 6/11 · test · 45m')
+  })
+
+  test('omits duration when since is absent', () => {
+    const run = {
+      feat: 'demo',
+      status: 'test' as GoalStatus,
+      since: undefined,
+      updated: '',
+      tasksDone: 0,
+      tasksTotal: 0,
+      issue: '',
+      pr: '',
+      branch: '',
+    }
+    expect(statusLine(run, NOW)).toBe('dev-flow: demo · step 6/11 · test')
+  })
+})
+
+describe('toastsFor — status diff, main-loop only', () => {
+  const run = (feat: string, status: GoalStatus) => ({
+    feat,
+    status,
+    since: undefined,
+    updated: '',
+    tasksDone: 0,
+    tasksTotal: 0,
+    issue: '',
+    pr: '',
+    branch: '',
+  })
+
+  test('fires one toast per real flip', () => {
+    const prev = { demo: 'execute' as GoalStatus }
+    const now = [run('demo', 'test')]
+    const toasts = toastsFor(now, prev)
+    expect(toasts).toEqual(['dev-flow: demo execute → test (step 6/11)'])
+  })
+
+  test('no toast when the status is unchanged', () => {
+    const prev = { demo: 'test' as GoalStatus }
+    const now = [run('demo', 'test')]
+    expect(toastsFor(now, prev)).toEqual([])
+  })
+
+  test('no toast on first sight (session start, not a flip)', () => {
+    const prev: Record<string, GoalStatus> = {}
+    const now = [run('demo', 'test')]
+    expect(toastsFor(now, prev)).toEqual([])
+  })
+})
+
+describe('nextOf — the pane next-step line', () => {
+  test('names the next status and its skill', () => {
+    expect(nextOf('execute')).toBe('test (dev-flow:test)')
+  })
+
+  test('terminal statuses render their wording', () => {
+    expect(nextOf('done')).toBe('closed out')
+    expect(nextOf('merged')).toBe('done (dev-flow:new-feature)')
+  })
+})
