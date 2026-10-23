@@ -145,7 +145,7 @@ export const register: Register = on => {
     return { text: 'dev-flow pane opened. Esc closes it when it holds focus.' }
   })
 
-  // The pane: a compact 4-row card — header+step, strip, refs+next, button.
+  // The pane: a compact 4-row card — header+step, strip, refs+next, buttons.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const states = await readRunStates($)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -155,6 +155,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Text dimColor>No active dev-flow run. Start one: /new-feature &lt;idea&gt;</Text>
+          {CloseButton($, Button)}
         </Box>
       )
     }
@@ -178,10 +179,26 @@ export const register: Register = on => {
             label="Resume run"
             onPress={() => void $.prompt.submit({ text: '/dev-flow:new-feature resume' })}
           />
+          {CloseButton($, Button)}
         </Box>
       </Box>
     )
   })
+}
+
+/**
+ * The pane's own close path: a UI event, never a prompt — so closing works
+ * mid-response, where the host's Esc owns interrupt priority. Every state
+ * the pane draws carries it (run card and empty state alike).
+ */
+function CloseButton($: { ui: { close: (args: { id: string }) => Promise<void> } }, Button: (props: { key?: string; label: string; onPress: () => void }) => RenderNode | null | undefined) {
+  return (
+    <Button
+      key="close"
+      label="Close"
+      onPress={() => void $.ui.close({ id: PANE })}
+    />
+  )
 }
 
 /** The 11 lifecycle names after `fresh`, keyed by step number. */
