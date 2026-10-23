@@ -8,7 +8,7 @@ source tests/lib/helpers.sh
 
 # Explicit ordered source list — the auditable manifest of the suite.
 # A listed fragment that does not exist aborts the run (fail loud, not silent skip).
-for frag in 01-structure 02-packaging 03-skill-contracts 04-docs 05-evals 06-local; do
+for frag in 01-structure 02-packaging 03-skill-contracts 04-docs 05-evals 06-local 07-hooks; do
   [ -f "tests/checks/$frag.sh" ] || { echo "FAIL: missing fragment tests/checks/$frag.sh"; exit 1; }
   source "tests/checks/$frag.sh"
 done
