@@ -11,6 +11,7 @@ The repo root follows the plugin format:
 - `.codex-plugin/plugin.json` — portable plugin identity and metadata for Codex, with an explicit `"skills": "./skills/"` pointer.
 - `commands/<name>.md` — slash commands, each with YAML frontmatter (`description`) and a Markdown body. `$ARGUMENTS` interpolates user input.
 - `skills/<name>/SKILL.md` — skills, each with YAML frontmatter (`name`, `description`) and a Markdown body that tells the agent how to run the skill.
+- `hooks/` — the session-help hooks module (`register.tsx` + pure parser `state.ts` + `*.test.ts`): status line, `/flow` pane, step toast, all reading `docs/features/.feature-states/` live. `claude plugin validate` / `plugin test` are its authoritative gates; `tests/checks/07-hooks.sh` carries thin structural guards.
 - `evals/` — behavioral evals per skill, run manually.
 
 The repository-level `.agents/plugins/marketplace.json` catalogs local Codex plugins; its path points at the repo root (`"./"`) — the repo root is the plugin root.
