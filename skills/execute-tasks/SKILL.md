@@ -9,7 +9,7 @@ Run the plan's tasks one by one, with TDD. Commit per task. Keep the state file 
 
 ## Gate (dev-flow step 5)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `issue` and set it to `execute` before starting. If not `issue`, stop — a step was skipped — and tell the user which step to run.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `issue` and set it to `execute` before starting — with the `Status since:` timestamp (third write of the status-transition protocol). If not `issue`, stop — a step was skipped — and tell the user which step to run.
 
 Then **verify the branch before any work**: the current branch (`git branch --show-current`) must equal the state file's **Base branch** (the `feat/<n>-<name>` / `fix/<n>-<name>` branch step 4 created). Mismatch → stop and ask — don't switch or commit anything yourself; the user may have uncommitted work where they are. Executing on the wrong branch commits another branch's history into the run — this check is cheap and prevents the most damaging silent mistake in the flow. No state file (standalone) → require a plan path from the user; proceed without the gate.
 

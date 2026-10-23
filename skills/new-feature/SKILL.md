@@ -41,7 +41,7 @@ Steps 1 and 3 invoke dev-flow's own skills (brainstorm, plan) whose terminal sta
 2. Compare **Goal status** to the status this step requires (table below).
 3. Match → proceed. No match → STOP; tell the user the current status and the step it maps to, and resume from there. Do **not** do the current step's work.
 4. Set **Goal status** to this step's status *before* the work, so a crash/resume lands back on this step.
-   A status change is **two writes, done together in one breath**: the state file's Goal status and the index row (see *Index file*) — new status + timestamp, re-sort newest-first. One without the other is an incomplete step. Step 1 adds the row; later steps update it.
+   A status change is **three writes, done together in one breath**: the state file's Goal status, the index row (see *Index file* — new status + timestamp, re-sort newest-first), and the state file's **`Status since:`** field — the timestamp of the status change, the timing source for session-help displays. One without the others is an incomplete step. Step 1 adds the row; later steps update it.
 
 Lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `test` → `review` → `doc-fix` → `pr-review` → `merged` → `done`. A step runs only on the immediately preceding status and advances only to the next when done. `test` is the fresh-subagent test gate (step 6); `review` the judgment review (step 7); `doc-fix` the pre-PR doc drift gate (step 8). `merged` means "shipped, close-out pending" — the crash-resume safety net between "user confirmed merge" and "close-out complete"; `done` means fully closed.
 
@@ -82,6 +82,7 @@ Two gitignored files under `docs/features/.feature-states/` (the whole `docs/fea
 
 - **Created:** YYYY-MM-DD HH:MM±HH:MM
 - **Updated:** YYYY-MM-DD HH:MM±HH:MM
+- **Status since:** YYYY-MM-DD HH:MM±HH:MM
 - **Base branch:** <branch>
 - **Target branch:** <branch>
 - **Goal status:** <status>
@@ -111,6 +112,7 @@ Field rules:
 - **Created** — set once in step 1, never changes. Carries local time + UTC offset (e.g. `2026-09-10 14:45+08:00`), so a reader never has to guess the zone.
 - **Updated** — current timestamp on *every* write. Local time + UTC offset (e.g. `2026-09-10 14:45+08:00`).
 - **Goal status** — the gate's input; set to the current step *before* the work.
+- **Status since** — the timestamp of the most recent Goal-status change, rewritten on every flip (all three writes in one breath). Local time + UTC offset. The timing source for duration displays; old state files without the field degrade gracefully (no duration shown).
 - **Kind** — `feature` or `fix`, set in step 1 from intent. Drives the branch prefix and issue framing. Ambiguous → ask; default `feature`.
 - **Last verification** — most recent test + lint result during execute (the repo's commands). The resume signal: "was it green when I stopped?" `_(not run yet)_` until first run.
 - **Roles block (`## Roles`)** — three lines: Implementer / Tester / Reviewer, each a lane value from `references/model-routing.md` (`inline` + the three lanes for Implementer; three lanes for Tester/Reviewer). Asked **once, combined**, by the orchestrator at step 5 **before invoking `dev-flow:execute-tasks`** (one prompt covering all three roles, config-seeded — see step 5). The block missing or empty in dev-flow mode = the step-5 Roles ask was skipped (or its write failed) → execute-tasks'/test's/review's entry read-gates stop on it; the **write is the only record of the ask** — an ask without a completed write doesn't count. On resume, read the stored picks and proceed; do not re-ask. **Upgrade mapping (old state files, read-only — never migrated on disk):** an old `Implementer mode: inline` → Implementer `inline`; old `subagent` with no model → `session`; old `subagent` + model name → `claude:<name>`; an old `Verifier model` pick → the Tester and Reviewer lines (shared, as it was used). A block with any line malformed (unknown lane syntax) → BLOCKED stop-and-ask per the routing doc's error contract — never treated as unset.

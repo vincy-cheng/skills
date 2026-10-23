@@ -319,3 +319,63 @@ else:
 PY
 )
 if [ -z "$gate25_errs" ]; then ok "model routing structurally present (lanes doc + dispatch pointers + combined ask + gitignore)"; else bad "model-routing concept missing:$gate25_errs"; fi
+
+# gate26: Status-since timing protocol (issue #76) — the status transition is
+# three writes in one breath (Goal status + index + Status since), defined once
+# in new-feature's gate rule and template, and cited from every skill that
+# itself flips Goal status (create-github-issue, execute-tasks, test's
+# red-loop rewind, doc-fix). Concept grep only, never exact sentences (#38);
+# a flipping skill that never names the third write fails.
+gate26_errs=$(python3 -B - <<'PY'
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+
+nf_path = Path("skills/new-feature/SKILL.md")
+try:
+    nf = nf_path.read_text()
+except FileNotFoundError:
+    print("skills/new-feature/SKILL.md:missing")
+else:
+    # the three-writes protocol in the gate rule (Step 0 / gate-check area)
+    gate_rule = nf
+    if not re.search(r"Status since", gate_rule):
+        print("new-feature:gate-rule-no-status-since")
+    if not re.search(r"three writes", gate_rule):
+        print("new-feature:gate-rule-no-three-writes")
+    # the template carries the field
+    if not re.search(r"\*\*Status since:\*\*", nf):
+        print("new-feature:state-template-missing-status-since")
+    # field rule names what it is for (timing source, set on status change)
+    if not re.search(r"Status since.*timestamp|timestamp.*Status since", nf, re.S):
+        print("new-feature:no-status-since-field-rule")
+
+# every skill that itself flips Goal status must cite the third write
+flippers = {
+    "skills/create-github-issue/SKILL.md": "issue",
+    "skills/execute-tasks/SKILL.md": "execute",
+    "skills/doc-fix/SKILL.md": "doc-fix",
+}
+for rel, status in flippers.items():
+    try:
+        text = Path(rel).read_text()
+    except FileNotFoundError:
+        print(f"{rel}:missing")
+        continue
+    # the skill's own status-write line (gate or state-file section)
+    if not re.search(r"Status since", text):
+        print(f"{rel}:flip-site-no-status-since")
+
+# test's red-loop rewind flips Goal status back to execute — same citation
+try:
+    ts = Path("skills/test/SKILL.md").read_text()
+except FileNotFoundError:
+    print("skills/test/SKILL.md:missing")
+else:
+    if not re.search(r"Status since", ts):
+        print("skills/test/SKILL.md:flip-site-no-status-since")
+PY
+)
+if [ -z "$gate26_errs" ]; then ok "Status-since timing protocol present (gate rule + template + every flip site)"; else bad "status-since protocol missing:$gate26_errs"; fi
