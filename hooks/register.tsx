@@ -174,11 +174,6 @@ export const register: Register = on => {
           Tasks {run.tasksDone}/{run.tasksTotal} · {run.issue || '—'} → {run.branch || 'dev'} · next: {nextOf(run.status)}
         </Text>
         <Box>
-          <Button
-            key="resume"
-            label="Resume run"
-            onPress={() => void $.prompt.submit({ text: '/dev-flow:new-feature resume' })}
-          />
           {CloseButton($, Button)}
         </Box>
       </Box>

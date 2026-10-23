@@ -53,3 +53,20 @@ test('the empty state names the start path and closes too', async $ => {
     await ui.unmount()
   }
 })
+
+test('the pane draws exactly one button — Close; no Resume', async $ => {
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({
+      plugin: 'dev-flow',
+      surface,
+      component: 'Pane',
+      props: { ...PANE_PROPS },
+      requestId: 'flow',
+    })
+
+    expect(await ui.find({ key: 'close' })).toBeDefined()
+    expect(await ui.find({ key: 'resume' })).toBeUndefined()
+
+    await ui.unmount()
+  }
+})
