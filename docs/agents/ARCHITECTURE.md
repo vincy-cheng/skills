@@ -20,12 +20,12 @@ Single-plugin repo: the repo root **is** the plugin root (official plugin-struct
 
 ## The hard gate (backbone)
 
-Each step reads the state file's **Goal status** on entry, refuses to run unless it matches the expected incoming status, then sets the current status *before* the work — so a sub-skill handoff that jumps ahead bounces back. The step→incoming→sets table lives in both orchestrators; keep them aligned. A status change is **two writes in one breath**: the per-feature state file's Goal status **and** the index row (status + timestamp).
+Each step reads the state file's **Goal status** on entry, refuses to run unless it matches the expected incoming status, then sets the current status *before* the work — so a sub-skill handoff that jumps ahead bounces back. The step→incoming→sets table lives in both orchestrators; keep them aligned. A status change is **three writes in one breath**: the per-feature state file's Goal status, **and** the index row (status + timestamp), **and** the state file's `Status since` timestamp (the timing source for the session-help hooks).
 
 ## State files (source of truth)
 
 `docs/features/.feature-states/` (gitignored, never committed):
-- `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Base/Target branch, Goal status, Kind, Last verification, Risk tier, Focused verdict, a `## Roles` block (Implementer/Tester/Reviewer lanes — the step-5 combined ask writes them; sub-skill entry read-gates stop when missing), Tasks, References.
+- `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Status since (timing source for session-help), Base/Target branch, Goal status, Kind, Last verification, Risk tier, Focused verdict, a `## Roles` block (Implementer/Tester/Reviewer lanes — the step-5 combined ask writes them; sub-skill entry read-gates stop when missing), Tasks, References.
 - `.state.md` — index (dot-prefixed, sorts to top): `Feat-name | Kind | Status | Issue | Updated | Branch`, newest first; top non-`done` row is the current run; `Issue` is `—` until step 4, then `#NN`.
 
 Resume: read the index, jump to the step matching Goal status. Only `done` is finished; `merged` still has close-out pending.
