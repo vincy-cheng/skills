@@ -94,7 +94,7 @@ git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git check
 ## State file (dev-flow only)
 
 If a state file exists, update it as part of step 4:
-- Set **Goal status** to `issue`; leave it for step 5 to advance.
+- Set **Goal status** to `issue` — with the `Status since:` timestamp (third write of the status-transition protocol); leave it for step 5 to advance.
 - Record `Issue: #NN` in References (replace `_(pending)_`).
 - If the user accepts the branch, set **Base branch** to `feat/NN-<name>` or `fix/NN-<name>`; **Target branch** stays the state file's Target branch (the configured dev branch, `dev` by default).
 - Bump **Updated**.

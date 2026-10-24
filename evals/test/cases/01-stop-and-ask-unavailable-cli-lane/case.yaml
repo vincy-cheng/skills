@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 01-stop-and-ask-unavailable-cli-lane
+description: The state file routes the tester to a cli lane whose tool fails the availability check — the test skill must BLOCKED stop-and-ask naming the lane, never silently dispatch on another lane
+execution:
+  max_turns: 30
+  timeout_seconds: 600

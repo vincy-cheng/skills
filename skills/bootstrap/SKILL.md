@@ -19,9 +19,10 @@ Bootstrap is **standalone** — not a dev-flow step, never gated by the state fi
 
 ```bash
 git check-ignore -q docs/features/ || echo "NOT_IGNORED"
+git check-ignore -q .dev-flow/ || echo "NOT_IGNORED"
 ```
 
-- `NOT_IGNORED` → show the user the proposed append (one line: `docs/features/`) and on confirmation append to `.gitignore` (create the file if absent).
+- `NOT_IGNORED` → show the user the proposed append (two lines: `docs/features/` and `.dev-flow/`) and on confirmation append to `.gitignore` (create the file if absent). Check both — a repo can have one already ignored and need only the other; the append adds only the missing lines.
 - Already ignored → report "already ignored"; no append.
 - `docs/features/` **already tracked** (`git ls-files docs/features/` non-empty) → surface it and **stop this component** — never silently `git rm`; ask the user how to proceed.
 - A broader pattern already matching → `git check-ignore` is the truth; no append needed; report as already covered.
@@ -58,7 +59,7 @@ Either or both missing → make **one ask**: offer to run the `dev-flow:document
 A closing checklist, one line per component:
 
 ```
-✓ gitignore: docs/features/ ignored
+✓ gitignore: docs/features/ + .dev-flow/ ignored
 ✓ gh: authenticated
 ❓ dev branch: develop missing — create off main?   (asked / offered)
 + config: .dev-flow/config.json written

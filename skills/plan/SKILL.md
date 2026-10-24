@@ -58,9 +58,14 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 - **Bite-sized and ordered** — each task is one concern, independently verifiable, executable in order without jumping ahead.
 - **Test-first shape** — each task states its test (what failing check proves it) and its verification command; follow `dev-flow:tdd` for the red-green loop. For docs-only work, the test is the repo's consistency suite or an explicit grep check — state it.
 - **Files block** — every task lists the files it creates/modifies.
+- **Risk line** — every task carries a `Risk:` line beside its `**Files:**` block: `Risk: low` or `Risk: high — <category>`. Low must be written explicitly — **unmarked ≠ low** (fail-closed; a task with no Risk line is a defect, not a default-low). High names one of four categories — the bars, not a list: **executable-code** (newly introduced privileged/triggered execution paths, not file-type presence), **destructive-operations** (commands that delete or force-rewrite), **auth-permissions** (auth spine, middleware, permission checks, session handling), **blast-radius** (diff breadth out of proportion to the task's stated scope). The human sees the full risk surface at plan approval. The `Risk:` line rides in the plan's task body only — the state file's Tasks copy stays clean `- [ ]` main text; tier info lands in the state's Risk tier field via the step-7 recheck, not in the copied lines (the verbatim-copyable contract is preserved).
 - **Verbatim-copyable** — the task list is what the state file's Tasks block copies; write them as clean `- [ ]` lines.
 - **Issue material** — each task carries an acceptance fragment the issue can lift directly.
 - **Verification per task** — name the command that proves the task done (the repo's suite, a grep, a lint run).
+
+## Self-review
+
+Before presenting the plan, check it with fresh eyes and fix inline: every task has a `Risk:` line (a task missing one is a fail-closed defect, not a default-low — fix it before the plan is presented); no placeholders ("TBD", "TODO"); the Flow Chart's nodes match the `### Task N` headings and their files match the `**Files:**` blocks; the task list is clean `- [ ]` lines, copyable verbatim.
 
 ## Standalone mode
 
