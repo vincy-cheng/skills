@@ -330,7 +330,6 @@ gate26_errs=$(python3 -B - <<'PY'
 import re
 import sys
 sys.path.insert(0, "tests/lib")
-from sections import section
 from pathlib import Path
 
 nf_path = Path("skills/new-feature/SKILL.md")
@@ -353,29 +352,15 @@ else:
         print("new-feature:no-status-since-field-rule")
 
 # every skill that itself flips Goal status must cite the third write
-flippers = {
-    "skills/create-github-issue/SKILL.md": "issue",
-    "skills/execute-tasks/SKILL.md": "execute",
-    "skills/doc-fix/SKILL.md": "doc-fix",
-}
-for rel, status in flippers.items():
+for rel in ("skills/create-github-issue/SKILL.md", "skills/execute-tasks/SKILL.md",
+            "skills/doc-fix/SKILL.md", "skills/test/SKILL.md"):
     try:
         text = Path(rel).read_text()
     except FileNotFoundError:
         print(f"{rel}:missing")
         continue
-    # the skill's own status-write line (gate or state-file section)
     if not re.search(r"Status since", text):
         print(f"{rel}:flip-site-no-status-since")
-
-# test's red-loop rewind flips Goal status back to execute — same citation
-try:
-    ts = Path("skills/test/SKILL.md").read_text()
-except FileNotFoundError:
-    print("skills/test/SKILL.md:missing")
-else:
-    if not re.search(r"Status since", ts):
-        print("skills/test/SKILL.md:flip-site-no-status-since")
 PY
 )
 if [ -z "$gate26_errs" ]; then ok "Status-since timing protocol present (gate rule + template + every flip site)"; else bad "status-since protocol missing:$gate26_errs"; fi

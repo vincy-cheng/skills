@@ -49,7 +49,7 @@ else
 fi
 
 # no .superpowers/ paths anywhere in hooks/
-if $G -rq "superpowers" hooks/ 2>/dev/null; then
+if $G -rqi "superpowers" hooks/ 2>/dev/null; then
   bad "superpowers path leaked into hooks/"
 else
   ok "no superpowers paths in hooks/"

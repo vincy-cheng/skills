@@ -94,6 +94,41 @@ describe('toastsFor — status diff, main-loop only', () => {
   })
 })
 
+describe('farewell transition — Y1/Y2 regression: transition-only close', () => {
+  const run = (feat: string, status: GoalStatus) => ({
+    feat,
+    status,
+    since: undefined,
+    updated: '',
+    tasksDone: 0,
+    tasksTotal: 0,
+    issue: '',
+    pr: '',
+    branch: '',
+  })
+
+  test('a merged run seen in an earlier status farewell-closes (prev ≠ current)', () => {
+    const prev: Record<string, GoalStatus> = { demo: 'pr-review' }
+    const finished = [run('demo', 'merged')]
+    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
+    expect(just).toBeDefined()
+  })
+
+  test('a session that starts on a finished run does not close (no earlier status)', () => {
+    const prev: Record<string, GoalStatus> = {}
+    const finished = [run('demo', 'merged')]
+    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
+    expect(just).toBeUndefined()
+  })
+
+  test('a steady-state finished run does not close (status unchanged)', () => {
+    const prev: Record<string, GoalStatus> = { demo: 'merged' }
+    const finished = [run('demo', 'merged')]
+    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
+    expect(just).toBeUndefined()
+  })
+})
+
 describe('nextOf — the pane next-step line', () => {
   test('names the next status and its skill', () => {
     expect(nextOf('execute')).toBe('test (dev-flow:test)')

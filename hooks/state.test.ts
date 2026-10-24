@@ -110,7 +110,25 @@ describe('readStates', () => {
     }
     const states = await readStates(missing, fullReader)
     expect(states.active).toHaveLength(0)
+    expect(states.finished).toHaveLength(0)
     expect(states.current).toBeNull()
+  })
+
+  test('collects finished (done/merged) runs separately — the farewell transition', async () => {
+    const FINISHED = FULL.replace('- **Goal status:** execute', '- **Goal status:** merged')
+    const reader: FsRead = async (path: string) => {
+      if (path.includes('full')) return FULL
+      if (path.includes('merged')) return FINISHED
+      throw new Error(`no fixture for ${path}`)
+    }
+    const lister: FsList = async () => [
+      { name: 'full.state.md', kind: 'file' },
+      { name: 'merged.state.md', kind: 'file' },
+    ]
+    const states = await readStates(lister, reader)
+    expect(states.active.map(run => run.feat)).toEqual(['full'])
+    expect(states.finished.map(run => run.feat)).toEqual(['merged'])
+    expect(states.finished[0]?.status).toBe('merged')
   })
 })
 

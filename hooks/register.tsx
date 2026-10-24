@@ -113,21 +113,36 @@ export const register: Register = on => {
     if (e.agentId === undefined || e.agentId === null) {
       const states = await readRunStates($)
 
-      for (const toast of toastsFor(states.active, lastKnown)) {
+      // The previous statuses, captured before the cache overwrites — the
+      // farewell close needs the transition (prev ≠ current), not a
+      // steady-state read.
+      const prev = lastKnown
+      for (const toast of toastsFor(states.active, prev)) {
         $.ui.toast(toast)
+      }
+      // A run that just reached done/merged also toasts — it left the active
+      // list, so toastsFor can't see it (the merged → done close-out flip).
+      for (const run of states.finished) {
+        const was = prev[run.feat]
+        if (was !== undefined && was !== run.status) {
+          $.ui.toast(`dev-flow: ${run.feat} ${was} → ${run.status} (step ${stepOf(run.status)}/11)`)
+        }
       }
       lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
 
       await $.ui.status(statusLine(states.current, new Date()))
 
-      // Farewell close: only on the flip into done/merged, never steady-state
-      // reads — a pane the person re-opened persists showing the final state.
-      if (states.current !== null && (states.current.status === 'done' || states.current.status === 'merged')) {
-        if (!farewelled && lastKnown[states.current.feat] !== undefined) {
-          await $.ui.close({ id: PANE })
-          $.ui.toast(`dev-flow: ${states.current.feat} finished — pane closed.`)
-          farewelled = true
-        }
+      // Farewell close: only on the flip into done/merged (the run was seen
+      // in an earlier status last turn), never on a steady-state read — a
+      // session that starts on a finished run, or a pane the person
+      // re-opened, persists untouched.
+      const justFinished = states.finished.find(
+        run => prev[run.feat] !== undefined && prev[run.feat] !== run.status,
+      )
+      if (justFinished !== undefined && !farewelled) {
+        await $.ui.close({ id: PANE })
+        $.ui.toast(`dev-flow: ${justFinished.feat} finished — pane closed.`)
+        farewelled = true
       } else {
         farewelled = false
       }
@@ -171,7 +186,7 @@ export const register: Register = on => {
         </Text>
         {LifecycleStrip(Box, Text, stepOf(run.status))}
         <Text dimColor>
-          Tasks {run.tasksDone}/{run.tasksTotal} · {run.issue || '—'} → {run.branch || 'dev'} · next: {nextOf(run.status)}
+          Tasks {run.tasksDone}/{run.tasksTotal} · {run.issue || '—'} → {run.branch || '—'} · next: {nextOf(run.status)}
         </Text>
         <Box>
           {CloseButton($, Button)}

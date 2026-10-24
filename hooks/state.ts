@@ -45,11 +45,16 @@ export type Run = {
 /** The fs seams the parser needs, as parameters — `$` stays in the hooks module. */
 export type FsList = (path?: string) => Promise<{ name: string; kind: 'file' | 'dir' | 'other' }[]>
 export type FsRead = (path: string) => Promise<string>
+// Note (spec A5 deviation): no mtime memoization — the engine's list seam
+// carries no mtime, and the measured cost (a few KB of local reads per turn)
+// didn't justify a caller-side cache. Revisit if state dirs grow large.
 
 export type RunStates = {
-  /** All non-done runs, newest-mtime first (mtime supplied by the caller's list). */
+  /** All non-done runs, newest-updated first. */
   active: Run[]
-  /** The newest-mtime non-done run — the run the session surfaces. */
+  /** Runs that just finished (done or merged) — the farewell transition needs them. */
+  finished: Run[]
+  /** The newest-updated non-done run — the run the session surfaces. */
   current: Run | null
 }
 
@@ -165,18 +170,21 @@ export function stepOf(status: GoalStatus): number {
 /**
  * Read every state file through injected fs calls. Unreadable or malformed
  * files are skipped; a missing state dir means no runs (most sessions run
- * outside a dev-flow feature). Active = every non-done run; the current run
- * is the newest-updated one (the index is derived data — never a dependency).
+ * outside a dev-flow feature). Active = every non-done run; finished = the
+ * done/merged ones (the farewell transition lives on them); the current run
+ * is the newest-updated non-done one (the index is derived data — never a
+ * dependency).
  */
 export async function readStates(list: FsList, read: FsRead): Promise<RunStates> {
   let entries: { name: string; kind: 'file' | 'dir' | 'other' }[]
   try {
     entries = await list(STATE_DIR)
   } catch {
-    return { active: [], current: null }
+    return { active: [], finished: [], current: null }
   }
 
   const runs: Run[] = []
+  const finished: Run[] = []
   for (const entry of entries) {
     if (entry.kind !== 'file' || !entry.name.endsWith('.state.md') || entry.name === '.state.md') continue
     let text: string
@@ -186,11 +194,13 @@ export async function readStates(list: FsList, read: FsRead): Promise<RunStates>
       continue
     }
     const run = parseState(entry.name, text)
-    if (run !== null && run.status !== 'done') runs.push(run)
+    if (run === null) continue
+    if (run.status === 'done' || run.status === 'merged') finished.push(run)
+    else runs.push(run)
   }
 
-  // newest-mtime first: Updated is the file's own clock (A6 — never the index)
+  // newest-updated first: Updated is the file's own clock (A6 — never the index)
   const active = runs.sort((a, b) => (a.updated < b.updated ? 1 : -1))
 
-  return { active, current: active[0] ?? null }
+  return { active, finished, current: active[0] ?? null }
 }
