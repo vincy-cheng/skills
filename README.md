@@ -109,9 +109,39 @@ By default it creates five self-contained documents: `README.md`, `research.md`,
 
 Before creating files, the command discusses and grills the idea, summarizes the decisions, and gets your explicit go-ahead. To build from the resulting folder, run `/new-feature ideas/<slug>`; the workflow uses the folder as its brief and links it from the GitHub issue.
 
+## Session help
+
+The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces run state in your session, reading `docs/features/.feature-states/` live. Three behaviors:
+
+- **Status line (ambient):** `dev-flow: <feat> · step 6/11 · test · 45m` — the current run, its step, and how long the step has been running. Updated at session start and after every turn; cleared when no run is active. Duration comes from the state file's `Status since:` field; state files written before that field existed show no duration.
+- **`/flow` pane (on-demand):** type `/flow` to open a compact card of the current run — step and status, an 11-step lifecycle strip, tasks/issue/branch refs, and the next step with the skill that runs it. To resume a stale run from a fresh session, type `/new-feature resume`. No active run → a hint to start one with `/new-feature <idea>`. When the run finishes (`done`/`merged`), the pane closes itself with a farewell toast; a pane you re-open after that stays open showing the final state.
+- **Step toast:** when a run's Goal status flips between turns — `dev-flow: <feat> execute → test (step 6/11)`.
+
+**Opening and closing the pane:** the `/flow` command opens it. The pane carries its own **`[ Close ]` button** — the reliable path, and the one that works mid-response (the host's `Esc` interrupts a running response before it closes anything). `Esc` closes the pane when it holds focus, between turns; some hosts also offer the frame's close mark or `ctrl+x x`. The mod never opens a pane on its own.
+
+**Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (side) pane needs the fullscreen transcript — Ctrl+O toggles it there; otherwise the pane sits inline above the prompt. On other hosts the surface decides; the plugin has no placement setting.
+
+**The 11 steps**, for reference (the status line and pane show these):
+
+| Step | Status | Skill that advances it |
+|------|--------|------------------------|
+| 1 | brainstorm | `dev-flow:brainstorm` |
+| 2 | spec | (brainstorm's approval writes the spec) |
+| 3 | planning | `dev-flow:plan` |
+| 4 | issue | `dev-flow:create-github-issue` |
+| 5 | execute | `dev-flow:execute-tasks` |
+| 6 | test | `dev-flow:test` |
+| 7 | review | `dev-flow:review` |
+| 8 | doc-fix | `dev-flow:doc-fix` |
+| 9 | pr-review | `dev-flow:open-pr` |
+| 10 | merged | (manual merge, confirmed) |
+| 11 | done | close-out via `/new-feature` |
+
+**Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).
+
 ## Repository guide
 
-- Repo root = plugin root: `skills/`, `commands/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
+- Repo root = plugin root: `skills/`, `commands/`, `hooks/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
 - `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
 - `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`

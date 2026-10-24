@@ -80,7 +80,7 @@ The two checks:
 ## Act on the verdict (orchestrator)
 
 - **Green** → update the state file's **Last verification** from the tester's result; hand back to the orchestrator for step 7 (review).
-- **Red** → re-set **Goal status** to `execute` (red-loop rewind); surface the blockers; return to step 5 with the findings. Fix, then re-run test with a **fresh tester subagent** (not the same one).
+- **Red** → re-set **Goal status** to `execute` (red-loop rewind) — with the `Status since:` timestamp (third write of the status-transition protocol); surface the blockers; return to step 5 with the findings. Fix, then re-run test with a **fresh tester subagent** (not the same one).
 
 Keep the report file. Never delete or overwrite — archive per the re-run rule so the history of red→green loops stays readable.
 

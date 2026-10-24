@@ -9,7 +9,7 @@ Pre-PR doc gate: the work is done and reviewed; before the PR opens, close the l
 
 ## Gate (dev-flow, step 8)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `review` before starting, and set it to `doc-fix` before scanning. Don't advance further — step 9 (open PR) sets `pr-review`. If the status isn't `review`, stop — a step was skipped — and tell the user which step to run. No state file (standalone) → see *Standalone mode* below.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `review` before starting, and set it to `doc-fix` before scanning — with the `Status since:` timestamp (third write of the status-transition protocol). Don't advance further — step 9 (open PR) sets `pr-review`. If the status isn't `review`, stop — a step was skipped — and tell the user which step to run. No state file (standalone) → see *Standalone mode* below.
 
 ## What to scan, in order of drift likelihood
 
