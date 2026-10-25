@@ -7,6 +7,3 @@ execution:
   allowed_tools:
     - Write
     - Edit
-    - Read
-    - Glob
-    - Grep

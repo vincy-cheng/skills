@@ -1,6 +1,6 @@
 Standardize the terms in this spec. No fixture file exists — the doc is given inline below; work from the text under the fence and propose edits to it:
 
-```markdown
+````markdown
 ---
 title: Slug cache
 status: draft
@@ -36,4 +36,4 @@ def lookup(slug):
 ## Acceptance
 
 The component verifies the slug before the cache returns the identifier.
-```
+````
