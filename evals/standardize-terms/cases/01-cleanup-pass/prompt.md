@@ -1,4 +1,4 @@
-Standardize the terms in this spec. The doc is at specs/2026-10-01-slug-cache-design.md in the workspace and reads exactly:
+Standardize the terms in this spec. No fixture file exists — the doc is given inline below; work from the text under the fence and propose edits to it:
 
 ```markdown
 ---

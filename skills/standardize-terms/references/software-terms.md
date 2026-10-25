@@ -28,6 +28,12 @@ Frozen entries are absolute — never rewritten in a cleanup pass.
 - **parameter** — for values passed into a function; not "argument" and
   "parameter" interchangeably in the same doc.
 - **endpoint** — an HTTP route; not "route" and "endpoint" mixed.
+- **branch** — a git branch; "fork" only for a whole repository copy.
+- **commit** — a recorded change; not "commit" and "check-in" both.
+- **pipeline** — an automated build/test/deploy chain; not "pipeline" and
+  "workflow" for the same chain in one doc.
+- **hook** — a callback wired into a lifecycle event; not "hook" and
+  "trigger" interchangeably (reserve "trigger" for database/event firing).
 - **identifier** — a stable name for an entity; not "id", "key", and
   "identifier" for the same field in different sections.
 - **user** — a human account; not "user" and "customer" and "account
