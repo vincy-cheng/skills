@@ -1,0 +1,12 @@
+schema_version: "1.0"
+name: 01-cleanup-pass
+description: A prose-dirty spec must produce guided rewrite proposals covering violation classes, then apply on confirmation — never touching never-touch regions
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Write
+    - Edit
+    - Read
+    - Glob
+    - Grep
