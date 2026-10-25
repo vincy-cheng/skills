@@ -365,21 +365,21 @@ PY
 )
 if [ -z "$gate26_errs" ]; then ok "Status-since timing protocol present (gate rule + template + every flip site)"; else bad "status-since protocol missing:$gate26_errs"; fi
 
-# standardize-terms skill: frontmatter, references, ASD attribution, frozen modals.
-STE_SKILL="skills/standardize-terms/SKILL.md"
+# standardize-prose skill: frontmatter, references, ASD attribution, frozen modals.
+STE_SKILL="skills/standardize-prose/SKILL.md"
 ste_errs=""
 if [ ! -f "$STE_SKILL" ]; then
   ste_errs=" $STE_SKILL:missing"
 else
-  $G -q '^name: standardize-terms' "$STE_SKILL" || ste_errs="$ste_errs ste:no-name"
+  $G -q '^name: standardize-prose' "$STE_SKILL" || ste_errs="$ste_errs ste:no-name"
   $G -q 'Aerospace, Security and Defence Industries' "$STE_SKILL" || ste_errs="$ste_errs ste:no-attribution"
   $G -q 'shall, must, will, may' "$STE_SKILL" || ste_errs="$ste_errs ste:no-frozen-modals"
 fi
 for ref in writing-rules.md software-terms.md; do
-  REF="skills/standardize-terms/references/$ref"
+  REF="skills/standardize-prose/references/$ref"
   { [ -f "$REF" ] && $G -q 'Aerospace, Security and Defence Industries' "$REF"; } || ste_errs="$ste_errs ste:ref-$ref"
 done
-[ -z "$ste_errs" ] && ok "standardize-terms skill present with attribution + frozen-modals anchors" || bad "standardize-terms broken:$ste_errs"
+[ -z "$ste_errs" ] && ok "standardize-prose skill present with attribution + frozen-modals anchors" || bad "standardize-prose broken:$ste_errs"
 
 # prose-quality rule blocks in brainstorm and plan (upstream track)
 pq_errs=""

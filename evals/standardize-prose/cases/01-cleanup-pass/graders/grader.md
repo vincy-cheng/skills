@@ -2,7 +2,7 @@
 type: llm
 ---
 You are grading a single-turn response from an agent that may or may not have
-the `standardize-terms` skill loaded. Grade in two layers, in order. Be strict
+the `standardize-prose` skill loaded. Grade in two layers, in order. Be strict
 and binary — no vibe scores.
 
 ## Layer 1 — Behavior (binary, must ALL pass)

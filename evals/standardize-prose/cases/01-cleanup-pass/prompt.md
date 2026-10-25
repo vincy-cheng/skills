@@ -1,4 +1,4 @@
-Standardize the terms in this spec. No fixture file exists — the doc is given inline below; work from the text under the fence and propose edits to it:
+Standardize the prose in this spec. No fixture file exists — the doc is given inline below; work from the text under the fence and propose edits to it:
 
 ````markdown
 ---

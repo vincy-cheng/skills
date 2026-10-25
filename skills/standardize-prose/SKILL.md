@@ -1,5 +1,5 @@
 ---
-name: standardize-terms
+name: standardize-prose
 description: Standardize the prose language of a dev-flow spec or plan for human readers — a guided cleanup pass adapted from ASD-STE100 Simplified Technical English. Use when the user says "standardize this spec/plan", "clean up the language in this doc", "fix the terminology drift", or names a doc to polish. Standalone — never part of the dev-flow step pipeline. Rewrites prose only; never touches code blocks, Mermaid, tables, file paths, identifiers, Risk lines, checkbox lines, or the frozen modals shall/must/will/may.
 ---
 
