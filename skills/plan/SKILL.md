@@ -63,6 +63,17 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 - **Issue material** — each task carries an acceptance fragment the issue can lift directly.
 - **Verification per task** — name the command that proves the task done (the repo's suite, a grep, a lint run).
 
+## Prose quality (plan text)
+
+Plans are read by humans at every checkpoint. Write them under these rules:
+
+- Active voice preferred; a deliberate passive with an unspecified agent stays passive — never invent an agent.
+- One term per concept — no synonym drift within the plan (a component is never also a module).
+- Frozen modals — shall, must, will, may carry distinct force; never swap one for another.
+- Sentences ≲ 20 words, one idea per sentence.
+- No vague quantifiers ("several", "appropriate") — the concrete number, or the named thing.
+- Task lines stay verbatim-copyable — style rewrites never touch them, nor the `Risk:` lines.
+
 ## Self-review
 
 Before presenting the plan, check it with fresh eyes and fix inline: every task has a `Risk:` line (a task missing one is a fail-closed defect, not a default-low — fix it before the plan is presented); no placeholders ("TBD", "TODO"); the Flow Chart's nodes match the `### Task N` headings and their files match the `**Files:**` blocks; the task list is clean `- [ ]` lines, copyable verbatim.

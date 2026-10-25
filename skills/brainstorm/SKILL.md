@@ -126,6 +126,16 @@ docs/features/specs/YYYY-MM-DD-<feat-name>-design.md
 
 (dev-flow conventions: always under `docs/features/` — never `docs/superpowers/`; the spec is never committed.)
 
+### Prose quality (spec text)
+
+Specs are read by humans at every checkpoint. Write them under these rules:
+
+- Active voice preferred; a deliberate passive with an unspecified agent stays passive — never invent an agent.
+- One term per concept — no synonym drift within the spec (a component is never also a module).
+- Frozen modals — shall, must, will, may carry distinct force; never swap one for another.
+- Sentences ≲ 20 words, one idea per sentence.
+- No vague quantifiers ("several", "appropriate") — the concrete number, or the named thing.
+
 Then self-review the spec with fresh eyes, fixing inline:
 
 1. **Placeholder scan:** any "TBD", "TODO", incomplete sections, vague requirements?

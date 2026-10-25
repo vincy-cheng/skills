@@ -100,6 +100,7 @@ These skills can also run on their own. The test skill uses each target reposito
 | `commit` skill | Write Conventional Commit messages without AI attribution |
 | `document-structure` skill | Generate or update agent-facing documentation in a target repo's `docs/agents/` |
 | `whats-new` skill | Summarize recent work and check for documentation drift |
+| `standardize-prose` skill | Standardize spec/plan prose for human readers (adapted from ASD-STE100, guided, standalone) |
 
 ## `/new-idea`: capture an idea before building
 
@@ -155,3 +156,5 @@ The `dev-flow` workflow and its early planning engine were inspired by [obra/sup
 The `tdd` skill's **seams** concept (testing at public boundaries rather than internals) comes from Kent Beck's *Test-Driven Development: By Example*, encountered through Matt Pocock's skill collections ([mattpocock-skills](https://github.com/mattpocock/skills)).
 
 The `review` skill's clean-code pass draws on Robert C. Martin's *Clean Code*, [wojteklu's clean-code checklist](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29), and the r/cleancode community guide; it is housed at `skills/review/references/clean-code.md`.
+
+The `standardize-prose` skill's writing rules are adapted in spirit from ASD-STE100 Simplified Technical English Issue 9, owned by ASD — Aerospace, Security and Defence Industries Association of Europe; the skill paraphrases the rules and ships no STE text ([official PDF](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf)).

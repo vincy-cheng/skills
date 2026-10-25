@@ -364,3 +364,27 @@ for rel in ("skills/create-github-issue/SKILL.md", "skills/execute-tasks/SKILL.m
 PY
 )
 if [ -z "$gate26_errs" ]; then ok "Status-since timing protocol present (gate rule + template + every flip site)"; else bad "status-since protocol missing:$gate26_errs"; fi
+
+# standardize-prose skill: frontmatter, references, ASD attribution, frozen modals.
+STE_SKILL="skills/standardize-prose/SKILL.md"
+ste_errs=""
+if [ ! -f "$STE_SKILL" ]; then
+  ste_errs=" $STE_SKILL:missing"
+else
+  $G -q '^name: standardize-prose' "$STE_SKILL" || ste_errs="$ste_errs ste:no-name"
+  $G -q 'Aerospace, Security and Defence Industries' "$STE_SKILL" || ste_errs="$ste_errs ste:no-attribution"
+  $G -q 'shall, must, will, may' "$STE_SKILL" || ste_errs="$ste_errs ste:no-frozen-modals"
+fi
+for ref in writing-rules.md software-terms.md; do
+  REF="skills/standardize-prose/references/$ref"
+  { [ -f "$REF" ] && $G -q 'Aerospace, Security and Defence Industries' "$REF"; } || ste_errs="$ste_errs ste:ref-$ref"
+done
+[ -z "$ste_errs" ] && ok "standardize-prose skill present with attribution + frozen-modals anchors" || bad "standardize-prose broken:$ste_errs"
+
+# prose-quality rule blocks in brainstorm and plan (upstream track)
+pq_errs=""
+for sk in skills/brainstorm/SKILL.md skills/plan/SKILL.md; do
+  $G -qi 'one term per concept' "$sk" || pq_errs="$pq_errs ${sk}:no-prose-block"
+  $G -qi 'never swap' "$sk" || pq_errs="$pq_errs ${sk}:no-frozen-modals-rule"
+done
+[ -z "$pq_errs" ] && ok "brainstorm + plan carry prose-quality rule blocks" || bad "prose blocks missing:$pq_errs"
