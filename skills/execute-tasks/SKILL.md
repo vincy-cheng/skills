@@ -1,6 +1,6 @@
 ---
 name: execute-tasks
-description: "Use to execute a dev-flow plan task by task. This is step 5 of the dev-flow workflow — work the plan's tasks with TDD (failing test → implement → green → commit per task), updating the state file as you go. Two modes: inline (default, runs in this session) or subagent (dispatches a fresh implementer subagent per task, for isolation on larger work). Can be invoked standalone if a plan and state file already exist."
+description: "Use to execute a dev-flow plan task by task. This is step 5 of the dev-flow workflow — work the plan's tasks with TDD (failing test → implement → green → commit per task), updating the state file as you go. The Implementer dispatches per the state file's Roles block lane: inline (runs in this session), session, claude:<name>, or cli:<tool>/<model> (external CLI via thin-driver). Can be invoked standalone if a plan and state file already exist."
 ---
 
 # Execute tasks
@@ -9,9 +9,20 @@ Run the plan's tasks one by one, with TDD. Commit per task. Keep the state file 
 
 ## Gate (dev-flow step 5)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `issue` and set it to `execute` before starting. If not `issue`, stop — a step was skipped — and tell the user which step to run.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `issue` and set it to `execute` before starting — with the `Status since:` timestamp (third write of the status-transition protocol). If not `issue`, stop — a step was skipped — and tell the user which step to run.
 
 Then **verify the branch before any work**: the current branch (`git branch --show-current`) must equal the state file's **Base branch** (the `feat/<n>-<name>` / `fix/<n>-<name>` branch step 4 created). Mismatch → stop and ask — don't switch or commit anything yourself; the user may have uncommitted work where they are. Executing on the wrong branch commits another branch's history into the run — this check is cheap and prevents the most damaging silent mistake in the flow. No state file (standalone) → require a plan path from the user; proceed without the gate.
+
+## Before starting
+
+Dev-flow mode — read the state file's **Roles block** (the Implementer line) before any task work:
+
+- Block has an Implementer lane value (`inline`, `session`, `claude:<name>`, `cli:<tool>/<model>`) → dispatch per `## Model routing`.
+- Block missing, empty, or the Implementer line absent → **stop; report "step 5's combined Roles ask was skipped"** — do not do any task work, do not re-ask from this skill. Return to new-feature step 5 (the orchestrator asks and writes the picks, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
+- Malformed lane value (unknown syntax) → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
+- Pre-Roles state file (no `## Roles` block): apply the upgrade mapping in new-feature's field rules (old `Implementer mode: inline` → `inline`; old `subagent` no-model → `session`; old `subagent` + model → `claude:<name>`) — read-only, never migrated on disk.
+
+Standalone mode (no state file) → there is no step 5 to return to; this skill asks the Implementer lane itself in `## Choose a mode` below.
 
 ## What you need before starting
 
@@ -21,17 +32,25 @@ Then **verify the branch before any work**: the current branch (`git branch --sh
 
 ## Choose a mode
 
-Read the plan's signal first, **recommend** a mode with one line of reasoning, then offer the user an override. Don't punt the choice unguided — but still ask on **every** entry (including when step 4 was skipped, the plan is small, or the run resumed mid-execute; a small or markdown-only plan is not an exemption). Lead with the recommendation, not a bare "which mode?".
+**Dev-flow mode: the Implementer lane is already decided** — the orchestrator asked at step 5 (combined Roles ask) and wrote it to the state file's Roles block; `## Before starting` read it. Do not ask again. This section's recommendation logic ran at step 5 (the orchestrator read the same signal); resume reads the stored pick and proceeds without re-asking.
+
+**Standalone mode (no state file): ask here.** Read the plan's signal first, **recommend** an Implementer lane (`inline`, or a subagent lane — `session` by default) with one line of reasoning, then offer the user an override. Don't punt the choice unguided — and don't skip the ask (a small or markdown-only plan is not an exemption). Lead with the recommendation, not a bare "which mode?".
 
 Signal to read: **task count**, **file spread** (how many files the tasks touch), **task coupling** (do later tasks depend on earlier tasks' exact symbols/wording?).
 
-- **Inline** when ≤3 tasks, docs-only/markdown edits (no test cycle to isolate), or tightly-coupled tasks (subagent isolation *hurts* here); simplest, and you stay in the loop.
-- **Subagent** when ≥5 tasks, many files, or genuinely independent tasks (per-task context isolation is a feature). For each task, dispatch a fresh implementer with only that task's brief, then review its work yourself before committing. Independence routes a task to subagent mode for **context isolation only** — it is never license for parallel dispatch (one implementer at a time, always).
-- **Ambiguous middle** → recommend **inline** (staying in the loop wins when the signal is mixed) but name the tradeoff: subagent buys isolation at the cost of context handoff overhead.
+- **`inline`** when ≤3 tasks, docs-only/markdown edits (no test cycle to isolate), or tightly-coupled tasks (subagent isolation *hurts* here); simplest, and you stay in the loop.
+- **A subagent lane** (`session`, `claude:<name>`, `cli:<tool>/<model>`) when ≥5 tasks, many files, or genuinely independent tasks (per-task context isolation is a feature). For each task, dispatch a fresh implementer with only that task's brief, then review its work yourself before committing. Independence routes a task to subagent dispatch for **context isolation only** — it is never license for parallel dispatch (one implementer at a time, always).
+- **Ambiguous middle** → recommend **`inline`** (staying in the loop wins when the signal is mixed) but name the tradeoff: subagent dispatch buys isolation at the cost of context handoff overhead.
 
-Example: "4 tasks, all in `new-feature.md` (one file, tightly coupled — each edit builds on the prior's wording) → inline. Override to subagent?"
+Example: "4 tasks, all in `new-feature.md` (one file, tightly coupled — each edit builds on the prior's wording) → inline. Override to a subagent lane?"
 
-**Implementer model (subagent mode only).** When the user picks **subagent mode**, also ask the **Implementer model** (default: same as the current session) and write it to the state file's **Model picks** block — one pick for all per-task implementer subagents. Inline mode → write `_(inline — not asked)_` to the **Model picks** block. This is the Build phase's one model pick; the Verify phase's **Verifier model** is asked separately at step 6.
+## Model routing
+
+Lane semantics, the `claude:<name>` resolution rule, availability checks, and the thin-driver flow live in `references/model-routing.md` — the single source; this skill does not re-derive them.
+
+- **`inline`** → the shared per-task loop runs in this session; no dispatch.
+- **`session` / `claude:<name>`** → the "Subagent dispatch" loop below, dispatching via the Agent tool with the resolution rule's model-param / agent-type shape.
+- **`cli:<tool>/<model>`** (v1: `cli:codex/<model>`) → the same loop with the thin-driver flow: the brief + report contract copied verbatim from this skill's own dispatch/report sections into `docs/features/.routing/<feat>/`, the CLI run from the driver subagent, the external model writing the implementer report (containing the RED-phase test output verbatim) to the same `task-N-report.md` path. **The external model never commits** — the driver scopes the diff and commits via `dev-flow:commit`. Sandbox: `workspace-write` per the routing doc's map. Availability checks fail (binary, auth, Bash) → BLOCKED stop-and-ask, never a silent downgrade.
 
 The rest of this skill has a shared core (state-file updates, stuck handling, after-all-tasks) plus a per-task loop that differs by mode.
 
@@ -57,7 +76,7 @@ For each unchecked task, in order:
 6. **Commit** — stage the task's files explicitly, commit via `dev-flow:commit` (Conventional Commits, no AI attribution). Fallback: follow the same rules inline.
 7. **Update the state file** (shared rules above).
 
-## Subagent mode — per-task loop
+## Subagent dispatch — per-task loop (`session` / `claude:<name>` / `cli:<tool>/<model>`)
 
 Per-task subagent isolation: the implementer sees only its task, you stay clean for coordination. Artifacts (briefs, reports) go under `docs/features/.sdd/<feat-name>/` — gitignored, same folder as everything else, deleted once the plan lands in git.
 
@@ -86,7 +105,7 @@ Keep your own context clean: everything you paste into a dispatch and everything
 ## After all tasks
 
 - Run the **full test + lint suite** one more time. Update **Last verification** — this is the green signal the next step (review → PR) relies on.
-- In subagent mode: delete `docs/features/.sdd/<feat-name>/` — the git history is the record now.
+- In subagent-dispatch lanes (`session`/`claude:`/`cli:`): delete `docs/features/.sdd/<feat-name>/` (and `.routing/<feat>/` on the cli lane) — the git history is the record now.
 - Do **not** open the PR here — that's dev-flow step 9. Do **not** run any branch-finishing skill — this workflow's merge is manual (step 10), not a local merge.
 - Hand back to `/new-feature`: it invokes `dev-flow:test` (step 6) next, then `dev-flow:review` (step 7), then advances to step 8.
 
@@ -97,4 +116,4 @@ Keep your own context clean: everything you paste into a dispatch and everything
 - **No skipping verify-RED** — if you didn't watch the test fail (inline) or the implementer's report doesn't show it failing first (subagent), you don't know it tests the right thing.
 - **No committing a red task** — tests must be green before the commit.
 - **No pushing** — this skill commits only. Push is step 9.
-- **No parallel implementers** (subagent mode) — one at a time, and that's a correctness rule, not a convenience one. Conflicts are only the symptom of a shared tree; even with git-worktree isolation the three real reasons survive: TDD verify-RED attribution (a red test must be attributable to its task — across worktrees, that judgment breaks), per-task commit ordering (each commit gates on the prior task's green suite), and integration (serial — tasks are rarely independent enough to parallelize, and coordinator-side review+commit is serial anyway, so worktrees buy little wall-clock for much correctness risk).
+- **No parallel implementers** (any subagent lane) — one at a time, and that's a correctness rule, not a convenience one. Conflicts are only the symptom of a shared tree; even with git-worktree isolation the three real reasons survive: TDD verify-RED attribution (a red test must be attributable to its task — across worktrees, that judgment breaks), per-task commit ordering (each commit gates on the prior task's green suite), and integration (serial — tasks are rarely independent enough to parallelize, and coordinator-side review+commit is serial anyway, so worktrees buy little wall-clock for much correctness risk).

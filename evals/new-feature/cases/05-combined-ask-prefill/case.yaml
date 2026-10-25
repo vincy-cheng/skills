@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 05-combined-ask-prefill
+description: Reaching dev-flow step 5 with a config-seeded roles table — the orchestrator must present ONE combined ask covering implementer/tester/reviewer with the config values pre-filled, and not dispatch anything yet
+execution:
+  max_turns: 30
+  timeout_seconds: 600

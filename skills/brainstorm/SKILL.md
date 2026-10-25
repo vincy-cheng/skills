@@ -70,6 +70,8 @@ If the path doesn't exist, say so and proceed as a normal fresh start.
 
 Facts are your job, never your human partner's. Before asking design questions, check the current project state: files, docs, recent commits. Anything you could look up yourself, look up — bring findings to the dialogue, don't ask the user for them. Where existing code has problems that affect the work (a file grown too large, unclear boundaries), include targeted improvements as part of the design — but no unrelated refactoring.
 
+Search and research are **read-only**: when the surface is large (many directories, multi-source web research), fan out parallel Explore/research subagents freely. This is the free counterpart to execute-tasks' serial rule — one-at-a-time applies only to tree-mutating implementers, never to reading.
+
 ## The design tree
 
 Map the design as a **tree**: every decision branches into the decisions that hang off it. Work the tree **one question per message**.
@@ -106,7 +108,13 @@ Present the design in sections scaled to their complexity — a few sentences if
 
 **Design for isolation:** break the system into units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently. For each unit you should be able to answer: what does it do, how do you use it, what does it depend on? If you can't change the internals without breaking consumers, the boundaries need work.
 
-**Viability pass — pressure-test before approval.** Before asking your human partner to approve the design, validate that it is actually good to develop. On **architectural** paths this is a fresh-eyes check: spawn a fresh adversarial subagent (same pattern as a fresh reviewer — no model pin; the pick is environment-specific), brief it on the design and the problem it serves, and have it red-team the design: **what breaks, what's over-built, what's the better alternative, does it clear its domain's quality bar** (e.g. UI/UX coherence for frontend designs, latency and error-handling for APIs, data integrity for schemas — the bar the design's own domain sets), **is it solving the right problem — is the idea/direction itself correct, or is there a better target?** Present its findings alongside the design. A *fundamental* finding on any of the five — the design has a real flaw, or solves the wrong problem — **blocks**: restart the design section with that finding addressed before approval is requested. *Minor* findings are advisory: present them as noted risks and let the human partner weigh them at approval time. On **bounded** paths, downgrade to a lightweight self-check: include a one-line "why this could fail or feel wrong" in the design presentation. **Spike** paths are unchanged — a spike's terminal state is a reported recommendation.
+**Viability pass — pressure-test before approval.** Before asking your human partner to approve the design, validate that it is actually good to develop. On **architectural** paths this is a fresh-eyes check: spawn a fresh adversarial subagent (same pattern as a fresh reviewer — model per `## Model routing`; no config `roles.red-team` → no model pin, the pick is environment-specific), brief it on the design and the problem it serves, and have it red-team the design: **what breaks, what's over-built, what's the better alternative, does it clear its domain's quality bar** (e.g. UI/UX coherence for frontend designs, latency and error-handling for APIs, data integrity for schemas — the bar the design's own domain sets), **is it solving the right problem — is the idea/direction itself correct, or is there a better target?** Present its findings alongside the design. A *fundamental* finding on any of the five — the design has a real flaw, or solves the wrong problem — **blocks**: restart the design section with that finding addressed before approval is requested. *Minor* findings are advisory: present them as noted risks and let the human partner weigh them at approval time. On **bounded** paths, downgrade to a lightweight self-check: include a one-line "why this could fail or feel wrong" in the design presentation. **Spike** paths are unchanged — a spike's terminal state is a reported recommendation.
+
+**The viability pass leaves a verifiable artifact in the spec.** Every architectural and bounded spec carries a named `## Viability pass` section: on **architectural** paths it records the red-team subagent's findings (FUNDAMENTAL/MINOR tags and their handling — blocked-and-addressed, or noted-risk); an explicit "dispatched, no findings returned" is the honest minimum if the subagent reports nothing. **When the red-team ran on a configured lane, the section records the model used** (visibility: adversarial review running on an external model must not be silent). On **bounded** paths it holds the one-line self-check ("why this could fail or feel wrong") — shown in the design presentation *and* written into the spec. A spec without its `## Viability pass` section is **not approvable** — the dispatch itself stays prose inside the dialogue, but the spec-doc section is the structural trace that makes a silently-skipped pass visible.
+
+## Model routing
+
+Lane semantics, availability checks, and the thin-driver flow live in `references/model-routing.md` — the single source. The viability red-team reads `roles.red-team` from `.dev-flow/config.json` **silently** (config-only — no state-file line, no ask; unset = today's no-model-pin shape). A configured lane dispatches per the routing doc: `session`/`claude:<name>` via the resolution rule, `cli:<tool>/<model>` via the thin-driver flow (`--sandbox read-only` per the routing doc's sandbox map — the red-team never edits the design, it critiques). Malformed lane value or unavailable lane → BLOCKED stop-and-ask per the routing doc's error contract, never a silent downgrade; on block, the pass falls back to asking the user (a blocked red-team is surfaced, not skipped).
 
 ## Spec output
 
@@ -118,6 +126,16 @@ docs/features/specs/YYYY-MM-DD-<feat-name>-design.md
 
 (dev-flow conventions: always under `docs/features/` — never `docs/superpowers/`; the spec is never committed.)
 
+### Prose quality (spec text)
+
+Specs are read by humans at every checkpoint. Write them under these rules:
+
+- Active voice preferred; a deliberate passive with an unspecified agent stays passive — never invent an agent.
+- One term per concept — no synonym drift within the spec (a component is never also a module).
+- Frozen modals — shall, must, will, may carry distinct force; never swap one for another.
+- Sentences ≲ 20 words, one idea per sentence.
+- No vague quantifiers ("several", "appropriate") — the concrete number, or the named thing.
+
 Then self-review the spec with fresh eyes, fixing inline:
 
 1. **Placeholder scan:** any "TBD", "TODO", incomplete sections, vague requirements?
@@ -125,7 +143,7 @@ Then self-review the spec with fresh eyes, fixing inline:
 3. **Scope check:** focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** could any requirement be read two ways? Pick one and make it explicit.
 
-Then ask your human partner to review the spec file. Changes requested → revise, re-run the self-review, re-present. **The spec is approved when they say so — not when it's written.**
+Then ask your human partner to review the spec file. Changes requested → revise, re-run the self-review, re-present. **The spec is approved when they say so — and it carries its `## Viability pass` section — not when it's written.**
 
 ## Rationalizations
 

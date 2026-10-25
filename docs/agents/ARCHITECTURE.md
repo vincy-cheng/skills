@@ -6,11 +6,12 @@ One plugin — `dev-flow` — a workflow orchestrator driving a feat or fix end-
 
 Single-plugin repo: the repo root **is** the plugin root (official plugin-structure spec; same shape as obra/superpowers). Components live at the top level; host manifests in per-harness dot-dirs:
 
-- `.claude-plugin/plugin.json` — Claude Code metadata (version `0.2.1`, fully self-contained — no peer dependencies).
+- `.claude-plugin/plugin.json` — Claude Code metadata (version `0.3.2`, fully self-contained — no peer dependencies).
 - `.codex-plugin/plugin.json` — portable Codex plugin identity and metadata; its `"skills": "./skills/"` pointer packages the shared skills.
 - `.agents/plugins/marketplace.json` — repo-local Codex marketplace; its `"./"` source points at the repo root (the plugin root).
 - `commands/` — Claude slash commands (YAML `description` + body, `$ARGUMENTS`): `new-feature.md` (`/new-feature`, the orchestrator), `new-idea.md` (`/new-idea`), `bootstrap.md` (`/bootstrap`, one-command repo setup).
-- `skills/` — shared skills (YAML `name`/`description` + body), including `new-feature/` (the orchestrator — single source of the gated workflow; `commands/new-feature.md` is a thin wrapper delegating to it), `commit/`, `create-github-issue/`, `execute-tasks/`, `plan/`, `tdd/`, `test/`, `review/`, `doc-fix/`, `open-pr/`, `document-structure/`, `whats-new/`, `bootstrap/`, and `new-idea/`.
+- `skills/` — shared skills (YAML `name`/`description` + body), including `new-feature/` (the orchestrator — single source of the gated workflow; `commands/new-feature.md` is a thin wrapper delegating to it), `commit/`, `create-github-issue/`, `execute-tasks/`, `plan/`, `tdd/`, `test/`, `review/`, `doc-fix/`, `open-pr/`, `document-structure/`, `whats-new/`, `standardize-prose/`, `bootstrap/`, and `new-idea/`.
+- `references/` — per-skill reference docs shared across skills: `model-routing.md` (the single source for role-level model lanes, dispatch shapes, and the error contract that `execute-tasks`/`test`/`review`/`brainstorm` point at); packaged via the Codex manifest's `"references"` pointer.
 - `evals/` — behavioral evals per skill, run manually with `claude plugin eval`.
 
 ## The pipeline
@@ -19,19 +20,19 @@ Single-plugin repo: the repo root **is** the plugin root (official plugin-struct
 
 ## The hard gate (backbone)
 
-Each step reads the state file's **Goal status** on entry, refuses to run unless it matches the expected incoming status, then sets the current status *before* the work — so a sub-skill handoff that jumps ahead bounces back. The step→incoming→sets table lives in both orchestrators; keep them aligned. A status change is **two writes in one breath**: the per-feature state file's Goal status **and** the index row (status + timestamp).
+Each step reads the state file's **Goal status** on entry, refuses to run unless it matches the expected incoming status, then sets the current status *before* the work — so a sub-skill handoff that jumps ahead bounces back. The step→incoming→sets table lives in both orchestrators; keep them aligned. A status change is **three writes in one breath**: the per-feature state file's Goal status, **and** the index row (status + timestamp), **and** the state file's `Status since` timestamp (the timing source for the session-help hooks).
 
 ## State files (source of truth)
 
 `docs/features/.feature-states/` (gitignored, never committed):
-- `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Goal status, Kind, Last verification, Tasks, References.
+- `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Status since (timing source for session-help), Base/Target branch, Goal status, Kind, Last verification, Risk tier, Focused verdict, a `## Roles` block (Implementer/Tester/Reviewer lanes — the step-5 combined ask writes them; sub-skill entry read-gates stop when missing), Tasks, References.
 - `.state.md` — index (dot-prefixed, sorts to top): `Feat-name | Kind | Status | Issue | Updated | Branch`, newest first; top non-`done` row is the current run; `Issue` is `—` until step 4, then `#NN`.
 
 Resume: read the index, jump to the step matching Goal status. Only `done` is finished; `merged` still has close-out pending.
 
 ## Fully self-contained
 
-`dev-flow` runs step 1 with its own `brainstorm` skill and step 3 with its own contract-first `plan` skill. The TDD loop is dev-flow's own `tdd` skill, invoked by `execute-tasks` per task (step 5). No step invokes another plugin's skills; `plugin.json` declares no peer dependencies. Files under `docs/features/` (never `docs/superpowers/`), specs/plans/state never committed, step order governed solely by the hard gate. The standalone skills (`document-structure`, `whats-new`, `new-idea`) are not gated — `bootstrap` joins them: it prepares a repo for dev-flow (gitignore, gh-auth check, branch config persisted to `.dev-flow/config.json`, agent docs via `document-structure`) without ever entering the step lifecycle.
+`dev-flow` runs step 1 with its own `brainstorm` skill and step 3 with its own contract-first `plan` skill. The TDD loop is dev-flow's own `tdd` skill, invoked by `execute-tasks` per task (step 5). No step invokes another plugin's skills; `plugin.json` declares no peer dependencies. Files under `docs/features/` (never `docs/superpowers/`), specs/plans/state never committed, step order governed solely by the hard gate. The standalone skills (`document-structure`, `whats-new`, `standardize-prose`, `new-idea`) are not gated — `bootstrap` joins them: it prepares a repo for dev-flow (gitignore, gh-auth check, branch config persisted to `.dev-flow/config.json`, agent docs via `document-structure`) without ever entering the step lifecycle. `brainstorm` and `plan` also carry prose-quality rule blocks for the specs and plans they write; `standardize-prose` is the standalone prose-cleanup pass for existing docs, adapted in spirit from ASD-STE100 Issue 9 (owned by ASD — Aerospace, Security and Defence Industries Association of Europe; paraphrased, no STE text shipped).
 
 ---
-last updated 2026-10-06 — generated by the document-structure skill
+last updated 2026-10-25 — generated by the document-structure skill

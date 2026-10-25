@@ -60,7 +60,9 @@ flowchart TD
     test -- red --> execute
     test -- green --> review[7 review gate]
     review -- red --> execute
-    review -- blue --> docfix[8 doc-fix]
+    review -- blue --> bluechoice{Fix blue findings?}
+    bluechoice -- yes --> execute
+    bluechoice -- no, note in PR --> docfix
     review -- yellow --> choice{Fix findings now?}
     choice -- yes --> execute
     choice -- no, note in PR --> docfix
@@ -79,10 +81,10 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | `brainstorm` | 1 | Work through the design and write an approved spec |
 | `plan` | 3 | Turn the spec into a contract-first implementation plan |
 | `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
-| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; inline or subagent mode |
+| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>) |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
-| `test` | 6 | Fresh tester subagent runs the repo's test and lint commands and scans changed tests for honesty |
-| `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability |
+| `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
+| `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
 | `doc-fix` | 8 | Find and fix documentation drift caused by the run |
 | `open-pr` | 9 | Open a pull request targeting the state file's Target branch and sync the issue; never merges |
 
@@ -98,6 +100,7 @@ These skills can also run on their own. The test skill uses each target reposito
 | `commit` skill | Write Conventional Commit messages without AI attribution |
 | `document-structure` skill | Generate or update agent-facing documentation in a target repo's `docs/agents/` |
 | `whats-new` skill | Summarize recent work and check for documentation drift |
+| `standardize-prose` skill | Standardize spec/plan prose for human readers (adapted from ASD-STE100, guided, standalone) |
 
 ## `/new-idea`: capture an idea before building
 
@@ -107,11 +110,41 @@ By default it creates five self-contained documents: `README.md`, `research.md`,
 
 Before creating files, the command discusses and grills the idea, summarizes the decisions, and gets your explicit go-ahead. To build from the resulting folder, run `/new-feature ideas/<slug>`; the workflow uses the folder as its brief and links it from the GitHub issue.
 
+## Session help
+
+The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces run state in your session, reading `docs/features/.feature-states/` live. Three behaviors:
+
+- **Status line (ambient):** `dev-flow: <feat> · step 6/11 · test · 45m` — the current run, its step, and how long the step has been running. Updated at session start and after every turn; cleared when no run is active. Duration comes from the state file's `Status since:` field; state files written before that field existed show no duration.
+- **`/flow` pane (on-demand):** type `/flow` to open a compact card of the current run — step and status, an 11-step lifecycle strip, tasks/issue/branch refs, and the next step with the skill that runs it. To resume a stale run from a fresh session, type `/new-feature resume`. No active run → a hint to start one with `/new-feature <idea>`. When the run finishes (`done`/`merged`), the pane closes itself with a farewell toast; a pane you re-open after that stays open showing the final state.
+- **Step toast:** when a run's Goal status flips between turns — `dev-flow: <feat> execute → test (step 6/11)`.
+
+**Opening and closing the pane:** the `/flow` command opens it. The pane carries its own **`[ Close ]` button** — the reliable path, and the one that works mid-response (the host's `Esc` interrupts a running response before it closes anything). `Esc` closes the pane when it holds focus, between turns; some hosts also offer the frame's close mark or `ctrl+x x`. The mod never opens a pane on its own.
+
+**Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (side) pane needs the fullscreen transcript — Ctrl+O toggles it there; otherwise the pane sits inline above the prompt. On other hosts the surface decides; the plugin has no placement setting.
+
+**The 11 steps**, for reference (the status line and pane show these):
+
+| Step | Status | Skill that advances it |
+|------|--------|------------------------|
+| 1 | brainstorm | `dev-flow:brainstorm` |
+| 2 | spec | (brainstorm's approval writes the spec) |
+| 3 | planning | `dev-flow:plan` |
+| 4 | issue | `dev-flow:create-github-issue` |
+| 5 | execute | `dev-flow:execute-tasks` |
+| 6 | test | `dev-flow:test` |
+| 7 | review | `dev-flow:review` |
+| 8 | doc-fix | `dev-flow:doc-fix` |
+| 9 | pr-review | `dev-flow:open-pr` |
+| 10 | merged | (manual merge, confirmed) |
+| 11 | done | close-out via `/new-feature` |
+
+**Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).
+
 ## Repository guide
 
-- Repo root = plugin root: `skills/`, `commands/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
+- Repo root = plugin root: `skills/`, `commands/`, `hooks/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
-- `tests/check.sh` — 22 bash consistency checks; run after editing skills or commands
+- `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
 - `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
@@ -123,3 +156,5 @@ The `dev-flow` workflow and its early planning engine were inspired by [obra/sup
 The `tdd` skill's **seams** concept (testing at public boundaries rather than internals) comes from Kent Beck's *Test-Driven Development: By Example*, encountered through Matt Pocock's skill collections ([mattpocock-skills](https://github.com/mattpocock/skills)).
 
 The `review` skill's clean-code pass draws on Robert C. Martin's *Clean Code*, [wojteklu's clean-code checklist](https://gist.github.com/wojteklu/73c6914cc446146b8b533c0988cf8d29), and the r/cleancode community guide; it is housed at `skills/review/references/clean-code.md`.
+
+The `standardize-prose` skill's writing rules are adapted in spirit from ASD-STE100 Simplified Technical English Issue 9, owned by ASD — Aerospace, Security and Defence Industries Association of Europe; the skill paraphrases the rules and ships no STE text ([official PDF](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf)).
