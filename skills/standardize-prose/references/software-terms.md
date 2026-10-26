@@ -28,9 +28,9 @@ generic placeholders:
 <existing renderings> → <chosen term> (譯自 "source term")
 ```
 
-For example: `訊息佇列 → 訊息佇列 (譯自 "message queue")` when the doc
-renders the concept three ways. 譯名 appears only as a label in prose — the
-template itself uses the generic placeholder.
+For example: `訊息佇列、訊息隊列 → 佇列 (譯自 "message queue")` when the
+doc renders the concept two ways before the pick. 譯名 appears only as a
+label in prose — the template itself uses the generic placeholder.
 
 ## Frozen entry
 
