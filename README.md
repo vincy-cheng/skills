@@ -100,7 +100,7 @@ These skills can also run on their own. The test skill uses each target reposito
 | `commit` skill | Write Conventional Commit messages without AI attribution |
 | `document-structure` skill | Generate or update agent-facing documentation in a target repo's `docs/agents/` |
 | `whats-new` skill | Summarize recent work and check for documentation drift |
-| `standardize-prose` skill | Standardize spec/plan prose for human readers (adapted from ASD-STE100, guided, standalone) |
+| `standardize-prose` skill | Standardize spec/plan prose for human readers (adapted from ASD-STE100, guided, standalone; non-English docs supported — rare/translated terms cited, per-term) |
 
 ## `/new-idea`: capture an idea before building
 
