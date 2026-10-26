@@ -158,11 +158,13 @@ export const register: Register = on => {
   on('command.run', { command: 'flow' }, async $ => {
     // `columns` asks for a docked pane beside the transcript; `rows` covers
     // the inline fallback above the prompt when the terminal is narrow.
-    await $.ui.open({ id: PANE, title: 'dev-flow', rows: 4, columns: 44, closeOnEscape: true })
+    // rows: 14 — header, 11 strip rows, refs, button. Requests, not grants:
+    // a person-opened pane still seats at any size the surface picks.
+    await $.ui.open({ id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true })
     return { text: 'dev-flow pane opened. Esc closes it when it holds focus.' }
   })
 
-  // The pane: a compact 4-row card — header+step, strip, refs+next, buttons.
+  // The pane: a compact 14-row card — header+step, 11 strip rows, refs+next, buttons.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const states = await readRunStates($)
     const { Box, Text, Button } = $.ui.resolve(e)
