@@ -11,6 +11,14 @@ How to use: for each entry, pick the preferred term at the start of a doc
 (or keep the author's first choice) and fix every other occurrence to match.
 Frozen entries are absolute — never rewritten in a cleanup pass.
 
+The entries above are a floor, not a ceiling. For domain-specific or rare
+terms not listed, the pass picks one form per doc and proposes it in the
+guided preview as its own category, applied on confirmation like any
+term-pick entry — never silently. Rare and translated-term proposals are
+shown individually in the preview, never collapsed into the "N more: same
+fix" line: they are per-term distinct, and the term choice is what the user
+confirms.
+
 ## Frozen entry
 
 - **Modals: shall, must, will, may.** These carry distinct force and are
