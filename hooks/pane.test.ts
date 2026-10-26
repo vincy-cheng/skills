@@ -116,3 +116,42 @@ test('the run card draws the run, its step, and closes', async ($, on) => {
     await ui.unmount()
   }
 })
+
+test('the lifecycle strip renders every step name in full, un-truncated', async ($, on) => {
+  on('fs.list', () => ({
+    value: [{ name: 'demo.state.md', kind: 'file' }],
+  }))
+  on('fs.read', ($, e) => ({
+    value: e.path.endsWith('demo.state.md') ? ACTIVE_STATE : '',
+  }))
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({
+      plugin: 'dev-flow',
+      surface,
+      component: 'Pane',
+      props: { ...PANE_PROPS },
+      requestId: 'flow',
+    })
+
+    // Every full step name renders as its own glyph-prefixed row — no truncation.
+    for (const name of ['brainstorm', 'spec', 'planning', 'issue', 'execute', 'test', 'review', 'doc-fix', 'pr-review', 'merged', 'done']) {
+      expect(await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${escapeRegExp(name)}$`) })).toBeDefined()
+    }
+
+    // Each step row is its own Text — the old strip joined them with ' → '
+    // onto one wide line the surface truncated mid-name.
+    for (const name of STEPS_IN_ORDER) {
+      const row = await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${escapeRegExp(name)}$`) })
+      expect(String(row?.props?.text ?? row?.text ?? '')).not.toContain(' → ')
+    }
+
+    await ui.unmount()
+  }
+})
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+const STEPS_IN_ORDER = ['brainstorm', 'spec', 'planning', 'issue', 'execute', 'test', 'review', 'doc-fix', 'pr-review', 'merged', 'done']

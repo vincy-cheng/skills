@@ -222,12 +222,13 @@ type El = (props: Record<string, unknown>) => RenderNode | null | undefined
 /**
  * The elements come from $.ui.resolve(e); pass them in, they are no globals.
  * Done steps: success. Current: bold accent. Future: subtle — never red; a
- * run's ahead steps are normal, not failures. The strip carries no unique
- * data (row 1 has the step number and status); wrap or truncation is fine.
+ * run's ahead steps are normal, not failures. One row per step so the full
+ * names always fit any granted width — the horizontal strip truncated
+ * mid-name against the pane's 44-column request.
  */
 function LifecycleStrip(Box: El, Text: El, step: number) {
   return (
-    <Box>
+    <Box flexDirection="column">
       {STEP_NAME.map((name: string, i: number) => {
         const stepNo = i + 1
         const isDone = stepNo < step
@@ -238,8 +239,7 @@ function LifecycleStrip(Box: El, Text: El, step: number) {
             color={isCurrent ? 'claude' : isDone ? 'success' : 'subtle'}
             bold={isCurrent}
           >
-            {stepNo === 1 ? '' : ' → '}
-            {isDone ? '✓' : ''}
+            {isDone ? '✓ ' : isCurrent ? '▸ ' : '· '}
             {name}
           </Text>
         )
