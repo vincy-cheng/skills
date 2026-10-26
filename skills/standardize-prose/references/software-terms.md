@@ -19,6 +19,19 @@ shown individually in the preview, never collapsed into the "N more: same
 fix" line: they are per-term distinct, and the term choice is what the user
 confirms.
 
+A translated-term proposal cites the source English term, so the reviewer
+confirms against the original word instead of guessing between two local
+renderings. The proposal line pins a three-field format — the template uses
+generic placeholders:
+
+```
+<existing renderings> → <chosen term> (譯自 "source term")
+```
+
+For example: `訊息佇列 → 訊息佇列 (譯自 "message queue")` when the doc
+renders the concept three ways. 譯名 appears only as a label in prose — the
+template itself uses the generic placeholder.
+
 ## Frozen entry
 
 - **Modals: shall, must, will, may.** These carry distinct force and are
