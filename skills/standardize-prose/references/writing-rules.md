@@ -11,6 +11,14 @@ Each rule: what it requires, then a software-doc example where the rule is
 easy to get wrong. Rules already familiar (short sentences, active voice)
 are stated without examples — the examples live where drift actually happens.
 
+## Language scope
+
+These rules are written for English prose. For non-English docs, the
+sentence-grammar rules — voice, tense, sentence length, punctuation — do
+not apply; term-pick is the operative mechanism there. Two rules survive
+regardless of language: one term per concept, and no vague quantifiers
+(write the number or name the thing).
+
 ## Words
 
 - **One term per concept.** Pick one name for each thing in the doc and use
