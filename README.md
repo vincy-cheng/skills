@@ -120,7 +120,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 
 **Opening and closing the pane:** the `/flow` command opens it. The pane carries its own **`[ Close ]` button** — the reliable path, and the one that works mid-response (the host's `Esc` interrupts a running response before it closes anything). `Esc` closes the pane when it holds focus, between turns; some hosts also offer the frame's close mark or `ctrl+x x`. The mod never opens a pane on its own.
 
-**Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (side) pane needs the fullscreen transcript — Ctrl+O toggles it there; otherwise the pane sits inline above the prompt. On other hosts the surface decides; the plugin has no placement setting.
+**Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (right-side) pane needs **fullscreen rendering** — run `/tui fullscreen` to enable it (in the classic renderer the pane sits inline above the prompt, and mouse clicks on its buttons don't register). On other hosts the surface decides; the plugin has no placement setting.
 
 **The 11 steps**, for reference (the status line and pane show these):
 

@@ -156,7 +156,9 @@ export const register: Register = on => {
 
   // /flow: opens the pane. The render hook below draws it fresh each time.
   on('command.run', { command: 'flow' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'dev-flow', rows: 4, closeOnEscape: true })
+    // `columns` asks for a docked pane beside the transcript; `rows` covers
+    // the inline fallback above the prompt when the terminal is narrow.
+    await $.ui.open({ id: PANE, title: 'dev-flow', rows: 4, columns: 44, closeOnEscape: true })
     return { text: 'dev-flow pane opened. Esc closes it when it holds focus.' }
   })
 
