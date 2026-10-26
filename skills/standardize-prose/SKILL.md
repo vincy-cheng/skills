@@ -7,7 +7,10 @@ description: Standardize the prose language of a dev-flow spec or plan for human
 
 A guided cleanup pass that rewrites a design doc's prose into controlled,
 human-friendly technical English. Language only — the doc's structure,
-content, and technical meaning never change.
+content, and technical meaning never change. Non-English docs (for example
+Chinese specs) run the same scan, preview, and confirm: term-pick is the
+operative mechanism there, and grammar rules stay scoped per
+`references/writing-rules.md`.
 
 ## Iron rule
 
