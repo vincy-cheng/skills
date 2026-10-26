@@ -379,6 +379,14 @@ for ref in writing-rules.md software-terms.md; do
   REF="skills/standardize-prose/references/$ref"
   { [ -f "$REF" ] && $G -q 'Aerospace, Security and Defence Industries' "$REF"; } || ste_errs="$ste_errs ste:ref-$ref"
 done
+# rare/translated-term guarantee (issue #80): floor-not-ceiling, citation
+# format, language qualifier, and the skill intro anchor are structural.
+STE_TERMS="skills/standardize-prose/references/software-terms.md"
+STE_RULES="skills/standardize-prose/references/writing-rules.md"
+$G -q 'floor, not a ceiling' "$STE_TERMS" || ste_errs="$ste_errs ste:no-floor-not-ceiling"
+$G -q '譯自' "$STE_TERMS" || ste_errs="$ste_errs ste:no-citation-format"
+$G -qi 'non-English' "$STE_SKILL" || ste_errs="$ste_errs ste:no-non-english-anchor"
+$G -q 'operative mechanism' "$STE_RULES" || ste_errs="$ste_errs ste:no-language-qualifier"
 [ -z "$ste_errs" ] && ok "standardize-prose skill present with attribution + frozen-modals anchors" || bad "standardize-prose broken:$ste_errs"
 
 # prose-quality rule blocks in brainstorm and plan (upstream track)
