@@ -7,7 +7,7 @@ import { stepOf, type GoalStatus } from './state'
  * main-loop filter. The functions under test are pure — exported from
  * register.tsx alongside the hooks wiring (same module, testable seams).
  */
-import { humanizeSince, nextOf, statusLine, toastsFor } from './register'
+import { humanizeSince, nextOf, statusLine, toastsFor, FLOW_COMMAND } from './register'
 
 const NOW = new Date('2026-10-23T22:14:00+08:00')
 
@@ -137,5 +137,15 @@ describe('nextOf — the pane next-step line', () => {
   test('terminal statuses render their wording', () => {
     expect(nextOf('done')).toBe('closed out')
     expect(nextOf('merged')).toBe('done (dev-flow:new-feature)')
+  })
+})
+describe('FLOW_COMMAND — the /flow spec the session registers', () => {
+  test('registers immediate so /flow runs mid-turn instead of queueing', () => {
+    expect(FLOW_COMMAND.immediate).toBe(true)
+  })
+
+  test('names the pane command and describes the card', () => {
+    expect(FLOW_COMMAND.name).toBe('flow')
+    expect(FLOW_COMMAND.description).toContain('dev-flow pane')
   })
 })

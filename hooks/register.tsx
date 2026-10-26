@@ -88,6 +88,18 @@ export function toastsFor(runs: Run[], prev: Record<string, GoalStatus>): string
   return toasts
 }
 
+/**
+ * The /flow command spec, extracted for tests. `immediate` is the open-timing
+ * fix: without it the host queues the command until the active turn ends, so
+ * `/flow` typed mid-response arrived only after the response finished. The
+ * hook must not assume the turn's state — it opens a pane and nothing else.
+ */
+export const FLOW_COMMAND = {
+  name: 'flow',
+  description: 'Open the dev-flow pane: current run, lifecycle, refs, next step',
+  immediate: true,
+} as const
+
 export const register: Register = on => {
   /** Last-known statuses — the flip cache (session-scoped, ambient; not a cross-session ledger). */
   let lastKnown: Record<string, GoalStatus> = {}
@@ -95,10 +107,7 @@ export const register: Register = on => {
   let farewelled = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: 'flow',
-      description: 'Open the dev-flow pane: current run, lifecycle, refs, next step',
-    })
+    await $.command.register(FLOW_COMMAND)
 
     const states = await readRunStates($)
     lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
