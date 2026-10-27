@@ -65,13 +65,8 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 
 ## Prose quality (plan text)
 
-Plans are read by humans at every checkpoint. Write them under these rules:
+Plans are read by humans at every checkpoint. Write them under the brainstorm skill's prose-quality rules (one term per concept, frozen modals — shall, must, will, may never swap force — sentences ≲ 20 words, no vague quantifiers, active voice); those rules live once in `skills/brainstorm/SKILL.md` *Spec output*. Plan-specific addition:
 
-- Active voice preferred; a deliberate passive with an unspecified agent stays passive — never invent an agent.
-- One term per concept — no synonym drift within the plan (a component is never also a module).
-- Frozen modals — shall, must, will, may carry distinct force; never swap one for another.
-- Sentences ≲ 20 words, one idea per sentence.
-- No vague quantifiers ("several", "appropriate") — the concrete number, or the named thing.
 - Task lines stay verbatim-copyable — style rewrites never touch them, nor the `Risk:` lines.
 
 ## Self-review

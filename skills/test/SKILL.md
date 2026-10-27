@@ -95,4 +95,4 @@ No state file → ask for the base branch (or infer via `git merge-base <default
 - **Don't skip the suite** — the honesty scan supplements the suite, never replaces it.
 - **Don't test against the wrong base** — verify the diff is actually this branch's work.
 - **Don't review code** — spec coverage, bugs, maintainability are `dev-flow:review` (step 7).
-- **Don't return yellow** — a suite is green or it isn't; honesty findings are blocking or they aren't.
+- **Don't return yellow** (verdict rule above).
