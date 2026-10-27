@@ -135,15 +135,18 @@ test('the lifecycle strip renders every step name in full, un-truncated', async 
     })
 
     // Every full step name renders as its own glyph-prefixed row — no truncation.
-    for (const name of ['brainstorm', 'spec', 'planning', 'issue', 'execute', 'test', 'review', 'doc-fix', 'pr-review', 'merged', 'done']) {
+    for (const name of STEPS_IN_ORDER) {
       expect(await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${escapeRegExp(name)}$`) })).toBeDefined()
     }
 
     // Each step row is its own Text — the old strip joined them with ' → '
-    // onto one wide line the surface truncated mid-name.
+    // onto one wide line the surface truncated mid-name. The find above
+    // already matched the glyph-anchored row; assert on its actual text.
     for (const name of STEPS_IN_ORDER) {
       const row = await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${escapeRegExp(name)}$`) })
-      expect(String(row?.props?.text ?? row?.text ?? '')).not.toContain(' → ')
+      const rowText: unknown = row?.props?.text !== undefined ? row.props.text : row?.text
+      expect(rowText).toBeDefined()
+      expect(String(rowText)).not.toContain(' → ')
     }
 
     await ui.unmount()

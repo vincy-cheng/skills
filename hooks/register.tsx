@@ -16,7 +16,7 @@ function readRunStates($: { fs: Fs }) {
  * dev-flow session help: three person-facing behaviors, all reading
  * `docs/features/.feature-states/` live:
  * - status line (ambient): `dev-flow: <feat> · step 6/11 · test · 45m`
- * - `/flow` pane (on-demand): a compact 4-row card of the current run
+ * - `/flow` pane (on-demand): a compact 14-row card of the current run
  * - step toast: fires when a run's Goal status flips between turns
  *
  * Placement and close are the surface's: `rows` is a request, not a grant;
@@ -88,12 +88,7 @@ export function toastsFor(runs: Run[], prev: Record<string, GoalStatus>): string
   return toasts
 }
 
-/**
- * The /flow command spec, extracted for tests. `immediate` is the open-timing
- * fix: without it the host queues the command until the active turn ends, so
- * `/flow` typed mid-response arrived only after the response finished. The
- * hook must not assume the turn's state — it opens a pane and nothing else.
- */
+/** /flow command spec, extracted for tests. */
 export const FLOW_COMMAND = {
   name: 'flow',
   description: 'Open the dev-flow pane: current run, lifecycle, refs, next step',
@@ -165,6 +160,10 @@ export const register: Register = on => {
 
   // /flow: opens the pane. The render hook below draws it fresh each time.
   on('command.run', { command: 'flow' }, async $ => {
+    // `immediate: true` (on FLOW_COMMAND) lets /flow run while a turn streams:
+    // the host runs an immediate command at once instead of queueing it until
+    // the turn ends. This hook must not assume the turn's state — it opens a
+    // pane and nothing else.
     // `columns` asks for a docked pane beside the transcript; `rows` covers
     // the inline fallback above the prompt when the terminal is narrow.
     // rows: 14 — header, 11 strip rows, refs, button. Requests, not grants:
