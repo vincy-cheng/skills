@@ -13,9 +13,10 @@ function readRunStates($: { fs: Fs }) {
 }
 
 /**
- * dev-flow session help: three person-facing behaviors, all reading
+ * dev-flow session help: four person-facing behaviors, all reading
  * `docs/features/.feature-states/` live:
  * - status line (ambient): `dev-flow: <feat> · step 6/11 · test · 45m`
+ * - band (always drawn): the [ Flow ] button that opens the pane
  * - `/flow` pane (on-demand): a compact 14-row card of the current run
  * - step toast: fires when a run's Goal status flips between turns
  *
@@ -24,6 +25,11 @@ function readRunStates($: { fs: Fs }) {
  */
 
 const PANE = 'flow'
+
+/** The open-args both openers share — /flow and the band's [ Flow ] button.
+ *  rows: 14 — header, 11 strip rows, refs, button. Requests, not grants:
+ *  a person-opened pane still seats at any size the surface picks. */
+const FLOW_PANE = { id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true } as const
 
 /** Status → the skill whose run *advances the run into* that status (the gate table's "Sets" column). */
 const ENTERED_BY: Record<GoalStatus, string> = {
@@ -170,7 +176,7 @@ export const register: Register = on => {
     const { Box, Button } = $.ui.resolve(e)
     const mine = (
       <Box>
-        <Button key="flow-open" plain label="[ Flow ]" onPress={() => void $.ui.open({ id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true })} />
+        <Button key="flow-open" plain label="[ Flow ]" onPress={() => void $.ui.open(FLOW_PANE)} />
       </Box>
     )
     return below ? <Box flexDirection="column">{mine}{below as RenderNode}</Box> : mine
@@ -184,9 +190,7 @@ export const register: Register = on => {
     // pane and nothing else.
     // `columns` asks for a docked pane beside the transcript; `rows` covers
     // the inline fallback above the prompt when the terminal is narrow.
-    // rows: 14 — header, 11 strip rows, refs, button. Requests, not grants:
-    // a person-opened pane still seats at any size the surface picks.
-    await $.ui.open({ id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true })
+    await $.ui.open(FLOW_PANE)
     return { text: 'dev-flow pane opened. Esc closes it when it holds focus.' }
   })
 

@@ -3,11 +3,14 @@ import { expect, test } from 'claude-code/testing'
 /**
  * The `/flow` pane's two drawing paths:
  * - empty state (no state dir / no active run): names the start path, closes
- * - run card (an active run): header+step, lifecycle strip, refs, next step
+ * - run card (an active run): header+step, vertical lifecycle strip, refs, next
  *
  * Both carry the pane's own `[ Close ]` button — closing never waits on
  * Esc's interrupt priority (the host owns Esc while Claude responds).
  * The button is found by key, on both input surfaces.
+ *
+ * The band tests cover the AbovePrompt row: its `[ Flow ]` button opens the
+ * pane as person input, and it yields to surveys.
  *
  * The mount environment has no dev-flow state dir, so tests that mount it
  * plainly draw the empty state. The run-card tests stub fs.list/fs.read to
