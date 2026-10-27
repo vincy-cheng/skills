@@ -13,12 +13,14 @@ function readRunStates($: { fs: Fs }) {
 }
 
 /**
- * dev-flow session help: four person-facing behaviors, all reading
- * `docs/features/.feature-states/` live:
+ * dev-flow session help: four person-facing behaviors:
  * - status line (ambient): `dev-flow: <feat> · step 6/11 · test · 45m`
  * - band (always drawn): the [ Flow ] button that opens the pane
  * - `/flow` pane (on-demand): a compact 14-row card of the current run
  * - step toast: fires when a run's Goal status flips between turns
+ *
+ * The state-reading three (status line, pane, toast) read
+ * `docs/features/.feature-states/` live; the band is stateless.
  *
  * Placement and close are the surface's: `rows` is a request, not a grant;
  * a person-opened pane seats at any width; the mod never auto-opens.
