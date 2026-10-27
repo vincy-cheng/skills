@@ -3,11 +3,13 @@ import { describe, expect, test } from 'claude-code/testing'
 import { stepOf, type GoalStatus } from './state'
 
 /**
- * Task 3 behaviors: status-line text shaping and the toast's status-diff +
- * main-loop filter. The functions under test are pure — exported from
- * register.tsx alongside the hooks wiring (same module, testable seams).
+ * The hooks module's behaviors: status-line text shaping, the toast's
+ * status-diff + main-loop filter, the pane's shared open-args, and the
+ * command surface (none — the band button is the sole opener). The exported
+ * pieces under test come from register.tsx alongside the hooks wiring (same
+ * module, testable seams).
  */
-import { humanizeSince, nextOf, statusLine, toastsFor } from './register'
+import { humanizeSince, nextOf, statusLine, toastsFor, FLOW_PANE, register } from './register'
 
 const NOW = new Date('2026-10-23T22:14:00+08:00')
 
@@ -137,5 +139,30 @@ describe('nextOf — the pane next-step line', () => {
   test('terminal statuses render their wording', () => {
     expect(nextOf('done')).toBe('closed out')
     expect(nextOf('merged')).toBe('done (dev-flow:new-feature)')
+  })
+})
+describe('FLOW_PANE — the open-args both the band and the pane share', () => {
+  test('opens the dev-flow pane with the 14-row request', () => {
+    expect(FLOW_PANE).toMatchObject({ id: 'flow', title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true })
+  })
+})
+
+describe('register — the command surface', () => {
+  test('registers no commands — the band button is the sole pane opener', () => {
+    const registrations: string[] = []
+    const specs: unknown[] = []
+    // Fake On/$ stubs: record registrations, never run handlers.
+    const recordingOn = ((pattern: string) => {
+      registrations.push(pattern)
+      return () => undefined
+    }) as unknown as Parameters<typeof register>[0]
+    const $ = {
+      command: { register: (spec: unknown) => { specs.push(spec) } },
+      ui: { status: () => undefined },
+      fs: { list: () => Promise.resolve({ value: [] }) },
+    } as never
+    register(recordingOn as never, $ as never)
+    expect(registrations.filter(r => r.startsWith('command.'))).toEqual([])
+    expect(specs).toEqual([])
   })
 })
