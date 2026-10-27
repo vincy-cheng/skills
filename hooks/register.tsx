@@ -209,6 +209,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Text dimColor>No active dev-flow run. Start one: /new-feature &lt;idea&gt;</Text>
+          <Text dimColor>Resume an unfinished run: /new-feature resume</Text>
           {CloseButton($, Button)}
         </Box>
       )

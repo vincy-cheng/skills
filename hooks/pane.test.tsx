@@ -105,6 +105,20 @@ test('the empty state names the start path and closes too', async $ => {
   }
 })
 
+test('the empty state names the manual resume path', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'dev-flow',
+    surface: 'terminal',
+    component: 'Pane',
+    props: { ...PANE_PROPS },
+    requestId: 'flow',
+  })
+
+  expect(await ui.find({ type: 'Text', text: /Resume an unfinished run: \/new-feature resume/ })).toBeDefined()
+
+  await ui.unmount()
+})
+
 test('the pane draws Close and the current-run Resume (no section — one run)', async $ => {
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({
