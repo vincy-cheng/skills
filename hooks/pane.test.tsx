@@ -119,7 +119,14 @@ test('the empty state names the manual resume path', async $ => {
   await ui.unmount()
 })
 
-test('the pane draws Close only — one unfinished run hides the Resume section (its card covers it)', async $ => {
+test('the pane draws Close only — one unfinished run hides the Resume section (its card covers it)', async ($, on) => {
+  on('fs.list', () => ({
+    value: [{ name: 'demo.state.md', kind: 'file' }],
+  }))
+  on('fs.read', ($, e) => ({
+    value: e.path.endsWith('demo.state.md') ? ACTIVE_STATE : '',
+  }))
+
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({
       plugin: 'dev-flow',
@@ -129,9 +136,11 @@ test('the pane draws Close only — one unfinished run hides the Resume section 
       requestId: 'flow',
     })
 
-    expect(await ui.find({ key: 'close' })).toBeDefined()
-    // No OTHER resumable runs → no Resume section at all (the card covers its own run)
+    // The run card drew (the one run is the current run); its card covers it,
+    // so no Resume section may appear — nothing further is resumable.
+    expect(await ui.find({ type: 'Text', text: /step 1\/11 · brainstorm/ })).toBeDefined()
     expect(await ui.find({ key: 'resume-demo' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /── Resume/ })).toBeUndefined()
 
     await ui.unmount()
   }
