@@ -1,6 +1,6 @@
 import type { Register, RenderNode } from 'claude-code'
 
-import { readStates, stepOf, STEPS, type FsList, type FsRead, type GoalStatus, type Run } from './state'
+import { readStates, stepOf, STEPS, type FsList, type FsRead, type GoalStatus, type Run, type RunStates } from './state'
 
 type Fs = { list: FsList; read: FsRead }
 
@@ -97,6 +97,35 @@ export function toastsFor(runs: Run[], prev: Record<string, GoalStatus>): string
   return toasts
 }
 
+/**
+ * The text a [ Resume ] press submits: the run's name, one fact only. The
+ * orchestrator re-reads the state file — a render-time status snapshot would
+ * ride as the person's own words (asUser) and go stale between draw and press.
+ */
+export function resumePrompt(run: Run): string {
+  return `Resume the dev-flow run "${run.feat}".`
+}
+
+/** How many rows the Resume section shows before the ellipsis line. */
+const RESUME_ROWS = 5
+
+/** A feat name for a resume row: truncated with an ellipsis past 28 chars —
+ *  `step N/11 · status` follows on the row, and the pane's 44-column request
+ *  must still fit both, plus the [ Resume ] button. */
+function resumeRowName(feat: string): string {
+  return feat.length > 28 ? `${feat.slice(0, 27)}…` : feat
+}
+
+/** The Resume section's composition: resumable runs, capped, plus the omitted count.
+ *  Active runs (newest first) plus merged runs from finished — merged means
+ *  close-out pending, resumable per the lifecycle; done never resumes. The
+ *  current run is excluded: its card carries the coverage. */
+export function resumableList(states: RunStates): { runs: Run[]; omitted: number } {
+  const runs = [...states.active, ...states.finished.filter(run => run.status === 'merged')]
+  const withoutCurrent = states.current === null ? runs : runs.filter(run => run.feat !== states.current?.feat)
+  return { runs: withoutCurrent.slice(0, RESUME_ROWS), omitted: Math.max(0, withoutCurrent.length - RESUME_ROWS) }
+}
+
 export const register: Register = on => {
   /** Last-known statuses — the flip cache (session-scoped, ambient; not a cross-session ledger). */
   let lastKnown: Record<string, GoalStatus> = {}
@@ -187,6 +216,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Text dimColor>No active dev-flow run. Start one: /new-feature &lt;idea&gt;</Text>
+          <Text dimColor>Resume an unfinished run: /new-feature resume</Text>
           {CloseButton($, Button)}
         </Box>
       )
@@ -205,6 +235,7 @@ export const register: Register = on => {
         <Text dimColor>
           Tasks {run.tasksDone}/{run.tasksTotal} · {run.issue || '—'} → {run.branch || '—'} · next: {nextOf(run.status)}
         </Text>
+        {ResumeSection($, Box, Text, Button, states)}
         <Box>
           {CloseButton($, Button)}
         </Box>
@@ -225,6 +256,52 @@ function CloseButton($: { ui: { close: (args: { id: string }) => Promise<void> }
       label="Close"
       onPress={() => void $.ui.close({ id: PANE })}
     />
+  )
+}
+
+/** The [ Resume ] press: submit the prompt (asUser), close the pane on
+ *  success; a rejection toasts the manual path and keeps the pane open. `$`
+ *  is the parameter — the engine's real one or the test's stub shape alike. */
+/** The $-shape resumePress needs — the real engine's $ and the tests' fake satisfy it alike. */
+type Resume$ = { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } }
+
+export async function resumePress(
+  $: Resume$,
+  run: Run,
+): Promise<void> {
+  try {
+    await $.prompt.submit({ text: resumePrompt(run), asUser: true })
+  } catch {
+    $.ui.toast('dev-flow: resume submit failed — use /new-feature resume')
+    return
+  }
+  // Submitted — the resume is queued. A close failure is cosmetic (the pane
+  // lingers); toasting "submit failed" here would invite a duplicate resume.
+  await $.ui.close({ id: PANE }).catch(() => undefined)
+}
+function ResumeSection(
+  $: Resume$,
+  Box: El,
+  Text: El,
+  Button: (props: { key?: string; label: string; onPress: () => void }) => RenderNode | null | undefined,
+  states: RunStates,
+) {
+  const list = resumableList(states)
+  if (list.runs.length === 0) return null
+
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>── Resume ──────────────</Text>
+      {list.runs.map(run => (
+        <Box key={`resume-row-${run.feat}`}>
+          <Text color={run.status === 'merged' ? 'success' : 'subtle'}>
+            {resumeRowName(run.feat)} · step {stepOf(run.status)}/11 · {run.status}
+          </Text>
+          <Button key={`resume-${run.feat}`} label="Resume" onPress={() => void resumePress($, run)} />
+        </Box>
+      ))}
+      {list.omitted > 0 ? <Text dimColor>… and {list.omitted} more (/new-feature resume)</Text> : null}
+    </Box>
   )
 }
 

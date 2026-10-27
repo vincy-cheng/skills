@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STEPS } from './state'
+import { STEPS, type Run, type GoalStatus } from './state'
+import { resumePress } from './register'
 
 /**
  * The dev-flow pane's two drawing paths:
@@ -45,8 +46,25 @@ const ACTIVE_STATE = [
   '',
 ].join('\n')
 
+/** A merged state file — close-out pending, resumable. */
+const MERGED_STATE = ACTIVE_STATE.replace('- **Goal status:** brainstorm', '- **Goal status:** merged')
+
+/** A done state file — never resumable. */
+const DONE_STATE = ACTIVE_STATE.replace('- **Goal status:** brainstorm', '- **Goal status:** done')
+
+/** Two unfinished runs: one merged (close-out pending), one active. */
+const TWO_RUN_STATE_FILES = {
+  'demo.state.md': MERGED_STATE,
+  'other.state.md': ACTIVE_STATE,
+}
+
 /** The 11 lifecycle names after `fresh` — imported, not re-listed here. */
 const STEPS_IN_ORDER = STEPS.slice(1) as readonly string[]
+
+/** A minimal run for seam-level tests. */
+function makeRun(feat: string, status: GoalStatus): Run {
+  return { feat, status, since: undefined, updated: '', tasksDone: 0, tasksTotal: 0, issue: '', pr: '', branch: '' }
+}
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -87,7 +105,28 @@ test('the empty state names the start path and closes too', async $ => {
   }
 })
 
-test('the pane draws exactly one button — Close; no Resume', async $ => {
+test('the empty state names the manual resume path', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'dev-flow',
+    surface: 'terminal',
+    component: 'Pane',
+    props: { ...PANE_PROPS },
+    requestId: 'flow',
+  })
+
+  expect(await ui.find({ type: 'Text', text: /Resume an unfinished run: \/new-feature resume/ })).toBeDefined()
+
+  await ui.unmount()
+})
+
+test('the pane draws Close only — one unfinished run hides the Resume section (its card covers it)', async ($, on) => {
+  on('fs.list', () => ({
+    value: [{ name: 'demo.state.md', kind: 'file' }],
+  }))
+  on('fs.read', ($, e) => ({
+    value: e.path.endsWith('demo.state.md') ? ACTIVE_STATE : '',
+  }))
+
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({
       plugin: 'dev-flow',
@@ -97,8 +136,53 @@ test('the pane draws exactly one button — Close; no Resume', async $ => {
       requestId: 'flow',
     })
 
-    expect(await ui.find({ key: 'close' })).toBeDefined()
-    expect(await ui.find({ key: 'resume' })).toBeUndefined()
+    // The run card drew (the one run is the current run); its card covers it,
+    // so no Resume section may appear — nothing further is resumable.
+    expect(await ui.find({ type: 'Text', text: /step 1\/11 · brainstorm/ })).toBeDefined()
+    expect(await ui.find({ key: 'resume-demo' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /── Resume/ })).toBeUndefined()
+
+    await ui.unmount()
+  }
+})
+
+test('a second unfinished run draws a Resume row; done runs never appear', async ($, on) => {
+  on('fs.list', () => ({
+    value: [{ name: 'demo.state.md', kind: 'file' }, { name: 'other.state.md', kind: 'file' }, { name: 'finished.state.md', kind: 'file' }],
+  }))
+  on('fs.read', ($, e) => {
+    if (e.path.endsWith('demo.state.md')) return { value: MERGED_STATE }
+    if (e.path.endsWith('other.state.md')) return { value: ACTIVE_STATE }
+    if (e.path.endsWith('finished.state.md')) return { value: DONE_STATE }
+    return { value: '' }
+  })
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({
+      plugin: 'dev-flow',
+      surface,
+      component: 'Pane',
+      props: { ...PANE_PROPS },
+      requestId: 'flow',
+    })
+
+    // Active = [other] (merged demo lands in finished) → current = other;
+    // its card carries the coverage, so the section lists the merged demo.
+    // done never appears.
+    expect(await ui.find({ key: 'resume-demo' })).toBeDefined()
+    expect(await ui.find({ key: 'resume-other' })).toBeUndefined()
+    expect(await ui.find({ key: 'resume-finished' })).toBeUndefined()
+
+    // The engine brackets button labels itself — ours stays bare ("Resume",
+    // rendered "[ Resume ]"), never a doubled "[ [ Resume ] ]".
+    const button = await ui.find({ key: 'resume-demo' })
+    expect(button?.props?.label).toBe('Resume')
+
+    // Color semantics follow the strip: merged (close-out pending) reads
+    // success. (An active row reads subtle — same branch, not asserted here
+    // because the only active run in this fixture is the current, excluded.)
+    const color = await ui.find({ type: 'Text', text: /^demo · step 10\/11 · merged/ })
+    expect((color as unknown as { props?: { color?: string } })?.props?.color).toBe('success')
 
     await ui.unmount()
   }
@@ -159,6 +243,74 @@ test('the lifecycle strip renders every step name in full, un-truncated', async 
 
     await ui.unmount()
   }
+})
+
+test('pressing a Resume row submits the prompt asUser and closes the pane', async ($, on) => {
+  const submissions: Array<Record<string, unknown>> = []
+  const closings: Array<Record<string, unknown>> = []
+  on('fs.list', () => ({ value: [{ name: 'demo.state.md', kind: 'file' }, { name: 'other.state.md', kind: 'file' }] }))
+  on('fs.read', ($, e) => {
+    for (const [name, text] of Object.entries(TWO_RUN_STATE_FILES)) {
+      if (e.path.endsWith(name)) return { value: text }
+    }
+    return { value: '' }
+  })
+  on('prompt.submit', ($, e) => {
+    submissions.push(e)
+    return { text: e.text }
+  })
+  on('ui.close', ($, e) => {
+    closings.push(e)
+    return { value: undefined }
+  })
+  on('ui.toast', () => ({ value: undefined }))
+
+  const ui = await $.ui.mount({
+    plugin: 'dev-flow',
+    surface: 'terminal',
+    component: 'Pane',
+    props: { ...PANE_PROPS },
+    requestId: 'flow',
+  })
+
+  await $.ui.press({ plugin: 'dev-flow', key: 'resume-demo', requestId: 'flow', surface: 'terminal' })
+  expect(submissions).toHaveLength(1)
+  expect(submissions[0]).toMatchObject({ text: 'Resume the dev-flow run "demo".' })
+  // The engine moves asUser into origin — bare reading is still asserted.
+  expect((submissions[0] as { origin?: { kind?: string; asUser?: boolean } }).origin).toMatchObject({ kind: 'plugin', asUser: true })
+  expect(closings).toEqual([{ id: 'flow', origin: { kind: 'plugin' } }])
+
+  await ui.unmount()
+})
+
+test('a rejected submit toasts the manual path and keeps the pane open', async () => {
+  const closings: Array<Record<string, unknown>> = []
+  const toasts: string[] = []
+  const fake$ = {
+    prompt: { submit: () => Promise.reject(new Error('submit unavailable')) },
+    ui: {
+      close: async (e: Record<string, unknown>) => { closings.push(e) },
+      toast: (text: string) => { toasts.push(text) },
+    },
+  }
+  await resumePress(fake$, makeRun('demo', 'merged'))
+  expect(closings).toEqual([])
+  expect(toasts).toEqual(['dev-flow: resume submit failed — use /new-feature resume'])
+})
+
+test('a rejected close after a successful submit stays silent — not a submit failure', async () => {
+  const toasts: string[] = []
+  const fake$ = {
+    prompt: { submit: () => Promise.resolve({}) },
+    ui: {
+      close: () => Promise.reject(new Error('close failed')),
+      toast: (text: string) => { toasts.push(text) },
+    },
+  }
+  await resumePress(fake$, makeRun('demo', 'merged'))
+  // The resume is queued; a close failure must not tell the person it failed
+  // (heeding that toast would resubmit a resume already in flight).
+  expect(toasts).toEqual([])
 })
 
 test('the band draws a Flow button that opens the pane as person input', async ($, on) => {
