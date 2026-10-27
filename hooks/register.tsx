@@ -158,6 +158,24 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // The band: an always-drawn row above the prompt whose [ Flow ] button opens
+  // the pane. A press is person input — the pane it opens places at any width,
+  // where an unasked open waits below 144 columns. The band draws nothing else
+  // (the status line owns the ambient text) and yields to surveys; stacking
+  // under whatever other mods drew follows next(e).
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
+    const below = await next(e).catch(() => undefined)
+
+    const { Box, Button } = $.ui.resolve(e)
+    const mine = (
+      <Box>
+        <Button key="flow-open" plain label="[ Flow ]" onPress={() => void $.ui.open({ id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true })} />
+      </Box>
+    )
+    return below ? <Box flexDirection="column">{mine}{below as RenderNode}</Box> : mine
+  })
+
   // /flow: opens the pane. The render hook below draws it fresh each time.
   on('command.run', { command: 'flow' }, async $ => {
     // `immediate: true` (on FLOW_COMMAND) lets /flow run while a turn streams:

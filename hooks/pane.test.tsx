@@ -158,3 +158,69 @@ function escapeRegExp(s: string): string {
 }
 
 const STEPS_IN_ORDER = ['brainstorm', 'spec', 'planning', 'issue', 'execute', 'test', 'review', 'doc-fix', 'pr-review', 'merged', 'done']
+test('the band draws a Flow button that opens the pane as person input', async ($, on) => {
+  let openCalls: Array<Record<string, unknown>> = []
+  on('ui.open', ($, e) => {
+    openCalls.push(e)
+    return { value: { isPlaced: true } }
+  })
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    openCalls = []
+    const ui = await $.ui.mount({
+      plugin: 'dev-flow',
+      surface,
+      component: 'AbovePrompt',
+      props: {
+        title: '',
+        hasSurvey: false,
+        isWorking: false,
+        maxRows: 4,
+        bodyColumns: 80,
+        scroll: { offset: 0, bodyRows: 4 },
+        view: {},
+      },
+      requestId: 'band',
+    })
+
+    const flow = await ui.find({ key: 'flow-open' })
+    expect(flow).toBeDefined()
+    expect(openCalls).toHaveLength(0)
+
+    await $.ui.press({ plugin: 'dev-flow', key: 'flow-open', requestId: 'band', surface })
+    expect(openCalls).toHaveLength(1)
+    expect(openCalls[0]).toMatchObject({ id: 'flow' })
+
+    await ui.unmount()
+  }
+})
+
+test('the band yields to a survey and shows nothing without one', async ($, on) => {
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  // A survey holds the band; our hook passes through to next(e) — the test
+  // answers the beneath render so the pass-through is what gets mounted.
+  // An empty Box stands for another mod's row beneath ours.
+  on('ui.render', ($, e) => {
+    const { Box } = $.ui.resolve(e)
+    return <Box />
+  })
+
+  const ui = await $.ui.mount({
+    plugin: 'dev-flow',
+    surface: 'terminal',
+    component: 'AbovePrompt',
+    props: {
+      title: '',
+      hasSurvey: true,
+      isWorking: false,
+      maxRows: 4,
+      bodyColumns: 80,
+      scroll: { offset: 0, bodyRows: 4 },
+      view: {},
+    },
+    requestId: 'band',
+  })
+
+  expect(await ui.find({ key: 'flow-open' })).toBeUndefined()
+  await ui.unmount()
+})
