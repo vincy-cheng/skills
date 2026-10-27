@@ -85,6 +85,13 @@ Fixed by role — lane semantics, not a user-tunable parameter. No per-role over
 
 **Known limitation (record, never work around silently):** `codex exec --sandbox workspace-write` **denies network access by default**. A tester on the cli lane in a repo whose suite needs dependency installs (`npm ci`, `pip install`) hits this: it is a **known BLOCKED with a resume hint** (fix the lane in config, or prepare dependencies first, then re-dispatch) — **never** a false "tests failed" gate signal.
 
+## Before-starting procedures (tester / reviewer skills)
+
+Shared by the `test` and `review` skills' `## Before starting` blocks — the gate outcomes (stop on a missing Roles block, BLOCKED on a malformed lane) stay in-skill; this section holds the two rarely-taken procedures those blocks reference.
+
+- **Crash-recovery exception, explicitly scoped and verified:** if the block is missing and the user **confirms** the run crashed during step 5 before the combined ask completed its write — ask once, write the role's lane line to the state file, proceed, and note the recovery in the report. Never accept an unconditional "it crashed": if the user can't confirm the crash (e.g. they don't remember the step-5 ask at all), treat it as the skipped-ask case — stop and report. This is the only path that asks from the dispatching skill; every other missing-block shape stays a stop.
+- **Pre-Roles upgrade mapping (read-only, never migrated on disk):** a state file predating the Roles block maps old fields onto the new lines — old `Implementer mode: inline` → Implementer `inline`; old `subagent` with no model → `session`; old `subagent` + model name → `claude:<name>`; an old `Verifier model` pick → the Tester and Reviewer lines (shared, as it was used). A line malformed under the modern lane grammar is never mapped — BLOCKED stop-and-ask per the error contract below.
+
 ## Error contract
 
 All lanes, all roles:

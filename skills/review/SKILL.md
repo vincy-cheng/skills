@@ -20,8 +20,7 @@ Dev-flow mode — read the state file's **Roles block** (the Reviewer line) befo
 - Block has a Reviewer lane value (`session`, `claude:<name>`, `cli:<tool>/<model>`) → dispatch on it per `## Model routing`.
 - Block missing, empty, or the Reviewer line absent → **stop; report "step 5's combined Roles ask was skipped"** — do not dispatch the reviewer, do not re-ask from this skill. Return to new-feature step 5 (the orchestrator asks and writes the picks, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
 - Malformed lane value → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
-- **Crash-recovery exception, explicitly scoped and verified:** if the block is missing and the user **confirms** the run crashed during step 5 before the combined ask completed its write — ask once, write the picks to the state file, proceed. Never accept an unconditional "it crashed": if the user can't confirm the crash, treat it as the skipped-ask case above — stop and report. This is the only path that asks from this skill; every other missing-block shape stays a stop.
-- Pre-Roles state file: apply the upgrade mapping in new-feature's field rules (an old `Verifier model` pick → the Reviewer line) — read-only, never migrated on disk.
+- Missing-block recovery paths (user-confirmed crash-recovery, pre-Roles upgrade mapping) → follow `references/model-routing.md`'s *Before-starting procedures* section — the only ask-from-here path is a user-confirmed crash recovery; every other missing-block shape stays a stop.
 
 Then read the state file's **Risk tier**:
 
