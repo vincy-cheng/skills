@@ -86,5 +86,5 @@ In any repo, without dev-flow: same sections, same contract — the consumers ar
 
 **In-flow mode:** invoked by `dev-flow:new-feature` step 3.
 
-- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes other skills. Its terminal state is the approved plan; control returns to the orchestrator; step order is governed solely by the hard gate in `commands/new-feature.md`.
+- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes other skills. Its terminal state is the approved plan; control returns to the orchestrator; step order is governed solely by the hard gate in `skills/new-feature/SKILL.md`.
 - Plans are never committed. Artifacts stay under `docs/features/` — never `.superpowers/`.
