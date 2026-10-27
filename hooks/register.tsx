@@ -251,14 +251,22 @@ function CloseButton($: { ui: { close: (args: { id: string }) => Promise<void> }
   )
 }
 
-/**
- * The Resume section: one row per resumable run (resumableList composes),
- * each ending in a small [ Resume ] button — press submits the resume
- * prompt (asUser) and closes the pane; a rejected submit toasts instead of
- * closing. No resumable runs → draws nothing (the section disappears).
- */
+/** The [ Resume ] press: submit the prompt (asUser), close the pane on
+ *  success; a rejection toasts the manual path and keeps the pane open. `$`
+ *  is the parameter — the engine's real one or the test's stub shape alike. */
+export async function resumePress(
+  $: { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } },
+  run: Run,
+): Promise<void> {
+  try {
+    await $.prompt.submit({ text: resumePrompt(run), asUser: true })
+    await $.ui.close({ id: PANE })
+  } catch {
+    $.ui.toast('dev-flow: resume submit failed — use /new-feature resume')
+  }
+}
 function ResumeSection(
-  $: Parameters<Register>[1] extends never ? never : { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } },
+  $: { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } },
   Box: El,
   Text: El,
   Button: (props: { key?: string; label: string; onPress: () => void }) => RenderNode | null | undefined,
@@ -266,12 +274,6 @@ function ResumeSection(
 ) {
   const list = resumableList(states)
   if (list.runs.length === 0) return null
-
-  const resume = (run: Run) => {
-    void $.prompt.submit({ text: resumePrompt(run), asUser: true })
-      .then(() => $.ui.close({ id: PANE }))
-      .catch(() => $.ui.toast('dev-flow: resume submit failed — use /new-feature resume'))
-  }
 
   return (
     <Box flexDirection="column">
@@ -281,7 +283,7 @@ function ResumeSection(
           <Text>
             {run.feat} · step {stepOf(run.status)}/11 · {run.status}
           </Text>
-          <Button key={`resume-${run.feat}`} label="[ Resume ]" onPress={() => resume(run)} />
+          <Button key={`resume-${run.feat}`} label="[ Resume ]" onPress={() => void resumePress($, run)} />
         </Box>
       ))}
       {list.omitted > 0 ? <Text dimColor>… and {list.omitted} more (/new-feature resume)</Text> : null}

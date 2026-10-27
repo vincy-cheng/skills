@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STEPS } from './state'
+import { STEPS, type Run, type GoalStatus } from './state'
+import { resumePress } from './register'
 
 /**
  * The dev-flow pane's two drawing paths:
@@ -51,8 +52,19 @@ const MERGED_STATE = ACTIVE_STATE.replace('- **Goal status:** brainstorm', '- **
 /** A done state file — never resumable. */
 const DONE_STATE = ACTIVE_STATE.replace('- **Goal status:** brainstorm', '- **Goal status:** done')
 
+/** Two unfinished runs: one merged (close-out pending), one active. */
+const TWO_RUN_STATE_FILES = {
+  'demo.state.md': MERGED_STATE,
+  'other.state.md': ACTIVE_STATE,
+}
+
 /** The 11 lifecycle names after `fresh` — imported, not re-listed here. */
 const STEPS_IN_ORDER = STEPS.slice(1) as readonly string[]
+
+/** A minimal run for seam-level tests. */
+function makeRun(feat: string, status: GoalStatus): Run {
+  return { feat, status, since: undefined, updated: '', tasksDone: 0, tasksTotal: 0, issue: '', pr: '', branch: '' }
+}
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -197,6 +209,57 @@ test('the lifecycle strip renders every step name in full, un-truncated', async 
 
     await ui.unmount()
   }
+})
+
+test('pressing a Resume row submits the prompt asUser and closes the pane', async ($, on) => {
+  const submissions: Array<Record<string, unknown>> = []
+  const closings: Array<Record<string, unknown>> = []
+  on('fs.list', () => ({ value: [{ name: 'demo.state.md', kind: 'file' }, { name: 'other.state.md', kind: 'file' }] }))
+  on('fs.read', ($, e) => {
+    for (const [name, text] of Object.entries(TWO_RUN_STATE_FILES)) {
+      if (e.path.endsWith(name)) return { value: text }
+    }
+    return { value: '' }
+  })
+  on('prompt.submit', ($, e) => {
+    submissions.push(e)
+    return { text: e.text }
+  })
+  on('ui.close', ($, e) => {
+    closings.push(e)
+    return { value: undefined }
+  })
+  on('ui.toast', () => ({ value: undefined }))
+
+  const ui = await $.ui.mount({
+    plugin: 'dev-flow',
+    surface: 'terminal',
+    component: 'Pane',
+    props: { ...PANE_PROPS },
+    requestId: 'flow',
+  })
+
+  await $.ui.press({ plugin: 'dev-flow', key: 'resume-demo', requestId: 'flow', surface: 'terminal' })
+  expect(submissions).toHaveLength(1)
+  expect(submissions[0]).toMatchObject({ text: 'Resume the dev-flow run "demo".' })
+  expect(closings).toEqual([{ id: 'flow', origin: { kind: 'plugin' } }])
+
+  await ui.unmount()
+})
+
+test('a rejected submit toasts the manual path and keeps the pane open', async () => {
+  const closings: Array<Record<string, unknown>> = []
+  const toasts: string[] = []
+  const fake$ = {
+    prompt: { submit: () => Promise.reject(new Error('submit unavailable')) },
+    ui: {
+      close: async (e: Record<string, unknown>) => { closings.push(e) },
+      toast: (text: string) => { toasts.push(text) },
+    },
+  }
+  await resumePress(fake$, makeRun('demo', 'merged'))
+  expect(closings).toEqual([])
+  expect(toasts).toEqual(['dev-flow: resume submit failed — use /new-feature resume'])
 })
 
 test('the band draws a Flow button that opens the pane as person input', async ($, on) => {
