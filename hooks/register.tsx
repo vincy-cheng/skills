@@ -1,6 +1,6 @@
 import type { Register, RenderNode } from 'claude-code'
 
-import { readStates, stepOf, STEPS, type FsList, type FsRead, type GoalStatus, type Run } from './state'
+import { readStates, stepOf, STEPS, type FsList, type FsRead, type GoalStatus, type Run, type RunStates } from './state'
 
 type Fs = { list: FsList; read: FsRead }
 
@@ -95,6 +95,28 @@ export function toastsFor(runs: Run[], prev: Record<string, GoalStatus>): string
     }
   }
   return toasts
+}
+
+/**
+ * The text a [ Resume ] press submits: the run's name, one fact only. The
+ * orchestrator re-reads the state file — a render-time status snapshot would
+ * ride as the person's own words (asUser) and go stale between draw and press.
+ */
+export function resumePrompt(run: Run): string {
+  return `Resume the dev-flow run "${run.feat}".`
+}
+
+/** How many rows the Resume section shows before the ellipsis line. */
+const RESUME_ROWS = 5
+
+/** The Resume section's composition: resumable runs, capped, plus the omitted count.
+ *  Active runs (newest first) plus merged runs from finished — merged means
+ *  close-out pending, resumable per the lifecycle; done never resumes. The
+ *  current run is excluded: its card carries the coverage. */
+export function resumableList(states: RunStates): { runs: Run[]; omitted: number } {
+  const runs = [...states.active, ...states.finished.filter(run => run.status === 'merged')]
+  const withoutCurrent = states.current === null ? runs : runs.filter(run => run.feat !== states.current?.feat)
+  return { runs: withoutCurrent.slice(0, RESUME_ROWS), omitted: Math.max(0, withoutCurrent.length - RESUME_ROWS) }
 }
 
 export const register: Register = on => {
