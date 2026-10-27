@@ -109,6 +109,13 @@ export function resumePrompt(run: Run): string {
 /** How many rows the Resume section shows before the ellipsis line. */
 const RESUME_ROWS = 5
 
+/** A feat name for a resume row: truncated with an ellipsis past 28 chars —
+ *  `step N/11 · status` follows on the row, and the pane's 44-column request
+ *  must still fit both, plus the [ Resume ] button. */
+function resumeRowName(feat: string): string {
+  return feat.length > 28 ? `${feat.slice(0, 27)}…` : feat
+}
+
 /** The Resume section's composition: resumable runs, capped, plus the omitted count.
  *  Active runs (newest first) plus merged runs from finished — merged means
  *  close-out pending, resumable per the lifecycle; done never resumes. The
@@ -255,19 +262,25 @@ function CloseButton($: { ui: { close: (args: { id: string }) => Promise<void> }
 /** The [ Resume ] press: submit the prompt (asUser), close the pane on
  *  success; a rejection toasts the manual path and keeps the pane open. `$`
  *  is the parameter — the engine's real one or the test's stub shape alike. */
+/** The $-shape resumePress needs — the real engine's $ and the tests' fake satisfy it alike. */
+type Resume$ = { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } }
+
 export async function resumePress(
-  $: { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } },
+  $: Resume$,
   run: Run,
 ): Promise<void> {
   try {
     await $.prompt.submit({ text: resumePrompt(run), asUser: true })
-    await $.ui.close({ id: PANE })
   } catch {
     $.ui.toast('dev-flow: resume submit failed — use /new-feature resume')
+    return
   }
+  // Submitted — the resume is queued. A close failure is cosmetic (the pane
+  // lingers); toasting "submit failed" here would invite a duplicate resume.
+  await $.ui.close({ id: PANE }).catch(() => undefined)
 }
 function ResumeSection(
-  $: { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } },
+  $: Resume$,
   Box: El,
   Text: El,
   Button: (props: { key?: string; label: string; onPress: () => void }) => RenderNode | null | undefined,
@@ -282,7 +295,7 @@ function ResumeSection(
       {list.runs.map(run => (
         <Box key={`resume-row-${run.feat}`}>
           <Text color={run.status === 'merged' ? 'success' : 'subtle'}>
-            {run.feat} · {run.status}
+            {resumeRowName(run.feat)} · step {stepOf(run.status)}/11 · {run.status}
           </Text>
           <Button key={`resume-${run.feat}`} label="Resume" onPress={() => void resumePress($, run)} />
         </Box>
