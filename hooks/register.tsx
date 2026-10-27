@@ -277,13 +277,13 @@ function ResumeSection(
 
   return (
     <Box flexDirection="column">
-      <Text dimColor>Resume</Text>
+      <Text dimColor>── Resume ──────────────</Text>
       {list.runs.map(run => (
         <Box key={`resume-row-${run.feat}`}>
-          <Text>
-            {run.feat} · step {stepOf(run.status)}/11 · {run.status}
+          <Text color={run.status === 'merged' ? 'success' : 'subtle'}>
+            {run.feat} · {run.status}
           </Text>
-          <Button key={`resume-${run.feat}`} label="[ Resume ]" onPress={() => void resumePress($, run)} />
+          <Button key={`resume-${run.feat}`} label="Resume" onPress={() => void resumePress($, run)} />
         </Box>
       ))}
       {list.omitted > 0 ? <Text dimColor>… and {list.omitted} more (/new-feature resume)</Text> : null}

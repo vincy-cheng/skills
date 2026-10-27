@@ -150,6 +150,17 @@ test('a second unfinished run draws a Resume row; done runs never appear', async
     expect(await ui.find({ key: 'resume-other' })).toBeUndefined()
     expect(await ui.find({ key: 'resume-finished' })).toBeUndefined()
 
+    // The engine brackets button labels itself — ours stays bare ("Resume",
+    // rendered "[ Resume ]"), never a doubled "[ [ Resume ] ]".
+    const button = await ui.find({ key: 'resume-demo' })
+    expect(button?.props?.label).toBe('Resume')
+
+    // Color semantics follow the strip: merged (close-out pending) reads
+    // success. (An active row reads subtle — same branch, not asserted here
+    // because the only active run in this fixture is the current, excluded.)
+    const color = await ui.find({ type: 'Text', text: /^demo · / })
+    expect((color as unknown as { props?: { color?: string } })?.props?.color).toBe('success')
+
     await ui.unmount()
   }
 })
