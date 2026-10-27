@@ -15,8 +15,8 @@ function readRunStates($: { fs: Fs }) {
 /**
  * dev-flow session help: four person-facing behaviors:
  * - status line (ambient): `dev-flow: <feat> · step 6/11 · test · 45m`
- * - band (always drawn): the [ Flow ] button that opens the pane
- * - `/flow` pane (on-demand): a compact 14-row card of the current run
+ * - band (always drawn): the [ Flow ] button — the pane's sole opener
+ * - pane (opened by that button): a compact 14-row card of the current run
  * - step toast: fires when a run's Goal status flips between turns
  *
  * The state-reading three (status line, pane, toast) read
@@ -28,10 +28,11 @@ function readRunStates($: { fs: Fs }) {
 
 const PANE = 'flow'
 
-/** The open-args both openers share — /flow and the band's [ Flow ] button.
- *  rows: 14 — header, 11 strip rows, refs, button. Requests, not grants:
- *  a person-opened pane still seats at any size the surface picks. */
-const FLOW_PANE = { id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true } as const
+/** The open-args the band's [ Flow ] button passes — the pane's sole opener
+ *  (the /flow command is gone; no command registers). rows: 14 — header, 11
+ *  strip rows, refs, button. Requests, not grants: a person-opened pane still
+ *  seats at any size the surface picks. */
+export const FLOW_PANE = { id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true } as const
 
 /** Status → the skill whose run *advances the run into* that status (the gate table's "Sets" column). */
 const ENTERED_BY: Record<GoalStatus, string> = {
@@ -96,13 +97,6 @@ export function toastsFor(runs: Run[], prev: Record<string, GoalStatus>): string
   return toasts
 }
 
-/** /flow command spec, extracted for tests. */
-export const FLOW_COMMAND = {
-  name: 'flow',
-  description: 'Open the dev-flow pane: current run, lifecycle, refs, next step',
-  immediate: true,
-} as const
-
 export const register: Register = on => {
   /** Last-known statuses — the flip cache (session-scoped, ambient; not a cross-session ledger). */
   let lastKnown: Record<string, GoalStatus> = {}
@@ -110,7 +104,6 @@ export const register: Register = on => {
   let farewelled = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register(FLOW_COMMAND)
 
     const states = await readRunStates($)
     lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
@@ -182,18 +175,6 @@ export const register: Register = on => {
       </Box>
     )
     return below ? <Box flexDirection="column">{mine}{below as RenderNode}</Box> : mine
-  })
-
-  // /flow: opens the pane. The render hook below draws it fresh each time.
-  on('command.run', { command: 'flow' }, async $ => {
-    // `immediate: true` (on FLOW_COMMAND) lets /flow run while a turn streams:
-    // the host runs an immediate command at once instead of queueing it until
-    // the turn ends. This hook must not assume the turn's state — it opens a
-    // pane and nothing else.
-    // `columns` asks for a docked pane beside the transcript; `rows` covers
-    // the inline fallback above the prompt when the terminal is narrow.
-    await $.ui.open(FLOW_PANE)
-    return { text: 'dev-flow pane opened. Esc closes it when it holds focus.' }
   })
 
   // The pane: a compact 14-row card — header+step, 11 strip rows, refs+next, buttons.
