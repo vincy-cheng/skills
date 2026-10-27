@@ -1,7 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 
+import { STEPS } from './state'
+
 /**
- * The `/flow` pane's two drawing paths:
+ * The dev-flow pane's two drawing paths:
  * - empty state (no state dir / no active run): names the start path, closes
  * - run card (an active run): header+step, vertical lifecycle strip, refs, next
  *
@@ -42,6 +44,13 @@ const ACTIVE_STATE = [
   '- PR: _(pending)_',
   '',
 ].join('\n')
+
+/** The 11 lifecycle names after `fresh` — imported, not re-listed here. */
+const STEPS_IN_ORDER = STEPS.slice(1) as readonly string[]
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 test('pane draws a Close button on every input surface', async $ => {
   for (const surface of ['terminal', 'desktop'] as const) {
@@ -137,16 +146,12 @@ test('the lifecycle strip renders every step name in full, un-truncated', async 
       requestId: 'flow',
     })
 
-    // Every full step name renders as its own glyph-prefixed row — no truncation.
-    for (const name of STEPS_IN_ORDER) {
-      expect(await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${escapeRegExp(name)}$`) })).toBeDefined()
-    }
-
-    // Each step row is its own Text — the old strip joined them with ' → '
-    // onto one wide line the surface truncated mid-name. The find above
-    // already matched the glyph-anchored row; assert on its actual text.
+    // Every full step name renders as its own glyph-prefixed row; each row is
+    // its own Text — the old strip joined them with ' → ' onto one wide line
+    // the surface truncated mid-name. No joiner may leak into any row.
     for (const name of STEPS_IN_ORDER) {
       const row = await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${escapeRegExp(name)}$`) })
+      expect(row).toBeDefined()
       const rowText: unknown = row?.props?.text !== undefined ? row.props.text : row?.text
       expect(rowText).toBeDefined()
       expect(String(rowText)).not.toContain(' → ')
@@ -156,11 +161,6 @@ test('the lifecycle strip renders every step name in full, un-truncated', async 
   }
 })
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-const STEPS_IN_ORDER = ['brainstorm', 'spec', 'planning', 'issue', 'execute', 'test', 'review', 'doc-fix', 'pr-review', 'merged', 'done']
 test('the band draws a Flow button that opens the pane as person input', async ($, on) => {
   let openCalls: Array<Record<string, unknown>> = []
   on('ui.open', ($, e) => {

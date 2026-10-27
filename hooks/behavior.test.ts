@@ -3,9 +3,11 @@ import { describe, expect, test } from 'claude-code/testing'
 import { stepOf, type GoalStatus } from './state'
 
 /**
- * Task 3 behaviors: status-line text shaping and the toast's status-diff +
- * main-loop filter. The functions under test are pure — exported from
- * register.tsx alongside the hooks wiring (same module, testable seams).
+ * The hooks module's behaviors: status-line text shaping, the toast's
+ * status-diff + main-loop filter, the pane's shared open-args, and the
+ * command surface (none — the band button is the sole opener). The exported
+ * pieces under test come from register.tsx alongside the hooks wiring (same
+ * module, testable seams).
  */
 import { humanizeSince, nextOf, statusLine, toastsFor, FLOW_PANE, register } from './register'
 
@@ -149,6 +151,7 @@ describe('register — the command surface', () => {
   test('registers no commands — the band button is the sole pane opener', () => {
     const registrations: string[] = []
     const specs: unknown[] = []
+    // Fake On/$ stubs: record registrations, never run handlers.
     const recordingOn = ((pattern: string) => {
       registrations.push(pattern)
       return () => undefined
