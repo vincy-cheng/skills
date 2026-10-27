@@ -45,6 +45,12 @@ const ACTIVE_STATE = [
   '',
 ].join('\n')
 
+/** A merged state file — close-out pending, resumable. */
+const MERGED_STATE = ACTIVE_STATE.replace('- **Goal status:** brainstorm', '- **Goal status:** merged')
+
+/** A done state file — never resumable. */
+const DONE_STATE = ACTIVE_STATE.replace('- **Goal status:** brainstorm', '- **Goal status:** done')
+
 /** The 11 lifecycle names after `fresh` — imported, not re-listed here. */
 const STEPS_IN_ORDER = STEPS.slice(1) as readonly string[]
 
@@ -87,7 +93,7 @@ test('the empty state names the start path and closes too', async $ => {
   }
 })
 
-test('the pane draws exactly one button — Close; no Resume', async $ => {
+test('the pane draws Close and the current-run Resume (no section — one run)', async $ => {
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({
       plugin: 'dev-flow',
@@ -98,7 +104,39 @@ test('the pane draws exactly one button — Close; no Resume', async $ => {
     })
 
     expect(await ui.find({ key: 'close' })).toBeDefined()
-    expect(await ui.find({ key: 'resume' })).toBeUndefined()
+    // No resumable runs → no Resume section at all
+    expect(await ui.find({ key: 'resume-demo' })).toBeUndefined()
+
+    await ui.unmount()
+  }
+})
+
+test('a second unfinished run draws a Resume row; done runs never appear', async ($, on) => {
+  on('fs.list', () => ({
+    value: [{ name: 'demo.state.md', kind: 'file' }, { name: 'other.state.md', kind: 'file' }, { name: 'finished.state.md', kind: 'file' }],
+  }))
+  on('fs.read', ($, e) => {
+    if (e.path.endsWith('demo.state.md')) return { value: MERGED_STATE }
+    if (e.path.endsWith('other.state.md')) return { value: ACTIVE_STATE }
+    if (e.path.endsWith('finished.state.md')) return { value: DONE_STATE }
+    return { value: '' }
+  })
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({
+      plugin: 'dev-flow',
+      surface,
+      component: 'Pane',
+      props: { ...PANE_PROPS },
+      requestId: 'flow',
+    })
+
+    // Active = [other] (merged demo lands in finished) → current = other;
+    // its card carries the coverage, so the section lists the merged demo.
+    // done never appears.
+    expect(await ui.find({ key: 'resume-demo' })).toBeDefined()
+    expect(await ui.find({ key: 'resume-other' })).toBeUndefined()
+    expect(await ui.find({ key: 'resume-finished' })).toBeUndefined()
 
     await ui.unmount()
   }
