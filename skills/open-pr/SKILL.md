@@ -86,5 +86,5 @@ No state file → open a PR for the current branch against its base (ask which b
 - **Don't open before the user confirms the body** — a PR is outward-facing.
 - **Don't target the default branch in the multi-branch flow** — PRs target the state file's Target branch (branch flow: default → configured dev branch → `feat/<n>-<name>`).
 - **Don't commit `docs/features/`** — gitignored; the commit guard checks before pushing.
-- **No AI attribution** in the PR body (policy per the body rules above).
+- **No AI attribution** in the PR body (per the `No AI attribution.` body rule above).
 - **Don't auto-close the issue** — the PR targets the state file's Target branch (not the default branch), so closing keywords don't auto-close on merge; close explicitly in step 10 or 11 if intended.
