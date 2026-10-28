@@ -89,7 +89,6 @@ No state file → ask for the base branch (or infer via `git merge-base <default
 
 ## What not to do
 
-- **Don't run the gate inline** — always dispatch a fresh tester subagent; the author biases their own test review.
 - **Don't re-run the gate after the verdict** — act on it; a re-run is for after fixes.
 - **Don't let the tester fix anything** — it reports; the fix loop is step 5's.
 - **Don't skip the suite** — the honesty scan supplements the suite, never replaces it.

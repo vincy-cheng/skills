@@ -126,7 +126,7 @@ ideas/db-tools/db-schema-diff-cli/
 └── tl-dr.md      # one-paragraph shareable summary
 ```
 
-Sample of the filled-in depth expected — `cost.md` (with source links; see also `load `references/cost.md` for the full authoring rules):
+Sample of the filled-in depth expected — `cost.md` (with source links; see also the pointer to `references/cost.md` below for the full authoring rules):
 
 > **cost.md** (excerpt)
 >
