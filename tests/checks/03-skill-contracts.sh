@@ -405,3 +405,25 @@ for sk in skills/brainstorm/SKILL.md skills/plan/SKILL.md; do
   $G -qi 'never swap' "$sk" || pq_errs="$pq_errs ${sk}:no-frozen-modals-rule"
 done
 [ -z "$pq_errs" ] && ok "brainstorm + plan carry prose-quality rule blocks" || bad "prose blocks missing:$pq_errs"
+
+# plan review pass + step-4 read-gate + bootstrap roles + red-team key
+# retirement (issue #90). Concept greps scoped per file — never exact
+# sentences (#38); key-shape probes, not bare words (#70).
+pr_errs=""
+PLAN_SKILL="skills/plan/SKILL.md"
+$G -q '## Plan review pass' "$PLAN_SKILL" || pr_errs="$pr_errs plan:no-review-pass-section"
+$G -q 'roles.reviewer' "$PLAN_SKILL" || pr_errs="$pr_errs plan:no-reviewer-key"
+$G -q 'needs-rework' "$PLAN_SKILL" || pr_errs="$pr_errs plan:no-binary-verdict"
+NF_SKILL="skills/new-feature/SKILL.md"
+$G -q 'Plan review pass' "$NF_SKILL" || pr_errs="$pr_errs new-feature:no-pass-note"
+CGI_SKILL="skills/create-github-issue/SKILL.md"
+$G -q 'Plan review pass' "$CGI_SKILL" || pr_errs="$pr_errs cgi:no-standalone-gate"
+BOOT="skills/bootstrap/SKILL.md"
+$G -q '"reviewer": "session"' "$BOOT" || pr_errs="$pr_errs bootstrap:no-roles-template"
+# retired key form: quoted JSON key or roles. dotted reference, in skills +
+# routing doc + eval fixture (bare-word "red-team" role descriptions survive)
+$G -q '"red-team"' skills/brainstorm/SKILL.md && pr_errs="$pr_errs retire:brainstorm-key"
+$G -q '"red-team"' references/model-routing.md && pr_errs="$pr_errs retire:routing-key"
+$G -q '"red-team"' evals/new-feature/cases/05-combined-ask-prefill/prompt.md && pr_errs="$pr_errs retire:fixture-key"
+$G -q 'roles.red-team' skills/new-feature/SKILL.md && pr_errs="$pr_errs retire:newfeature-key"
+[ -z "$pr_errs" ] && ok "plan review pass + read-gates + roles template + key retirement" || bad "plan-review wiring broken:$pr_errs"
