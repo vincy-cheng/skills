@@ -47,7 +47,7 @@ The five non-cost files are **required slots**; `cost.md` is optional-by-user-ch
 ## Rules
 
 1. **Two questions before anything else.** Before deriving a slug, before any research, ask the user (one AskUserQuestion, two questions, when not already stated):
-   - **Where should this idea live?** Propose **project (default)** — Case B: `ideas/<slug>/`, the idea lives in the project's own repo, no project layer. Alternative — **brainstorm only** — Case A: `ideas/<project>/<slug>/`, one ideas repo holds ideas for many projects; project name comes from the user, ask if unclear. The user still confirms; never silently pick one.
+   - **Where should this idea live?** Propose **project (default)** — Case B: `ideas/<slug>/`, the idea lives in the project's own repo, no project layer. Alternative — **ideas repo** — Case A: `ideas/<project>/<slug>/`, one ideas repo holds ideas for many projects; project name comes from the user, ask if unclear. The user still confirms; never silently pick one.
    - **Include cost research (`cost.md`)?** Propose **include** (default) — it's what makes the folder buildable and may involve live pricing verification (WebFetch/WebSearch → `curl -sL` → ask user). The user can decline — a purely local/offline idea, or one where pricing simply doesn't matter yet, gets a five-file folder. Never include or skip it silently.
 2. **Grill before writing.** Don't turn the first prompt straight into files — discuss the idea with the user first (see the next section). One focused round, a synthesis, an explicit go-ahead — only then create the folder. If the user arrived with a fully-formed brief or says "just write it", skip the grill — never force it on someone who's already decided.
 3. **Slug:** lowercase kebab-case English (`expense-tracker`, `db-schema-diff-cli`). No spaces, no underscores, no date prefixes, no Chinese in the folder name.
@@ -84,7 +84,7 @@ Case A (ideas repo, ideas shared standalone): all slots full — the folder must
 
 ## cost.md — what goes in (only when the user opted in)
 
-Applies **only** when the user answered "include" in Rules §1 — if they declined, skip the file entirely and don't do pricing research. Ground every number in facts from `research.md` or user input; every number carries its official source URL. Never invent a price — an honest unknown beats a confident stale number.
+Applies **only** when the user answered "include" in Rules §1 — if they declined, skip the file entirely and don't do pricing research. Every number is grounded and carries its official source URL — the verification rules live in `references/cost.md`; load it (below) before writing.
 
 Prior-art and pricing research is **read-only**: fan out parallel research subagents (web + repo searches) freely when the sources are many. The serial one-at-a-time rule exists only for tree-mutating implementers — never for reading.
 
@@ -126,7 +126,7 @@ ideas/db-tools/db-schema-diff-cli/
 └── tl-dr.md      # one-paragraph shareable summary
 ```
 
-Sample of the filled-in depth expected — `cost.md` (with source links) and `plan.md` (with the milestone diagram):
+Sample of the filled-in depth expected — `cost.md` (with source links; see also the pointer to `references/cost.md` below for the full authoring rules):
 
 > **cost.md** (excerpt)
 >
@@ -138,40 +138,13 @@ Sample of the filled-in depth expected — `cost.md` (with source links) and `pl
 > | Provider | Cost | Includes | Source |
 > |---|---|---|---|
 > | PostgreSQL | $0 | direct connection; CLI needs a read-only user | https://www.postgresql.org/docs/current/app-psql.html |
-> | MySQL | $0 | direct connection | https://dev.mysql.com/doc/ |
 > | Hosted DB (e.g. Supabase free tier) | $0–$25/mo | free tier: 500 MB, pauses on inactivity | https://supabase.com/pricing |
 >
 > **Recommended path:** start with $0 direct connections; only a hosted test DB would add cost.
 > Open question: license cost if we ever ship a GUI wrapper — unknown, not priced.
 > ```
 
-> **plan.md** (excerpt)
->
-> ```markdown
-> ## Milestones
->
-> **M0 — walking skeleton.** Goal: `db-schema-diff postgres A B` prints raw table/column diff. Done: two local Postgres schemas diff end-to-end.
-> - Scaffold CLI entrypoint
-> - Introspect one provider (Postgres) to normalized schema model
-> - Print diff of two snapshots
->
-> **M1 — migration suggestions.** Goal: diff output includes a suggested `ALTER` script per change. Done: dropping a column suggests the right `ALTER TABLE`.
-> - Map diff hunks to migration templates
-> - Render SQL script
->
-> **M2 — second provider.** Goal: same flow works on MySQL. Done: cross-provider diff via normalized model.
-> - MySQL introspection adapter
-> - Provider detection from connection string
->
-> ## Flow
-> (mermaid diagram as specified above)
->
-> ## Non-goals
-> Carried from design.md: no auto-applying migrations; no cloud sync.
->
-> ## Open questions
-> - Do we need cross-provider type mapping tables (Postgres↔MySQL), or is within-provider diff enough for v1?
-> ```
+`plan.md` follows the milestone shape above (goals, done-states, per-milestone bullets, the mermaid Flow, carried non-goals) — the tree sketch plus this cost excerpt shows the depth bar; no second excerpt needed.
 
 If the user supplies specifics (a name, target audience, constraints), fold them into the matching file rather than overriding the structure.
 
@@ -189,9 +162,6 @@ When the folder is complete, tell the user:
 - **Inventing file names** (`features.md`, `tech-notes.md`). Use the fixed files — map your content into them.
 - **Dropping `tl-dr.md`** because "the idea isn't fleshed out yet." Write a short summary anyway; it's a required slot.
 - **Wrong language** — writing English when the repo's default is another language. Match the repo language.
-- **Inventing prices or quotas in `cost.md`.** Every number must come from `research.md`, a user-provided source, or be marked unknown — and carries its official source URL.
-- **Writing memory as verified.** "I know this API costs $29/mo" is not verification. If WebFetch/WebSearch and `curl` can't confirm the number live, ask the user for the pricing info — and if they can't supply it, mark it `_unverified_`. Don't present recall as fact.
-- **Result without math.** A spend table showing only dollar totals isn't checkable — show the calculation per cell or the table is asserting, not arguing.
-- **Cost blind spots.** A service named in `plan.md` but missing from `cost.md` (even at $0) leaves a gap — the reader assumes it was priced and found free, when actually it was forgotten.
+- **Skipping `references/cost.md`** when writing a cost file — its verification, math, and blind-spot rules are the spec; the cost rules here are only the summary.
 - **Writing a full dev-flow plan in `plan.md`** — branches, tests, issue refs. Keep it a milestone/task draft; `/new-feature` does the rest.
 - **Filling files with invented facts** when the brief is thin. Stay grounded in what the user gave you; mark genuine unknowns as open questions inside the relevant file instead of fabricating.

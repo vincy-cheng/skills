@@ -174,10 +174,10 @@ Three local-only artifacts under `docs/features/` (spec, plan, state) must never
 If the user's request references an idea folder, the skill ingests its docs as the established brief and the run records the folder path in References. If the run is seeded from an overview spec (brainstorm's decomposition fired on a prior run), the state file's References record the Overview path at creation.
 
 ## Step 2 — Spec (local only)
-**Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. The spec is written by `dev-flow:brainstorm` at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — verify it exists, add the path to References, show the user. Verify it's gitignored before moving on.
+**Gate:** `brainstorm` → set `spec`. Carry brainstorming's output forward; don't re-derive. The spec is written by `dev-flow:brainstorm` at `docs/features/specs/YYYY-MM-DD-<feat-name>-design.md` — verify it exists, add the path to References, show the user. (The preflight already gitignores it.)
 
 ## Step 3 — Plan
-**Gate:** `spec` → set `planning`. **Invoke `dev-flow:plan` and follow it** — the plan is generated through that skill, not hand-authored. It saves the plan to `docs/features/plans/YYYY-MM-DD-<feat-name>.md` (its own convention — no override needed), produces the contract-complete sections (overview, Global Constraints, Flow Chart, File Structure, Tasks with per-task files and TDD shape), and has no handoff. Copy the task list into the state file's Tasks; add the plan path to References. Verify it's gitignored; advance to step 4.
+**Gate:** `spec` → set `planning`. **Invoke `dev-flow:plan` and follow it** — the plan is generated through that skill, not hand-authored. It saves the plan to `docs/features/plans/YYYY-MM-DD-<feat-name>.md` (its own convention — no override needed), produces the contract-complete sections (overview, Global Constraints, Flow Chart, File Structure, Tasks with per-task files and TDD shape), and has no handoff. Copy the task list into the state file's Tasks; add the plan path to References. Advance to step 4.
 
 ## Step 4 — Create issue
 **Gate:** `planning` → set `issue`. Invoke `dev-flow:create-github-issue` to turn the spec + plan into a tracked issue. Draft → user confirms → publish with `gh`; user picks labels. Offer a `feat/<n>-<name>` (or `fix/<n>-<name>`) branch off the state file's Base branch; update the state file's base branch and record the issue number in References.
@@ -188,7 +188,7 @@ If the user's request references an idea folder, the skill ingests its docs as t
 ## Step 6 — Test (fresh subagent)
 **Gate:** `execute` → set `test`. **No model ask here** — the Tester's lane was settled by the step-5 combined Roles ask. Roles block missing/empty → stop: return to step 5 to complete the ask (the entry read-gate in `dev-flow:test` also stops on it). Then invoke `dev-flow:test`: it reads the Roles block silently and dispatches a fresh tester subagent on the Tester lane — the tester runs the full test suite + lint (hard gate) and a test-honesty scan (per the test skill's pattern list), writes a color-coded report to `docs/features/.test/<feat-name>/test-report.md`, and returns **green / red**:
 - **Green** → update the state file's **Last verification** from the tester's result; advance to step 7.
-- **Red** → do not advance. Re-set the status to `execute` (red-loop rewind); return to step 5 with the findings; fix and re-run test (a fresh tester subagent again).
+- **Red** → do not advance; red-loop rewind (per *The hard gate*) back to step 5 with the findings.
 
 ## Step 7 — Review (fresh subagent)
 **Gate:** `test` → set `review`. **Before invoking `dev-flow:review`, run the risk recheck** — (a) read the plan's per-task `Risk:` lines; (b) probe the executed `git diff <base>...HEAD` against the four category bars (illustrative greps as hints, not gates: destructive command strings like `push --force`/`reset --hard`/`DROP`-shaped SQL, CI/workflow file changes, schema migrations, auth-path files; categories, not a list). **Signal combination is escalation-only:** a plan tag `high` → high; a probe hits a category bar → high; both silent → low — the recheck never downgrades a plan high to low. Write the result to the state file's **Risk tier** field (`low` or `high — <categories>`); on a `high` tier, write **Focused verdict** `_(pending — run in this gate round)_` in the same breath (waived-high writes `_(not required)_`). **Show the tier to the user with a waiver hook**: on a high tier, they may waive the focused review — record `high — waived by user, YYYY-MM-DD` in the field and proceed without the focused reviewer; a waiver is honest state, not a bypass of the field. **Risk tier not written → do not invoke `dev-flow:review` — do not dispatch the reviewer before the tier is in the state file.** Then invoke `dev-flow:review`. **No model ask here** — the Reviewer's lane was settled by the step-5 combined Roles ask. It reads the Roles block silently and dispatches a fresh reviewer subagent on the Reviewer lane: spec coverage, plan coverage, obvious-issue scan (bugs, security smells, leftover, naming), and a maintainability pass with a clean-code check (structure, coupling, naming, complexity, duplication, functions, conditionals, comments, code smells), writes findings to a color-coded report, and returns a verdict. Per the state's **Risk tier**, the review skill also dispatches a focused reviewer on high (not waived) tiers after the main reviewer clears green/blue — same lane, same R5 verdict contract, combined category brief, report to `review-report-focused.md`. Verdict and handling per the review skill's R5 verdict contract — green/blue advance to step 8; yellow surfaces the fix-now/note-in-PR choice; red rewinds to step 5.
@@ -199,7 +199,7 @@ This is the gate that makes the PR worth a human's review — it does not replac
 **Gate:** `review` → set `doc-fix`. Invoke `dev-flow:doc-fix` to scan for doc drift caused by *this* run — this plugin's docs and the target repo's docs — guided (edits shown before applying), committed as `docs:` so they ride in the PR. If the target repo has no `docs/agents/` tree at all, doc-fix generates one via `dev-flow:document-structure` (skip if the user declines). It returns a verdict:
 - **No drift** → no-op pass; advance to step 9.
 - **Drift found** → show the proposed edits; on confirmation, apply and commit as `docs:`; advance to step 9.
-- **Drift reveals a deeper code issue** → STOP; don't open a PR with known-bad docs (mirrors review's red). Re-set the status to `execute`; return to step 5.
+- **Drift reveals a deeper code issue** → STOP; don't open a PR with known-bad docs (mirrors review's red); red-loop rewind per *The hard gate*.
 
 ## Step 9 — Open PR
 **Gate:** `doc-fix` → set `pr-review`. Invoke `dev-flow:open-pr`. It pushes, opens the PR targeting the state file's Target branch with `gh pr create`, links the issue, syncs the issue body (acceptance-criteria checkboxes + `PR: #NN` reference), and records the PR number in the state file's References. Step 10 is manual — the skill never merges.
@@ -218,7 +218,7 @@ Rules:
 - **Show the user any proposed memory update before applying** — close-out is guided, not fire-and-forget.
 - **No memory update needed** → say so plainly and mark the run `done`. Don't invent edits to justify the step.
 - **Ask before deleting the branch** — after the merge, offer to clean up: check out the state file's Target branch first (you can't delete the branch you're on), then `git branch -d <branch>` locally (safe post-merge) and `git push origin --delete <branch>` for the remote. Only with the user's yes; a declined offer is a normal outcome, not a failure.
-- **Never commit `docs/features/`** — still gitignored.
+- **Never commit `docs/features/`** (preflight + commit guard keep it ignored).
 
 When done, the run is `done` — fully closed. The state file and index row stay as history.
 

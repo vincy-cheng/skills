@@ -7,7 +7,7 @@ description: Use to review a feat or fix branch before opening a PR — a judgme
 
 A pre-PR judgment review gate: does the branch do what the spec said, is anything obviously wrong, is it maintainable? It does **not** run the test suite — that's `dev-flow:test` (step 6) — and does **not** replace human review at the PR. Runs against the diff between the branch and its base.
 
-**Fresh eyes, not self-review.** The session that wrote the code never reviews it — author bias hides the obvious issues. This skill dispatches a **fresh reviewer subagent** with no prior context: it gets the diff, spec, and plan, and returns a verdict. The orchestrator acts on it (advance to the PR, or return to execute). Same isolation principle `execute-tasks` uses for subagent-mode implementation, applied to review.
+**Fresh eyes, not self-review.** The session that wrote the code never reviews it — author bias hides the obvious issues. This skill dispatches a **fresh reviewer subagent** with no prior context: it gets the diff, spec, and plan, and returns a verdict. The orchestrator acts on it (advance to the PR, or return to execute) — the same dispatch isolation principle `execute-tasks` uses for implementation.
 
 ## Gate (dev-flow, step 7)
 
@@ -20,8 +20,7 @@ Dev-flow mode — read the state file's **Roles block** (the Reviewer line) befo
 - Block has a Reviewer lane value (`session`, `claude:<name>`, `cli:<tool>/<model>`) → dispatch on it per `## Model routing`.
 - Block missing, empty, or the Reviewer line absent → **stop; report "step 5's combined Roles ask was skipped"** — do not dispatch the reviewer, do not re-ask from this skill. Return to new-feature step 5 (the orchestrator asks and writes the picks, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
 - Malformed lane value → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
-- **Crash-recovery exception, explicitly scoped and verified:** if the block is missing and the user **confirms** the run crashed during step 5 before the combined ask completed its write — ask once, write the picks to the state file, proceed. Never accept an unconditional "it crashed": if the user can't confirm the crash, treat it as the skipped-ask case above — stop and report. This is the only path that asks from this skill; every other missing-block shape stays a stop.
-- Pre-Roles state file: apply the upgrade mapping in new-feature's field rules (an old `Verifier model` pick → the Reviewer line) — read-only, never migrated on disk.
+- Missing-block recovery paths (user-confirmed crash-recovery, pre-Roles upgrade mapping) → follow `references/model-routing.md`'s *Before-starting procedures* section — the only ask-from-here path is a user-confirmed crash recovery; every other missing-block shape stays a stop.
 
 Then read the state file's **Risk tier**:
 
@@ -37,12 +36,9 @@ Standalone mode (no state file) → there is no step 5 ask and no risk tier; ask
 - The **plan** at `docs/features/plans/YYYY-MM-DD-<feat-name>.md` — task breakdown.
 - The **base branch** — usually the state file's Base branch (`dev` by default, or `.dev-flow/config.json`'s `dev_branch`); standalone mode: ask if unclear — reviewing against the wrong base makes the diff meaningless.
 
-## The reviewer lane (mode-split)
-
-- **Dev-flow mode:** the orchestrator asked the combined Roles ask at step 5 and wrote the picks to the state file's Roles block — **read the Reviewer line; never ask**. A missing block or line follows `## Before starting`: stop and report the skipped ask — the only ask-from-here path is the user-confirmed crash-recovery exception.
-- **Standalone mode:** no state file → ask (default: `session`).
-
 ## Dispatch the reviewer subagent
+
+Dev-flow mode: read the Reviewer line per `## Before starting` — never ask. Standalone: ask (default `session`).
 
 Spawn **one** fresh reviewer subagent on the Reviewer lane. It has no prior context — hand it everything as a brief:
 
@@ -73,42 +69,11 @@ Run these in order. Write findings to the report file as you go, in the color-co
 
 Emoji — renders in terminal + GitHub markdown, where ANSI doesn't.
 
-**Verdict header** (one line at the top of the report):
+**Verdict header** (one line at the top of the report): 🟢 **GREEN** — clean, ready for PR; 🟦 **BLUE** — trivial findings, not worth a loop; noted for the PR, no prompt; 🟡 **YELLOW** — findings that should be fixed; pause and ask (fix recommended); 🔴 **RED** — blocker, do not open PR.
 
-- 🟢 **GREEN** — clean, ready for PR
-- 🟦 **BLUE** — trivial findings, not worth a loop; noted for the PR, no prompt
-- 🟡 **YELLOW** — findings that should be fixed; pause and ask (fix recommended)
-- 🔴 **RED** — blocker, do not open PR
+**Section titles** (distinct color per section): 🟦 **R1. Spec coverage** — requirement → task → code; gaps listed / 🟪 **R2. Plan coverage** — task → matching change; lies flagged / 🟧 **R3. Obvious-issue scan** — bugs / security / leftover / naming / 🟫 **R4. Maintainability & clean code** — structure, coupling, naming, complexity, duplication, clean-code pass / 🟥 **Findings** (only when blue/yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag.
 
-**Section titles** (distinct color per section):
-
-- 🟦 **R1. Spec coverage** — requirement → task → code; gaps listed
-- 🟪 **R2. Plan coverage** — task → matching change; lies flagged
-- 🟧 **R3. Obvious-issue scan** — bugs / security / leftover / naming
-- 🟫 **R4. Maintainability & clean code** — structure, coupling, naming, complexity, duplication, clean-code pass
-- 🟥 **Findings** (only when blue/yellow/red) — numbered: severity, file:line, one-line problem, question-vs-verdict tag
-
-Example (blue):
-
-```markdown
-# Review report — <feat-name>
-🟦 BLUE — 2 trivial findings, not worth a loop; noted for the PR
-
-🟦 R1. Spec coverage
-   - All spec requirements map to tasks + code. No gaps.
-
-🟪 R2. Plan coverage
-   - All [x] tasks have matching changes.
-
-🟧 R3. Obvious-issue scan
-   - No bugs, no leftover, naming consistent.
-
-🟥 Findings
-   1. [minor] review/SKILL.md:42 — wording says "self-review" in one spot; should say "fresh subagent".
-   2. [minor] README.md:48 — stale description; doesn't mention subagent dispatch.
-
-   (Blue asks the user — fix now vs. note-in-PR.)
-```
+Example (blue): `# Review report — <feat-name>` / `🟦 BLUE — 2 trivial findings, not worth a loop; noted for the PR`, then one section per row above with the findings numbered under 🟥 (severity, file:line, one-line problem), ending with `(Blue asks the user — fix now vs. note-in-PR.)`.
 
 ### R1. Spec coverage
 
@@ -150,9 +115,7 @@ Return one of (verdict inline, detail in the report file):
 
 ## Act on the verdict (orchestrator)
 
-The orchestrator acts on the verdict per contract R5 above — it does not re-run the review and does not restate the handling inline. Green → advance to step 8; blue → the fix-now / note-in-PR choice per R5; yellow → the fix-now / note-in-PR choice per R5; red → red-loop rewind to step 5. R5 owns the detail; the one-line mapping suffices.
-
-Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule. A focused review's report lives beside it at `review-report-focused.md`, same rules.
+The orchestrator acts on the verdict per contract R5 above — it does not re-run the review and does not restate the handling inline. Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule. A focused review's report lives beside it at `review-report-focused.md`, same rules.
 
 On a high (not waived) tier, the act-on-verdict step also covers the focused reviewer's verdict once it returns: record it in the state's **Focused verdict** field (replacing `_(pending — run in this gate round)_`), then apply the same R5 handling — both reviewers must clear.
 
@@ -179,12 +142,8 @@ Report home without a feat-name: the **branch name** — `docs/features/.review/
 
 ## What not to do
 
-- **Don't review your own work inline** — always dispatch a fresh reviewer; author bias is the point.
 - **Don't re-do the review after the verdict** — trust it and act.
 - **Don't let the reviewer fix things** — a reviewer that starts editing has stopped reviewing.
-- **Don't open the PR** — that's step 9.
-- **Don't merge** — step 10 is manual, by the human.
+- **Don't open the PR** — that's step 9, and step 10's merge is manual.
 - **Don't run the test suite** — that's `dev-flow:test`'s job (step 6); review trusts step 6's green.
-- **Don't review against the wrong base** — confirm the base first.
-- **Don't pre-judge** — flag a question as a question, not a verdict.
-- **Don't replace human review** — this is the gate before the PR, not the PR review itself.
+- **Don't pre-judge** — flag a question as a question, not a verdict — and don't review against the wrong base.

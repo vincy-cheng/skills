@@ -107,4 +107,4 @@ Reproduce the bug with a failing test first. Watch it fail, fix the code, watch 
 
 - Commits go through `dev-flow:commit` (Conventional Commits, no AI attribution) — never auto-commit.
 - All artifacts stay under `docs/features/` — never `.superpowers/`.
-- **No handoff.** This skill never advances, skips, or reorders dev-flow steps. When the loop finishes, control returns to execute-tasks' loop; step order is governed solely by the hard gate in `commands/new-feature.md`.
+- **No handoff.** This skill never advances, skips, or reorders dev-flow steps. When the loop finishes, control returns to execute-tasks' loop; step order is governed solely by the hard gate in `skills/new-feature/SKILL.md`.

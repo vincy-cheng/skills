@@ -21,9 +21,9 @@ A reader (human or agent) should understand the *what*, *boundaries*, *done-stat
 2. **Draft the body** with the template below. Fill every required section; add suggested sections when they add signal.
 3. **Show the draft** (title + body) and ask for confirmation. The user picks labels here.
 4. **Publish** with `gh issue create` (heredoc). Capture the URL and issue number.
+5. **Offer a branch** (see Branches) if the repo's workflow calls for one. Only if the user accepts.
 
 **One-issue-ahead.** When operating inside a dev-flow run whose state-file References carry an Overview path, open an issue only for the **imminent** run — later runs stay in the overview spec (pre-opened issues go stale when direction shifts mid-way). Standalone use (no state file, no Overview) is unaffected — never refuse a plain issue request.
-5. **Offer a branch** (see Branches) if the repo's workflow calls for one. Only if the user accepts.
 
 ## The template
 

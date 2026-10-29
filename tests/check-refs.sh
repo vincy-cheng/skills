@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# tests/check-refs.sh — assertions for the move-cost-spec-to-reference run (issue #40).
-# Verifies the two skill extractions landed: reference files exist with their content
-# intact, SKILL.md files carry the conditional-load pointers, and new-idea actually
-# shrank. Disposable for the red-green loop; exit 0 = all assertions pass.
+# tests/check-refs.sh — assertions for the move-cost-spec-to-reference run (issue #40),
+# extended by the trim-plugin-skills run (issue #86): reference files exist with their
+# content intact, SKILL.md files carry the conditional-load pointers, and the trimmed
+# skills sit inside their post-trim line windows. Disposable for the red-green loop;
+# exit 0 = all assertions pass.
 set -u
 cd "$(dirname "$0")/.."
 G=/usr/bin/grep
@@ -30,11 +31,11 @@ $G -q "load \`references/cost.md\`" "$COST_SKILL" && ok "cost-pointer-wording" |
 # 4. the big section body is gone from SKILL.md (heading stays as the summary's title)
 $G -q "Verify before writing, ask when you can't" "$COST_SKILL" && bad "cost-body-removed" || ok "cost-body-removed"
 
-# 5. new-idea SKILL.md shrank to the ~60-lines-lighter target (229 baseline)
+# 5. new-idea SKILL.md sits in the post-trim window (167 actual + ~5 headroom; floor is the over-trim guard)
 if [ -f "$COST_SKILL" ]; then
   lines=$($G -c "" "$COST_SKILL")
-  [ "$lines" -le 195 ] && ok "cost-skill-shrunk:$lines" || bad "cost-skill-shrunk:$lines (expected <=195)"
-  [ "$lines" -ge 183 ] && ok "cost-skill-not-over-trimmed:$lines" || bad "cost-skill-not-over-trimmed:$lines (expected >=183)"
+  [ "$lines" -le 172 ] && ok "cost-skill-shrunk:$lines" || bad "cost-skill-shrunk:$lines (expected <=172)"
+  [ "$lines" -ge 162 ] && ok "cost-skill-not-over-trimmed:$lines" || bad "cost-skill-not-over-trimmed:$lines (expected >=162)"
 else
   bad "cost-skill-shrunk:skill-missing"
 fi
@@ -75,8 +76,8 @@ $G -q "needless repetition" "$CC_SKILL" && bad "clean-code-body-removed" || ok "
 # 12. SKILL.md shrank to the extraction target (~169 baseline; heading+intro retained)
 if [ -f "$CC_SKILL" ]; then
   lines=$($G -c "" "$CC_SKILL")
-  [ "$lines" -le 150 ] && ok "clean-code-skill-shrunk:$lines" || bad "clean-code-skill-shrunk:$lines (expected <=150)"
-  [ "$lines" -ge 110 ] && ok "clean-code-skill-not-over-trimmed:$lines" || bad "clean-code-skill-not-over-trimmed:$lines (expected >=110)"
+  [ "$lines" -le 154 ] && ok "clean-code-skill-shrunk:$lines" || bad "clean-code-skill-shrunk:$lines (expected <=154)"
+  [ "$lines" -ge 144 ] && ok "clean-code-skill-not-over-trimmed:$lines" || bad "clean-code-skill-not-over-trimmed:$lines (expected >=144)"
 else
   bad "clean-code-skill-shrunk:skill-missing"
 fi
