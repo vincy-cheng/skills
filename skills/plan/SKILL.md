@@ -77,7 +77,7 @@ Before presenting the plan, check it with fresh eyes and fix inline: every task 
 
 After generation and self-review, before presenting the plan for approval, dispatch a fresh plan reviewer — the plan skill is the plan's author, so it must not judge the plan alone (the same fresh-eyes pattern as the brainstorm viability red-team and the test/review gates).
 
-**Dispatch.** Fresh subagent, read-only critique. Lane: config `roles.reviewer` from `.dev-flow/config.json`; unset → `session`; malformed or unavailable lane → BLOCKED stop-and-ask per the routing error contract, never a silent downgrade. Standalone mode has no config context to trust — ask the lane directly (same shape as the review/test skills' standalone ask).
+**Dispatch.** Fresh subagent, read-only critique. Lane: config `roles.reviewer` from `.dev-flow/config.json`; unset → `session`; malformed or unavailable lane → BLOCKED stop-and-ask per the routing error contract, never a silent downgrade. Semantics live in `references/model-routing.md` — the single source. Standalone mode has no config context to trust — ask the lane directly (same shape as the review/test skills' standalone ask).
 
 **Checklist — judgment only.** The reviewer checks: does the task list cover the whole spec (nothing quietly skipped); is the order sane (no task reading an earlier task's output that lands later); missing or phantom work (spec asks with no task, tasks doing work outside the spec). It does **not** re-run the contract-shaped checks above — `## Self-review` already owns Risk-line, Flow-chart, and verbatim-copyable presence, and grep-able structure checks gain nothing from a subagent dispatch.
 
@@ -95,5 +95,5 @@ In any repo, without dev-flow: same sections, same contract — the consumers ar
 
 **In-flow mode:** invoked by `dev-flow:new-feature` step 3.
 
-- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes other skills. Its terminal state is the approved plan; control returns to the orchestrator; step order is governed solely by the hard gate in `skills/new-feature/SKILL.md`.
+- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes other skills. Its terminal state is the approved plan carrying its `## Plan review pass` section — see above; control returns to the orchestrator; step order is governed solely by the hard gate in `skills/new-feature/SKILL.md`.
 - Plans are never committed. Artifacts stay under `docs/features/` — never `.superpowers/`.

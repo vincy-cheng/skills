@@ -41,7 +41,7 @@ Optional `roles` key in `.dev-flow/config.json` (per-repo, gitignored, per-machi
 ```
 
 - Each key maps a role to a lane value from `## Lanes`.
-- Omitted role → that role behaves exactly as before (implementer: the current default flow; tester: session; `reviewer`: session for all three judgment roles it feeds — step-7 review per the step-5 ask, brainstorm red-team and the plan review pass pinned to `session` directly — one contract, one default).
+- Omitted role → that role behaves exactly as before (implementer: the current default flow; tester: session; `reviewer`: session for all three judgment roles it feeds — step-7 review per the step-5 ask; brainstorm red-team and the plan review pass pinned to `session` directly).
 - The whole `roles` key omitted → zero-change default.
 - A **malformed** value (unknown role, unknown lane syntax, empty) is NOT unset — it is a BLOCKED stop-and-ask per `## Error contract`.
 - Config is the long-term default; per-run picks live in the state file's Roles block. No per-task overrides in v1.
