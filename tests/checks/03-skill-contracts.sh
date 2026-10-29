@@ -91,6 +91,15 @@ $G -q -i 'symlink' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-sy
 $G -q 'scope boundary' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-boundary-exception-mention"
 [ -z "$ds_errs" ] && ok "document-structure owns the AGENTS.md entry-point rule" || bad "entry-point rule missing:$ds_errs"
 
+# document-structure names UI.md as a concern map (#88): the engine must carry
+# the UI naming — example tree, filename table, detection evidence, and the
+# pointer-first UI-area-table contract — not a bare mention.
+ds_errs=""
+$G -q 'UI.md' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-UI-md-naming"
+$G -q 'UI-area table' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-UI-area-table-contract"
+$G -q '.storybook/' skills/document-structure/SKILL.md || ds_errs="$ds_errs no-UI-detection-evidence"
+[ -z "$ds_errs" ] && ok "document-structure names UI.md as a concern map" || bad "UI concern map missing:$ds_errs"
+
 # must-ask gates are structurally present (issue #67): the three sub-skills
 # carry a `## Before starting` read-gate with a stop-and-return consequence,
 # new-feature's step 5/6 definitions carry the pre-dispatch ask + write
