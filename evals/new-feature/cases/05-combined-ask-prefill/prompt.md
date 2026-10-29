@@ -10,8 +10,7 @@ This repo's .dev-flow/config.json contains:
   "roles": {
     "implementer": "claude:github/gpt-5.4",
     "tester": "session",
-    "reviewer": "session",
-    "red-team": "session"
+    "reviewer": "session"
   }
 }
 
