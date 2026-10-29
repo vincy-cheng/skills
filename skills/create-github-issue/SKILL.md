@@ -9,7 +9,7 @@ description: Use whenever the user wants to create, open, file, or draft a GitHu
 
 ## Gate check
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), **verify Goal status is `planning` and set it to `issue` before drafting.** If not `planning`, stop — a step was skipped — and tell the user which step to run. No state file (invoked standalone) → skip the gate, proceed.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), **verify Goal status is `planning` and set it to `issue` before drafting.** If not `planning`, stop — a step was skipped — and tell the user which step to run. No state file (invoked standalone) → skip that gate, but **standalone still checks the plan review**: if the run's plan document (at `docs/features/plans/YYYY-MM-DD-<name>.md` or a plan path the user named) lacks a `## Plan review pass` section recording `pass` (or a user-accepted self-check), stop and say the plan needs its pass first — no issue off an unaudited plan. A plan predating this gate carries no section: ask the user whether to run the pass now or proceed as-is (their call, recorded in the run if one exists).
 
 ## Why a fixed structure
 
