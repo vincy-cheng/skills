@@ -79,7 +79,7 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | Skill | Step | Purpose |
 |-------|------|---------|
 | `brainstorm` | 1 | Work through the design and write an approved spec |
-| `plan` | 3 | Turn the spec into a contract-first implementation plan |
+| `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a fresh-subagent plan review |
 | `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
 | `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>) |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
