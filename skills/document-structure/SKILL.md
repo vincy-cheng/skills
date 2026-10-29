@@ -43,6 +43,7 @@ docs/agents/
 ├── API.md           ← L1 — concern map: only if the project has/serves a non-trivial API
 ├── DEPLOYMENT.md    ← L1 — concern map: only if there's a deploy pipeline
 ├── DATABASE.md      ← L1 — concern map: only if the project uses a DB/ORM/migrations
+├── UI.md            ← L1 — concern map: only if the project has a UI (pages, screens, components)
 └── DEEP/            ← L2: one topic per file, created only when L1 can't fit it
 ```
 
@@ -61,8 +62,11 @@ Canonical concern→filename mapping (ALL-CAPS):
 | tests | TESTING.md |
 | serves HTTP | API.md |
 | DB/ORM/migrations | DATABASE.md |
+| UI | UI.md |
 
 Unlisted concerns: `<CONCERN>.md`, ALL-CAPS from the concern name.
+
+**UI.md content contract (pointer-first).** The **UI-area table** — route/page/screen → component file, so a spoken area ("home page navigation") resolves to a file — is UI.md's sole unique payload. Test tools, run commands, and local-run instructions belong to TESTING.md and DEVOPS.md: one line plus a pointer each, never a duplicate. Guards: a table exceeding the L1 budget is capped with its overflow at `DEEP/UI-AREAS.md`; a named concern map still passes the "must earn its keep" gate (a UI project with no test tool and a two-page UI may not justify one); monorepos get one UI.md per UI package. The table stops at page level — sub-components are found from the page's file.
 
 Core concern boundaries:
 - **dev-ops** = local developer workflow: build, run, lint, env setup, verification commands.
@@ -83,7 +87,7 @@ Before writing a word, scan the repo and build a scratch inventory:
 - **Commands** — build, test, lint, run, deploy. Read from config files (package.json, Makefile, pyproject.toml, Cargo.toml, etc.); run `--help` where cheap and safe. Never guess a command the config files don't evidence.
 - **Public interfaces** — exported functions/classes, API endpoints, routes.
 - **Module boundaries** — top-level structure, layers, how data flows.
-- **Concerns present** — decide the concern-map list from evidence: database/ORM/migrations (e.g. a `migrations/` dir, ORM config, `CREATE TABLE` in SQL files), auth, API served, tests, deploy pipeline, caching, i18n, queues, etc. Each must be evidenced by real files — not assumed.
+- **Concerns present** — decide the concern-map list from evidence: database/ORM/migrations (e.g. a `migrations/` dir, ORM config, `CREATE TABLE` in SQL files), auth, API served, tests, deploy pipeline, caching, i18n, queues, a UI (pages/screens/components directories, `.storybook/`, playwright config, react/vue/svelte in `dependencies`), etc. Each must be evidenced by real files — not assumed.
 
 In **update mode**, diff this inventory against the existing docs to find drift before writing anything. This includes the file list itself: a new concern earns a new map file; a concern that no longer exists gets its file removed (or reduced to "none found"). **Naming drift counts as drift**: a tree with lowercase map filenames (`index.md`, `architecture.md`, …) is migrated to the ALL-CAPS names in this pass — `git mv` each file, then fix every pointer to it (`INDEX.md` rows, agent-instruction pointers, cross-references) in the same pass.
 
