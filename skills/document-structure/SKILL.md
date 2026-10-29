@@ -66,7 +66,9 @@ Canonical concern→filename mapping (ALL-CAPS):
 
 Unlisted concerns: `<CONCERN>.md`, ALL-CAPS from the concern name.
 
-**UI.md content contract (pointer-first).** The **UI-area table** — route/page/screen → component file, so a spoken area ("home page navigation") resolves to a file — is UI.md's sole unique payload. Test tools, run commands, and local-run instructions belong to TESTING.md and DEVOPS.md: one line plus a pointer each, never a duplicate. Guards: a table exceeding the L1 budget is capped with its overflow at `DEEP/UI-AREAS.md`; a named concern map still passes the "must earn its keep" gate (a UI project with no test tool and a two-page UI may not justify one); monorepos get one UI.md per UI package. The table stops at page level — sub-components are found from the page's file.
+**UI.md content contract (pointer-first).** The **UI-area table** — route/page/screen → component file, so a spoken area ("home page navigation") resolves to a file — is UI.md's sole unique payload. Test tools, run commands, and local-run instructions belong to TESTING.md and DEVOPS.md: one line plus a pointer each, never a duplicate. The table stops at page level — sub-components are found from the page's file.
+
+Guards: a table exceeding the L1 budget is capped, with its overflow at `DEEP/UI-AREAS.md`. A named concern map still passes the "must earn its keep" gate — a UI project with no test tool and a two-page UI may not justify one. Monorepos get one UI.md per UI package.
 
 Core concern boundaries:
 - **dev-ops** = local developer workflow: build, run, lint, env setup, verification commands.
