@@ -1,8 +1,8 @@
 # Model routing — role-level lanes for dev-flow subagent dispatch
 
-Single source of truth for dev-flow's model routing: lane semantics, config schema, availability checks, the thin-driver flow, the sandbox map, commit ownership, and the error contract. Every dispatching skill (`execute-tasks`, `test`, `review`, and the brainstorm viability red-team) points here and never re-derives lane semantics from its own text.
+Single source of truth for dev-flow's model routing: lane semantics, config schema, availability checks, the thin-driver flow, the sandbox map, commit ownership, and the error contract. Every dispatching skill (`execute-tasks`, `test`, `review`, the plan skill's plan review pass, and the brainstorm viability red-team) points here and never re-derives lane semantics from its own text.
 
-Roles: **implementer** (execute-tasks step 5, one per task), **tester** (test step 6), **reviewer** (review step 7 — main and focused reviewer share the pick), **red-team** (brainstorm viability pass, config-only).
+Roles: **implementer** (execute-tasks step 5, one per task), **tester** (test step 6), **reviewer** (one key feeding all fresh-eyes judgment roles — review step 7's main and focused reviewer share the pick; brainstorm's viability red-team; the plan skill's plan review pass — all config-only reads outside the step-5 state-file ask).
 
 ## Lanes
 
@@ -35,14 +35,13 @@ Optional `roles` key in `.dev-flow/config.json` (per-repo, gitignored, per-machi
   "roles": {
     "implementer": "inline",
     "tester": "claude:github/gpt-5.4",
-    "reviewer": "cli:codex/gpt-5.3-codex",
-    "red-team": "session"
+    "reviewer": "cli:codex/gpt-5.3-codex"
   }
 }
 ```
 
 - Each key maps a role to a lane value from `## Lanes`.
-- Omitted role → that role behaves exactly as before (implementer: the current default flow; tester/reviewer: session; red-team: no model pin).
+- Omitted role → that role behaves exactly as before (implementer: the current default flow; tester: session; `reviewer`: session for all three judgment roles it feeds — step-7 review per the step-5 ask; brainstorm red-team and the plan review pass pinned to `session` directly).
 - The whole `roles` key omitted → zero-change default.
 - A **malformed** value (unknown role, unknown lane syntax, empty) is NOT unset — it is a BLOCKED stop-and-ask per `## Error contract`.
 - Config is the long-term default; per-run picks live in the state file's Roles block. No per-task overrides in v1.
@@ -80,8 +79,7 @@ Fixed by role — lane semantics, not a user-tunable parameter. No per-role over
 |------|--------------|-----|
 | implementer | `workspace-write` | writes code + tests |
 | tester | `workspace-write` | runs the suite, writes reports |
-| reviewer | `read-only` | judgment only — never edits |
-| red-team | `read-only` | design critique only |
+| reviewer | `read-only` | judgment only — never edits (step-7 review, brainstorm red-team, plan review pass) |
 
 **Known limitation (record, never work around silently):** `codex exec --sandbox workspace-write` **denies network access by default**. A tester on the cli lane in a repo whose suite needs dependency installs (`npm ci`, `pip install`) hits this: it is a **known BLOCKED with a resume hint** (fix the lane in config, or prepare dependencies first, then re-dispatch) — **never** a false "tests failed" gate signal.
 
