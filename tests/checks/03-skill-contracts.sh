@@ -547,6 +547,98 @@ PY
 )
 if [ -z "$gate27_errs" ]; then ok "Codex implementation-model integration is present"; else bad "Codex implementation integration missing:$gate27_errs"; fi
 
+# gate28: Codex implementation-model documentation (#93). README owns the
+# user-facing configuration explanation; bootstrap owns preserving user choices
+# and leaving both native overrides absent by default; agent-facing summaries
+# keep the host/state maps current. Concept greps only, never sentence freezing.
+gate28_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+readme = Path("README.md")
+try:
+    readme_text = readme.read_text()
+except FileNotFoundError:
+    print("README.md:missing")
+    readme_text = ""
+except OSError as error:
+    print(f"README.md:unreadable:{error}")
+    readme_text = ""
+
+config_blocks = re.findall(r"```json\s*(.*?)```", readme_text, re.S)
+if not any('"codex_implementer_model"' in block and '"codex_reviewer_model"' in block
+           for block in config_blocks):
+    print("readme:no-both-native-config-example")
+if not re.search(r"inline.{0,240}session model|session model.{0,240}inline", readme_text, re.I | re.S):
+    print("readme:no-inline-session-model-rule")
+if not re.search(r"native.{0,240}subagent|subagent.{0,240}native", readme_text, re.I | re.S):
+    print("readme:no-native-subagent-mode-rule")
+if not re.search(r"saved.{0,160}resume|resume.{0,160}saved", readme_text, re.I | re.S):
+    print("readme:no-saved-resume-rule")
+if not re.search(r"unavailable.{0,240}block|block.{0,240}unavailable", readme_text, re.I | re.S):
+    print("readme:no-failure-behavior")
+if not re.search(r"roles\.implementer", readme_text):
+    print("readme:no-claude-implementer-equivalent")
+if not re.search(r"CLI.{0,240}unchanged|unchanged.{0,240}CLI", readme_text, re.I | re.S):
+    print("readme:no-cli-unchanged-rule")
+
+bootstrap = Path("skills/bootstrap/SKILL.md")
+try:
+    bootstrap_text = bootstrap.read_text()
+except FileNotFoundError:
+    print("skills/bootstrap/SKILL.md:missing")
+    bootstrap_text = ""
+except OSError as error:
+    print(f"skills/bootstrap/SKILL.md:unreadable:{error}")
+    bootstrap_text = ""
+branch_config = re.search(r"^### 3\. Branch config\n(.*?)(?=^### |\Z)", bootstrap_text, re.M | re.S)
+bootstrap_config = branch_config[1] if branch_config else ""
+for key in ("codex_reviewer_model", "codex_implementer_model"):
+    if key not in bootstrap_config:
+        print(f"bootstrap:{key}-not-preserved")
+if not re.search(r"preserve.{0,360}(codex_reviewer_model|both.{0,80}native|codex_implementer_model)", bootstrap_config, re.I | re.S):
+    print("bootstrap:no-preserve-native-overrides")
+default_blocks = re.findall(r"```json\s*(.*?)```", bootstrap_config, re.S)
+if any('"codex_reviewer_model"' in block or '"codex_implementer_model"' in block
+       for block in default_blocks):
+    print("bootstrap:native-model-pinned-by-default")
+if not re.search("choose a model|never choose a model", bootstrap_config, re.I):
+    print("bootstrap:no-no-model-choice-rule")
+
+agents = Path("AGENTS.md")
+try:
+    agents_text = agents.read_text()
+except (FileNotFoundError, OSError):
+    print("AGENTS.md:unreadable-or-missing")
+    agents_text = ""
+if "codex_implementer_model" not in agents_text:
+    print("agents:no-implementer-key-summary")
+
+architecture = Path("docs/agents/ARCHITECTURE.md")
+try:
+    architecture_text = architecture.read_text()
+except (FileNotFoundError, OSError):
+    print("docs/agents/ARCHITECTURE.md:unreadable-or-missing")
+    architecture_text = ""
+for marker in ("codex_reviewer_model", "codex_implementer_model", "Codex implementer model"):
+    if marker not in architecture_text:
+        print(f"architecture:missing-{marker}")
+
+devops = Path("docs/agents/DEVOPS.md")
+try:
+    devops_text = devops.read_text()
+except (FileNotFoundError, OSError):
+    print("docs/agents/DEVOPS.md:unreadable-or-missing")
+    devops_text = ""
+for marker in ("codex_reviewer_model", "codex_implementer_model"):
+    if marker not in devops_text:
+        print(f"devops:missing-{marker}")
+if not re.search(r"preserve.{0,320}codex_(?:reviewer|implementer)_model", devops_text, re.I | re.S):
+    print("devops:no-preserve-native-overrides")
+PY
+)
+if [ -z "$gate28_errs" ]; then ok "Codex implementation-model documentation is present"; else bad "Codex implementation documentation missing:$gate28_errs"; fi
+
 # gate26: Status-since timing protocol (issue #76) — the status transition is
 # three writes in one breath (Goal status + index + Status since), defined once
 # in new-feature's gate rule and template, and cited from every skill that

@@ -39,19 +39,20 @@ codex plugin marketplace add .
 
 After updating a local checkout, refresh it with `codex plugin marketplace upgrade vincy-skills` and restart Codex.
 
-### Reviewer model selection
+### Native model selection
 
-To select Codex's reviewer model, add the optional top-level setting to your target repo's gitignored `.dev-flow/config.json`:
+On Codex, reviewers and native implementation subagents can use separately selected models. Add either optional top-level setting to the target repo's gitignored `.dev-flow/config.json`:
 
 ```json
 {
-  "codex_reviewer_model": "<available-native-model>"
+  "codex_reviewer_model": "<available-native-model>",
+  "codex_implementer_model": "<available-native-model>"
 }
 ```
 
-Replace the placeholder with a model supported by the current Codex native subagent tool. Merge this key into your existing config, keeping branch and role settings. It selects the brainstorm red-team, plan reviewer, and step-7 main and focused reviewers. Omit it to use the session model. Empty, malformed, or unavailable values produce `BLOCKED` before reviewer dispatch.
+Replace each placeholder with a model supported by the current Codex native subagent tool, then merge your existing branch and role settings. The reviewer key selects the brainstorm red-team, plan reviewer, and step-7 main and focused reviewers. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
 
-Claude Code continues to select reviewers through `roles.reviewer` and ignores this key. Codex ignores Claude role lanes when selecting reviewers. Implementer and tester routing is unchanged. See [model routing](references/model-routing.md) for validation and lane details.
+Claude Code ignores both keys and continues to route implementation and reviewers through `roles.implementer` and `roles.reviewer`. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting either native key selects its role's session default. See [model routing](references/model-routing.md) for validation, host precedence, and lane details.
 
 ## The `dev-flow` workflow
 
@@ -95,7 +96,7 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | `brainstorm` | 1 | Work through the design and write an approved spec |
 | `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a fresh-subagent plan review |
 | `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
-| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>) |
+| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; on Claude Code, dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>); on Codex, native `session` uses the saved `codex_implementer_model` |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
