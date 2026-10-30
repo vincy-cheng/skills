@@ -15,11 +15,11 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 
 ## Before starting
 
-Dev-flow mode — read the state file's **Roles block** (the Reviewer line) before dispatching the reviewer:
+Dev-flow mode — verify the state file's **Roles block** (the Reviewer line) before dispatching the reviewer, then select the host:
 
-- Block has a Reviewer lane value (`session`, `claude:<name>`, `cli:<tool>/<model>`) → dispatch on it per `## Model routing`.
 - Block missing, empty, or the Reviewer line absent → **stop; report "step 5's combined Roles ask was skipped"** — do not dispatch the reviewer, do not re-ask from this skill. Return to new-feature step 5 (the orchestrator asks and writes the picks, then re-invokes). A stop here is a visible gate failure, the same form as the Goal-status gate.
-- Malformed lane value → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
+- **Codex:** once the Reviewer line is present, ignore its Claude lane value for model selection and follow `## Model routing`. Validate the Codex config, not the lane syntax or Claude model availability.
+- **Claude Code:** a Reviewer lane value (`session`, `claude:<name>`, `cli:<tool>/<model>`) dispatches per `## Model routing`. A malformed lane value → BLOCKED stop-and-ask per `references/model-routing.md`'s error contract — never treated as unset.
 - Missing-block recovery paths (user-confirmed crash-recovery, pre-Roles upgrade mapping) → follow `references/model-routing.md`'s *Before-starting procedures* section — the only ask-from-here path is a user-confirmed crash recovery; every other missing-block shape stays a stop.
 
 Then read the state file's **Risk tier**:
@@ -28,7 +28,7 @@ Then read the state file's **Risk tier**:
 - Field absent or `_(not asked — step-7 recheck pending)_` → **stop; report "step 7's risk recheck was skipped"** — do not dispatch any reviewer, do not re-run the recheck from this skill. Return to new-feature step 7 (the orchestrator runs the recheck, writes the tier, then re-invokes). Fail-closed: a missing tier is a skipped recheck, never a low.
 - Tier `high` (not waived) and **Focused verdict** `_(skipped)_` → stop; report "the focused review was skipped" — the field only ever gets `_(skipped)_` out-of-band (a user dropping the requirement after the fact); a fresh or reset gate round carries `_(pending — run in this gate round)_` and dispatches the focused review as usual after the main reviewer clears green/blue. Absent field on a live high tier → treat as `_(pending — run in this gate round)_` — never as "already covered", and never as `_(not required)_`.
 
-Standalone mode (no state file) → there is no step 5 ask and no risk tier; ask the Reviewer lane yourself (see *Standalone mode* below).
+Standalone mode (no state file) → there is no step 5 ask and no risk tier. Codex resolves the optional config directly; Claude Code asks the Reviewer lane (see *Standalone mode* below).
 
 ## What you need
 
@@ -38,9 +38,11 @@ Standalone mode (no state file) → there is no step 5 ask and no risk tier; ask
 
 ## Dispatch the reviewer subagent
 
-Dev-flow mode: read the Reviewer line per `## Before starting` — never ask. Standalone: ask (default `session`).
+Dev-flow mode: check the Reviewer line per `## Before starting` — never ask. Standalone: choose the host-specific route below.
 
-Spawn **one** fresh reviewer subagent on the Reviewer lane. It has no prior context — hand it everything as a brief:
+**Codex:** before dispatch, resolve `codex_reviewer_model` per **Codex reviewer model** in `references/model-routing.md`, including its validation and native `model` rules. **Claude Code:** use the Reviewer lane from the state (standalone: ask, default `session`).
+
+Spawn **one** fresh reviewer subagent using that route. It has no prior context — hand it everything as a brief:
 
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
@@ -52,14 +54,14 @@ Spawn **one** fresh reviewer subagent on the Reviewer lane. It has no prior cont
 
 The reviewer runs R1–R4 and the verdict contract (R5), then returns the verdict. The orchestrator does **not** re-do the review — it trusts the verdict and acts on it.
 
-**Lane shapes:**
+**Claude Code lane shapes** (Codex uses the native route above):
 
 - **`session` / `claude:<name>`** → Agent-tool dispatch, shape per `## Model routing`'s resolution rule.
 - **`cli:<tool>/<model>`** (v1: `cli:codex/<model>`) → thin-driver flow per `references/model-routing.md`: the driver composes the brief + report contract (copied **verbatim at runtime** from this skill's brief/report sections above) into `docs/features/.routing/<feat>/`, runs the CLI (`--sandbox read-only` per the routing doc's sandbox map), and the external model writes its full report to the same report path. **The relayed payload must carry the verdict + full findings verbatim** — the R5 yellow choice (fix-now vs note-in-PR) must reach the user uncompressed. Availability failures → BLOCKED stop-and-ask, never a silent downgrade.
 
 ## Model routing
 
-Lane semantics, availability checks, and the thin-driver flow live in `references/model-routing.md` — the single source; this skill does not re-derive them. This skill's Reviewer line comes from the state file's Roles block (dev-flow mode) or the standalone ask; the focused reviewer dispatches on the **same** lane. Roles block missing → stop per `## Before starting`; malformed lane → BLOCKED stop-and-ask; any lane unavailable → BLOCKED stop-and-ask, never a silent downgrade.
+Host selection, availability checks, and dispatch rules live in `references/model-routing.md` — the single source. **Codex:** resolve `codex_reviewer_model` per **Codex reviewer model** there before every dispatch; record a configured model in the report. **Claude Code:** use the Reviewer lane from the state file's Roles block (dev-flow) or the standalone ask; malformed or unavailable lanes → BLOCKED stop-and-ask. Both reviewers share the same host-specific model source. Roles block missing → stop per `## Before starting`; never silently downgrade.
 
 ## The review (run by the reviewer subagent)
 
@@ -123,7 +125,7 @@ On a high (not waived) tier, the act-on-verdict step also covers the focused rev
 
 Triggers when the state's **Risk tier** is `high — <categories>` (not waived), after the main reviewer's verdict clears green/blue. **Serial placement, for its real trade-off:** serial saves the tokens a parallel focused verdict would burn when a main-review yellow/red rewinds to step 5 and invalidates it; parallel saves wall-clock but its verdict gets thrown away on rewind. The focused reviewer always scans the final diff.
 
-**Dispatch** — one fresh focused reviewer subagent on the state's **Reviewer lane** (same lane as the main reviewer — no second ask, no separate model source), same fresh-eyes framing: "You are a focused risk reviewer. You have never seen this code before. Deep-scan the diff for your assigned risk categories and return a verdict; do not fix anything." Give it the base branch + diff command, the spec/plan paths, the R5 verdict contract, and the **combined brief** — one brief covering all triggered categories:
+**Dispatch** — one fresh focused reviewer subagent. **Codex:** re-resolve `codex_reviewer_model` before dispatch per **Codex reviewer model** in `references/model-routing.md`; validate current availability and use the native route. **Claude Code:** use the state's **Reviewer lane**. Both share the main reviewer's model source — no second ask or separate setting. Use the same fresh-eyes framing: "You are a focused risk reviewer. You have never seen this code before. Deep-scan the diff for your assigned risk categories and return a verdict; do not fix anything." Give it the base branch + diff command, the spec/plan paths, the R5 verdict contract, and the **combined brief** — one brief covering all triggered categories:
 
 - **destructive-operations** → blast radius of each destructive command, backup paths, recovery story.
 - **auth-permissions** → permission boundaries deeper than R3's obvious-smell scan: auth spine, middleware, permission checks, session handling.
@@ -136,7 +138,7 @@ Triggers when the state's **Risk tier** is `high — <categories>` (not waived),
 
 ## Standalone mode (outside dev-flow)
 
-No state file: ask for the base branch (or infer from `git merge-base`), read the spec/plan if the user points to them, dispatch the same fresh reviewer subagent (still ask for the Reviewer lane; default `session`). Skip the gate. Report the verdict; the user decides next steps. Risk-tier is a dev-flow gate feature (state file + plan Risk lines) — a standalone review has no tier, no focused reviewer, and the user owns their own review depth.
+No state file: ask for the base branch (or infer from `git merge-base`), read the spec/plan if the user points to them, and dispatch the same fresh reviewer subagent. **Codex:** resolve the optional config per `## Model routing`, without a Claude lane ask. **Claude Code:** ask for the Reviewer lane; default `session`. Skip the gate. Report the verdict; the user decides next steps. Risk-tier is a dev-flow gate feature (state file + plan Risk lines) — a standalone review has no tier, no focused reviewer, and the user owns their own review depth.
 
 Report home without a feat-name: the **branch name** — `docs/features/.review/<branch-name>/review-report.md` (slashes flattened to dashes: `feat/9-fix-crash` → `.review/feat-9-fix-crash/`). Archive existing reports per the re-review rule.
 

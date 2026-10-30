@@ -2,7 +2,7 @@
 
 Single source of truth for dev-flow's model routing: lane semantics, config schema, availability checks, the thin-driver flow, the sandbox map, commit ownership, and the error contract. Every dispatching skill (`execute-tasks`, `test`, `review`, the plan skill's plan review pass, and the brainstorm viability red-team) points here and never re-derives lane semantics from its own text.
 
-Roles: **implementer** (execute-tasks step 5, one per task), **tester** (test step 6), **reviewer** (one key feeding all fresh-eyes judgment roles — review step 7's main and focused reviewer share the pick; brainstorm's viability red-team; the plan skill's plan review pass — all config-only reads outside the step-5 state-file ask).
+Roles: **implementer** (execute-tasks step 5, one per task), **tester** (test step 6), **reviewer** (brainstorm red-team, plan review, and step-7 main and focused review). Select the host before interpreting routing settings: Codex reviewers follow **Codex reviewer model** below; Claude Code uses the lanes below. Implementer and tester routing is unchanged.
 
 ## Lanes
 
@@ -27,7 +27,7 @@ The dispatching skill resolves `<name>` against the session's model list, in thi
 
 ## Config schema
 
-Optional `roles` key in `.dev-flow/config.json` (per-repo, gitignored, per-machine — model availability lives on the machine, not the repo):
+Optional settings in `.dev-flow/config.json` (per-repo, gitignored, per-machine — model availability lives on the machine, not the repo):
 
 ```json
 {
@@ -36,15 +36,31 @@ Optional `roles` key in `.dev-flow/config.json` (per-repo, gitignored, per-machi
     "implementer": "inline",
     "tester": "claude:github/gpt-5.4",
     "reviewer": "cli:codex/gpt-5.3-codex"
-  }
+  },
+  "codex_reviewer_model": "<available-native-model>"
 }
 ```
 
-- Each key maps a role to a lane value from `## Lanes`.
+- `codex_reviewer_model` is an optional top-level string for Codex reviewers only. Replace the example placeholder with an option available in the current native subagent tool, or omit the key for the session default. See **Codex reviewer model** below.
+- On Claude Code, each `roles` key maps a role to a lane value from `## Lanes`; the remaining lane rules in this section apply to that host.
 - Omitted role → that role behaves exactly as before (implementer: the current default flow; tester: session; `reviewer`: session for all three judgment roles it feeds — step-7 review per the step-5 ask; brainstorm red-team and the plan review pass pinned to `session` directly).
 - The whole `roles` key omitted → zero-change default.
 - A **malformed** value (unknown role, unknown lane syntax, empty) is NOT unset — it is a BLOCKED stop-and-ask per `## Error contract`.
 - Config is the long-term default; per-run picks live in the state file's Roles block. No per-task overrides in v1.
+
+## Codex reviewer model
+
+On Codex, ignore the `roles` table and state-file lane values when selecting reviewer models, even if those Claude lane values are malformed. On Claude Code, ignore `codex_reviewer_model` and keep the existing reviewer lane and external CLI behavior. The dev-flow Roles-presence gate still applies; this rule changes model selection, not the step-5 ask.
+
+Before every fresh reviewer dispatch, including re-review, resolve this setting for brainstorm red-team, plan review, and step-7 main and focused review. Standalone Codex review and plan review use the same config read, without a Claude lane ask.
+
+1. Read `.dev-flow/config.json` from the target repo. A missing file or absent key means the session default: omit the native `model` argument. An existing unreadable file, malformed JSON, or a non-object top level is invalid config, not an absent setting.
+2. A present `codex_reviewer_model` must be a nonempty string. Reject empty or whitespace-only strings, null, boolean, number, array, and object values. Require an exact match against the current native subagent tool's model options or allowlist; do not trim, translate, or guess model aliases. Availability is session-specific, so do not hardcode a model list in the plugin.
+3. Pass the validated string as the native subagent `model` parameter. Use fresh isolated context (`fork_turns: "none"` where exposed); read-only judgment and existing report contracts still apply. Follow the current tool's reasoning-effort rules independently; this setting adds no effort option.
+
+**Failure:** invalid config, unavailable model, or a native tool that cannot validate or pin the requested model → **BLOCKED**, no reviewer dispatch. Show the key, failure reason, and correction/resume hint, then wait for the user. Never retry on another model, use a Claude lane or CLI driver, or silently substitute the session default. A rejected native dispatch follows the same stop-and-ask rule. Leave the workflow status in place for resume.
+
+Record a configured model in the role's existing pass/report artifact. Re-resolve before the focused reviewer too; it shares this setting with the main reviewer, not a separate model source. This key never selects implementer or tester models.
 
 ## Availability checks (dispatch-time, fail-closed)
 
@@ -101,4 +117,4 @@ All lanes, all roles:
 
 ## Scope
 
-v1 is Claude Code only — other hosts ignore the `roles` table. No scripts or hooks implement routing; the logic lives in skill text, and this doc is its single source.
+The `roles` lanes apply to Claude Code; other hosts ignore that table. Codex additionally supports the optional native reviewer setting above. No scripts or hooks implement routing; the logic lives in skill text, and this doc is its single source.

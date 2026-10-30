@@ -77,7 +77,10 @@ Before presenting the plan, check it with fresh eyes and fix inline: every task 
 
 After generation and self-review, before presenting the plan for approval, dispatch a fresh plan reviewer — the plan skill is the plan's author, so it must not judge the plan alone (the same fresh-eyes pattern as the brainstorm viability red-team and the test/review gates).
 
-**Dispatch.** Fresh subagent, read-only critique. Lane: config `roles.reviewer` from `.dev-flow/config.json`; unset → `session`; malformed or unavailable lane → BLOCKED stop-and-ask per the routing error contract, never a silent downgrade. Semantics live in `references/model-routing.md` — the single source. Standalone mode has no config context to trust — ask the lane directly (same shape as the review/test skills' standalone ask).
+**Dispatch.** Fresh subagent, read-only critique. Resolve the host before choosing a model. Semantics live in `references/model-routing.md` — the single source.
+
+- **Codex:** before dispatch, resolve config `codex_reviewer_model` per **Codex reviewer model** in that reference. Pass a validated native `model` argument; absent → session default; invalid or unavailable → BLOCKED without dispatch. Ignore Claude lanes. Standalone mode on Codex reads the target repo's same optional setting, without a lane ask.
+- **Claude Code:** lane is config `roles.reviewer`; unset → `session`; malformed or unavailable → BLOCKED stop-and-ask, never a silent downgrade. Standalone mode asks the lane directly (same shape as the review/test skills' standalone ask).
 
 **Checklist — judgment only.** The reviewer checks: does the task list cover the whole spec (nothing quietly skipped); is the order sane (no task reading an earlier task's output that lands later); missing or phantom work (spec asks with no task, tasks doing work outside the spec). It does **not** re-run the contract-shaped checks above — `## Self-review` already owns Risk-line, Flow-chart, and verbatim-copyable presence, and grep-able structure checks gain nothing from a subagent dispatch.
 

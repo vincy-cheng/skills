@@ -427,3 +427,74 @@ $G -q '"red-team"' references/model-routing.md && pr_errs="$pr_errs retire:routi
 $G -q '"red-team"' evals/new-feature/cases/05-combined-ask-prefill/prompt.md && pr_errs="$pr_errs retire:fixture-key"
 $G -q 'roles.red-team' skills/new-feature/SKILL.md && pr_errs="$pr_errs retire:newfeature-key"
 [ -z "$pr_errs" ] && ok "plan review pass + read-gates + roles template + key retirement" || bad "plan-review wiring broken:$pr_errs"
+
+# Codex reviewer model contract (#91). Scope checks to the host-specific
+# section so a stray keyword elsewhere cannot stand in for a dispatch rule.
+codex_errs=$(python3 -B - <<'PY'
+import re
+import sys
+from pathlib import Path
+sys.path.insert(0, "tests/lib")
+from sections import section
+
+routing = Path("references/model-routing.md").read_text()
+codex = section(routing, "Codex reviewer model")
+checks = {
+    "config-key": r"codex_reviewer_model",
+    "native-model-param": r"native.*`model`",
+    "absent-default": r"absent.*omit.*`model`",
+    "nonempty-string": r"nonempty string",
+    "blank-rejected": r"whitespace-only",
+    "wrong-types-rejected": r"null.*boolean.*number.*array.*object",
+    "malformed-json": r"malformed JSON",
+    "current-availability": r"current.*(?:options|allowlist)",
+    "before-every-dispatch": r"[Bb]efore every.*dispatch",
+    "blocked": r"BLOCKED.*(?:no|zero).*dispatch",
+    "codex-ignores-roles": r"Codex.*ignore.*`roles`",
+    "claude-ignores-key": r"Claude Code.*ignore.*`codex_reviewer_model`",
+}
+for name, pattern in checks.items():
+    if not re.search(pattern, codex, re.S):
+        print(f"routing:codex-{name}-missing")
+schema = section(routing, "Config schema")
+if '"codex_reviewer_model"' not in schema:
+    print("routing:codex-config-example-missing")
+
+paths = (
+    ("brainstorm", "Model routing"),
+    ("plan", "Plan review pass"),
+    ("review", "Dispatch the reviewer subagent"),
+    ("review", "Focused review"),
+)
+for skill, heading in paths:
+    body = section(Path(f"skills/{skill}/SKILL.md").read_text(), heading)
+    for marker in ("Codex", "codex_reviewer_model", "references/model-routing.md", "Codex reviewer model"):
+        if marker not in body:
+            print(f"{skill}:{heading}:missing-{marker}")
+review = Path("skills/review/SKILL.md").read_text()
+for heading in ("Before starting", "Standalone mode"):
+    body = section(review, heading)
+    if "Codex" not in body or "Claude Code" not in body:
+        print(f"review:{heading}:host-precedence-missing")
+plan_pass = section(Path("skills/plan/SKILL.md").read_text(), "Plan review pass")
+if not re.search(r"[Ss]tandalone.*Codex", plan_pass, re.S):
+    print("plan:standalone-codex-resolution-missing")
+nf = Path("skills/new-feature/SKILL.md").read_text()
+if "codex_reviewer_model" not in section(nf, "Step 7"):
+    print("new-feature:step7-codex-routing-missing")
+
+readme = Path("README.md").read_text()
+if "codex_reviewer_model" not in readme or "references/model-routing.md" not in readme:
+    print("readme:codex-config-undocumented")
+bootstrap_text = Path("skills/bootstrap/SKILL.md").read_text()
+branch_config = re.search(r"^### 3\. Branch config\n(.*?)(?=^### |\Z)", bootstrap_text, re.M | re.S)
+bootstrap = branch_config[1] if branch_config else ""
+for marker in ("codex_reviewer_model", "optional", "preserve", "absent"):
+    if marker not in bootstrap:
+        print(f"bootstrap:codex-config-{marker}-missing")
+default_config = re.search(r"```json\s*(.*?)```", bootstrap, re.S)
+if default_config and "codex_reviewer_model" in default_config[1]:
+    print("bootstrap:codex-model-pinned-by-default")
+PY
+)
+[ -z "$codex_errs" ] && ok "Codex reviewer config validates before native dispatch" || bad "Codex reviewer contract missing:$codex_errs"
