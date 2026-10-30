@@ -834,3 +834,46 @@ if default_config and "codex_reviewer_model" in default_config[1]:
 PY
 )
 [ -z "$codex_errs" ] && ok "Codex reviewer config validates before native dispatch" || bad "Codex reviewer contract missing:$codex_errs"
+
+# Issue creation must enforce the plan-pass read-gate in-flow before it advances
+# status, and a failed step-4 gate must rewind the whole status mirror to step 3.
+plan_gate_errs=$(python3 -B - <<'PY'
+import sys
+from pathlib import Path
+
+issue = Path("skills/create-github-issue/SKILL.md").read_text()
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+
+gate = issue.split("## Gate check", 1)[1].split("## Why a fixed structure", 1)[0]
+if "running inside dev-flow" not in gate or "read-gate" not in gate or "Plan review pass" not in gate:
+    print("create-issue:no-in-flow-plan-pass-gate")
+pass_check = gate.find("Before advancing status or drafting, check the referenced plan")
+transition = gate.find("this skill owns step 4's transition to `issue`")
+if pass_check < 0:
+    print("create-issue:missing-before-transition-pass-check")
+if transition < 0:
+    print("create-issue:missing-transition-ownership")
+elif pass_check < 0 or pass_check > transition:
+    print("create-issue:status-advances-before-plan-pass")
+if "standalone" not in gate or "no plan has no plan-pass requirement" not in gate:
+    print("create-issue:plain-standalone-bug-path-lost")
+if "predat" not in gate and "legacy" not in gate:
+    print("create-issue:no-legacy-plan-exception")
+if "rewind to `spec`" not in gate or "Status since:" not in gate:
+    print("create-issue:failed-gate-does-not-rewind-in-flow")
+
+state_file = issue.split("## State file (dev-flow only)", 1)[1].split("## What not to do", 1)[0]
+if "Set **Goal status** to" in state_file or "with the Status since timestamp" in state_file:
+    print("create-issue:state-section-repeats-status-transition")
+if "index row's Issue, Branch, and Updated fields" not in state_file:
+    print("create-issue:published-issue-index-sync-missing")
+
+step4 = new_feature.split("## Step 4", 1)[1].split("## Step 5", 1)[0]
+for term in ("planning", "spec", "Status since", "index", "pass", "sub-skill owns this rewind", "do not repeat it here"):
+    if term not in step4:
+        print("new-feature:step4-missing-recovery-" + term.replace(" ", "-"))
+if "before" not in step4.lower() or "issue" not in step4:
+    print("new-feature:step4-transition-order-unclear")
+PY
+)
+if [ -z "$plan_gate_errs" ]; then ok "step-4 plan-pass gate and resume rewind are structurally present"; else bad "step-4 plan gate broken:$plan_gate_errs"; fi
