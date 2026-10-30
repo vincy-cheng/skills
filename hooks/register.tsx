@@ -217,6 +217,7 @@ export const register: Register = on => {
         <Box flexDirection="column">
           <Text dimColor>No active dev-flow run. Start one: /new-feature &lt;idea&gt;</Text>
           <Text dimColor>Resume an unfinished run: /new-feature resume</Text>
+          {ResumeSection($, Box, Text, Button, states)}
           {CloseButton($, Button)}
         </Box>
       )
@@ -232,6 +233,9 @@ export const register: Register = on => {
           {'  '}step {stepOf(run.status)}/11 · {run.status}{duration !== undefined ? ` · ${duration}` : ''}
         </Text>
         {LifecycleStrip(Box, Text, stepOf(run.status))}
+        <Box>
+          <Button key="resume-current" label="Resume" onPress={() => void resumePress($, run)} />
+        </Box>
         <Text dimColor>
           Tasks {run.tasksDone}/{run.tasksTotal} · {run.issue || '—'} → {run.branch || '—'} · next: {nextOf(run.status)}
         </Text>
