@@ -39,6 +39,20 @@ codex plugin marketplace add .
 
 After updating a local checkout, refresh it with `codex plugin marketplace upgrade vincy-skills` and restart Codex.
 
+### Reviewer model selection
+
+To select Codex's reviewer model, add the optional top-level setting to your target repo's gitignored `.dev-flow/config.json`:
+
+```json
+{
+  "codex_reviewer_model": "<available-native-model>"
+}
+```
+
+Replace the placeholder with a model supported by the current Codex native subagent tool. Merge this key into your existing config, keeping branch and role settings. It selects the brainstorm red-team, plan reviewer, and step-7 main and focused reviewers. Omit it to use the session model. Empty, malformed, or unavailable values produce `BLOCKED` before reviewer dispatch.
+
+Claude Code continues to select reviewers through `roles.reviewer` and ignores this key. Codex ignores Claude role lanes when selecting reviewers. Implementer and tester routing is unchanged. See [model routing](references/model-routing.md) for validation and lane details.
+
 ## The `dev-flow` workflow
 
 `dev-flow` guides a feature or fix through 11 steps in four phases:
