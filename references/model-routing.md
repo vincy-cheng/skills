@@ -37,11 +37,13 @@ Optional settings in `.dev-flow/config.json` (per-repo, gitignored, per-machine 
     "tester": "claude:github/gpt-5.4",
     "reviewer": "cli:codex/gpt-5.3-codex"
   },
-  "codex_reviewer_model": "<available-native-model>"
+  "codex_reviewer_model": "<available-native-model>",
+  "codex_implementer_model": "<available-native-model>"
 }
 ```
 
 - `codex_reviewer_model` is an optional top-level string for Codex reviewers only. Replace the example placeholder with an option available in the current native subagent tool, or omit the key for the session default. See **Codex reviewer model** below.
+- `codex_implementer_model` is an optional top-level string for Codex native implementation subagents only. Its validation, saved-choice grammar, and dispatch rules are in **Codex implementer model** below.
 - On Claude Code, each `roles` key maps a role to a lane value from `## Lanes`; the remaining lane rules in this section apply to that host.
 - Omitted role → that role behaves exactly as before (implementer: the current default flow; tester: session; `reviewer`: session for all three judgment roles it feeds — step-7 review per the step-5 ask; brainstorm red-team and the plan review pass pinned to `session` directly).
 - The whole `roles` key omitted → zero-change default.
@@ -61,6 +63,16 @@ Before every fresh reviewer dispatch, including re-review, resolve this setting 
 **Failure:** invalid config, unavailable model, or a native tool that cannot validate or pin the requested model → **BLOCKED**, no reviewer dispatch. Show the key, failure reason, and correction/resume hint, then wait for the user. Never retry on another model, use a Claude lane or CLI driver, or silently substitute the session default. A rejected native dispatch follows the same stop-and-ask rule. Leave the workflow status in place for resume.
 
 Record a configured model in the role's existing pass/report artifact. Re-resolve before the focused reviewer too; it shares this setting with the main reviewer, not a separate model source. This key never selects implementer or tester models.
+
+## Codex implementer model
+
+The optional top-level `codex_implementer_model` setting in `.dev-flow/config.json` applies only when a Codex host is ready to dispatch a native implementation subagent. Choose the host and execution path before interpreting this setting. On Claude Code, ignore the setting and retain every existing `roles.implementer` lane and external CLI behavior; tester and reviewer routing are unchanged. On Codex, `inline` executes the implementation in the current session, `session` dispatches a native implementation subagent, and an explicit `cli:<tool>/<model>` lane keeps its existing thin-driver behavior. Do not reinterpret `claude:<name>` as a native Codex model: an unsupported host/lane combination blocks with a correction hint.
+
+A run's confirmed execution choice overrides later config edits without changing the config. Record it in the optional `Codex implementer model` state field outside the Roles block; consumers point here for the grammar. For native execution, record the exact configured model or `_(session default)_`. For an explicit inline or CLI choice, record `_(not used — inline)_` or `_(not used — cli)_`. A missing field denotes an older or unconfirmed run; it never authorizes a silent change to execution mode or model. A change to a saved choice requires the user's explicit request.
+
+Validate the setting before implementation task work. An unreadable config file, malformed JSON, or a non-object top level is invalid config, not an absent setting. A present `codex_implementer_model` must be a nonempty string that is not whitespace-only; reject any non-string value, including null, boolean, number, array, and object values, plus empty and whitespace-only strings. Require an exact match against the current native subagent tool's model options or allowlist; do not trim aliases, translate model names, or hardcode an availability list. Validate a selection when native pinned execution is selected, including before every native implementation dispatch and retry. If the selection is on an inline or CLI path, acknowledge that the native setting is unused and do not reinterpret the lane.
+
+For native execution, pass the validated string exactly as the native subagent `model` argument. When the user confirms a session default, omit `model`; use fresh isolated context, including `fork_turns: "none"` where the native tool exposes it. Revalidate availability and tool support before every native dispatch and retry. Unavailable models, unsupported pinning, invalid config, or a rejected native dispatch produce **BLOCKED** with no fallback. Report the setting, cause, and correction/resume hint, then leave the workflow status and task progress honest. Never switch the model, execution mode, lane, or backend silently.
 
 ## Availability checks (dispatch-time, fail-closed)
 

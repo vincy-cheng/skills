@@ -329,6 +329,99 @@ PY
 )
 if [ -z "$gate25_errs" ]; then ok "model routing structurally present (lanes doc + dispatch pointers + combined ask + gitignore)"; else bad "model-routing concept missing:$gate25_errs"; fi
 
+# gate25a: Codex implementer model contract (#93) — the routing page, not any
+# consumer skill, owns configuration, host/lane behavior, saved-choice grammar,
+# validation, fresh dispatch/retry, and failure behavior.
+gate25a_errs=$(python3 -B - <<'PY'
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+
+rt = Path("references/model-routing.md")
+try:
+    text = rt.read_text()
+except FileNotFoundError:
+    print("routing:missing")
+    sys.exit(0)
+except OSError as error:
+    print(f"routing:unreadable:{error}")
+    sys.exit(0)
+
+body = section(text, "Codex implementer model")
+if not body:
+    print("routing:no-codex-implementer-model-section")
+    sys.exit(0)
+
+# Config and host boundary come from the shared page and do not alter testers
+# or reviewers.
+if "codex_implementer_model" not in body or ".dev-flow/config.json" not in body:
+    print("routing:implementer-config-missing")
+if not re.search(r"host.{0,120}execution path|choose.{0,60}host.{0,120}interpreting", body, re.I):
+    print("routing:implementer-host-precedence-missing")
+if not re.search(r"Claude Code.{0,300}ignore", body, re.S):
+    print("routing:claude-implementer-unchanged-missing")
+if "tester" not in body or "reviewer" not in body or "unchanged" not in body:
+    print("routing:test-review-unchanged-missing")
+
+# Codex host modes and lane preservation.
+for mode in ("inline", "session", "cli:"):
+    if mode not in body:
+        print(f"routing:codex-mode-missing:{mode}")
+if not re.search(r"native (implementation )?subagent", body, re.I):
+    print("routing:no-native-subagent")
+if not re.search(r"claude:<name>", body):
+    print("routing:no-claude-name-on-codex")
+
+# The saved field is outside Roles and covers every confirmed selection plus the
+# unconfirmed legacy behavior.
+if not re.search(r"Codex implementer model", body):
+    print("routing:saved-field-missing")
+if "Roles" not in body:
+    print("routing:saved-field-scope-missing")
+for value in ("exact configured model", "_(session default)_", "_(not used — inline)_", "_(not used — cli)_"):
+    if value not in body:
+        print(f"routing:saved-field-value-missing:{value}")
+if not re.search(r"missing.{0,200}(older|unconfirmed|not authoriz)", body, re.I):
+    print("routing:no-missing-field-rule")
+
+# Selection precedence, validation, availability, and mode acknowledgement.
+if not re.search(r"run.{0,60}(choice|selection).{0,120}(config|preference)", body, re.I):
+    print("routing:no-run-choice-precedence")
+for failure in ("unreadable", "malformed JSON", "non-object", "empty", "whitespace", "non-string"):
+    if not re.search(failure, body, re.I):
+        print(f"routing:validation-missing:{failure}")
+if not re.search(r"exact match.{0,200}(model options|allowlist)", body, re.I):
+    print("routing:no-exact-native-match")
+if not re.search(r"trim|hardcode", body, re.I):
+    print("routing:no-validation-hygiene")
+if not re.search(r"unused|not used", body, re.I):
+    print("routing:no-inline-cli-ack")
+if not re.search(r"unsupported.{0,200}block", body, re.I):
+    print("routing:no-unsupported-mode-block")
+
+# Dispatch is fresh, retry-safe, and no fallback is permitted.
+if not re.search(r"before every native (implementation )?dispatch", body, re.I):
+    print("routing:no-before-dispatch-rule")
+if not re.search(r"retry", body, re.I):
+    print("routing:no-retry-rule")
+if not re.search(r"`model`", body):
+    print("routing:no-model-parameter")
+if not re.search(r"fork_turns.{0,40}none|fresh.{0,120}context", body, re.I):
+    print("routing:no-fresh-context-rule")
+if not re.search(r"omit.{0,120}model|session default.{0,120}omit", body, re.I):
+    print("routing:no-session-default-model-rule")
+if not re.search(r"blocked", body, re.I):
+    print("routing:no-blocked-consequence")
+if not re.search(r"(switch|change).{0,160}(model|mode|lane)", body, re.I):
+    print("routing:no-no-switch-rule")
+if not re.search(r"change.{0,280}explicit", body, re.I):
+    print("routing:no-explicit-change-rule")
+PY
+)
+if [ -z "$gate25a_errs" ]; then ok "Codex implementer model contract is present"; else bad "Codex implementer contract missing:$gate25a_errs"; fi
+
 # gate26: Status-since timing protocol (issue #76) — the status transition is
 # three writes in one breath (Goal status + index + Status since), defined once
 # in new-feature's gate rule and template, and cited from every skill that
