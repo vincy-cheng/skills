@@ -329,16 +329,15 @@ PY
 )
 if [ -z "$gate25_errs" ]; then ok "model routing structurally present (lanes doc + dispatch pointers + combined ask + gitignore)"; else bad "model-routing concept missing:$gate25_errs"; fi
 
-# gate25a: Codex implementer model contract (#93) — the routing page, not any
-# consumer skill, owns configuration, host/lane behavior, saved-choice grammar,
-# validation, fresh dispatch/retry, and failure behavior.
-gate25a_errs=$(python3 -B - <<'PY'
+# codex-implementer-contract guard (#93, task 1): the routing page owns
+# configuration, host scoping, saved selection, and native dispatch/failure rules.
+
+codex_implementer_contract_errs=$(python3 -B - <<'PY'
 import re
 import sys
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
-
 rt = Path("references/model-routing.md")
 try:
     text = rt.read_text()
@@ -348,24 +347,23 @@ except FileNotFoundError:
 except OSError as error:
     print(f"routing:unreadable:{error}")
     sys.exit(0)
-
 body = section(text, "Codex implementer model")
 if not body:
     print("routing:no-codex-implementer-model-section")
     sys.exit(0)
-
-# Config and host boundary come from the shared page and do not alter testers
-# or reviewers.
+routing_summary = text[:text.find("## Lanes")] if "## Lanes" in text else ""
+if "Implementer and tester routing is unchanged." in routing_summary:
+    print("routing:implementer-unchanged-summary-stale")
+if "codex_implementer_model" not in routing_summary:
+    print("routing:implementer-host-aware-summary-missing")
 if "codex_implementer_model" not in body or ".dev-flow/config.json" not in body:
     print("routing:implementer-config-missing")
 if not re.search(r"host.{0,120}execution path|choose.{0,60}host.{0,120}interpreting", body, re.I):
     print("routing:implementer-host-precedence-missing")
-if not re.search(r"Claude Code.{0,300}ignore", body, re.S):
-    print("routing:claude-implementer-unchanged-missing")
-if "tester" not in body or "reviewer" not in body or "unchanged" not in body:
+if not re.search(r"Claude Code.{0,300}ignore.{0,240}malformed", body, re.I | re.S):
+    print("routing:claude-ignores-malformed-key-missing")
+if not re.search(r"tester.{0,240}reviewer.{0,240}unchanged|unchanged.{0,240}tester.{0,240}reviewer", body, re.I | re.S):
     print("routing:test-review-unchanged-missing")
-
-# Codex host modes and lane preservation.
 for mode in ("inline", "session", "cli:"):
     if mode not in body:
         print(f"routing:codex-mode-missing:{mode}")
@@ -373,35 +371,41 @@ if not re.search(r"native (implementation )?subagent", body, re.I):
     print("routing:no-native-subagent")
 if not re.search(r"claude:<name>", body):
     print("routing:no-claude-name-on-codex")
-
-# The saved field is outside Roles and covers every confirmed selection plus the
-# unconfirmed legacy behavior.
-if not re.search(r"Codex implementer model", body):
+if "Codex implementer model" not in body:
     print("routing:saved-field-missing")
 if "Roles" not in body:
     print("routing:saved-field-scope-missing")
-for value in ("exact configured model", "_(session default)_", "_(not used — inline)_", "_(not used — cli)_"):
+if "exact selected model" not in body:
+    print("routing:no-exact-selected-model")
+for value in ("_(session default)_", "_(not used — inline)_", "_(not used — cli)_"):
     if value not in body:
         print(f"routing:saved-field-value-missing:{value}")
 if not re.search(r"missing.{0,200}(older|unconfirmed|not authoriz)", body, re.I):
     print("routing:no-missing-field-rule")
-
-# Selection precedence, validation, availability, and mode acknowledgement.
-if not re.search(r"run.{0,60}(choice|selection).{0,120}(config|preference)", body, re.I):
+if not re.search(r"legacy.{0,240}(retain|keep).{0,240}mode|mode.{0,240}legacy.{0,240}retain", body, re.I | re.S):
+    print("routing:no-legacy-mode-retention")
+if not re.search(r"saved.{0,240}selection.{0,240}(surviv|outlast)|surviv.{0,240}later.{0,240}config", body, re.I | re.S):
+    print("routing:no-saved-selection-survival")
+if not re.search(r"(per-run|confirmed|saved).{0,240}(selection|choice).{0,240}(override|precedence)", body, re.I | re.S):
     print("routing:no-run-choice-precedence")
-for failure in ("unreadable", "malformed JSON", "non-object", "empty", "whitespace", "non-string"):
+if not re.search(r"unavailable.{0,200}inactive|inactive.{0,200}unavailable", body, re.I):
+    print("routing:no-inavailable-inactive-default-rule")
+for failure in ("unreadable", "malformed JSON", "non-object", "schema", "non-string"):
     if not re.search(failure, body, re.I):
         print(f"routing:validation-missing:{failure}")
-if not re.search(r"exact match.{0,200}(model options|allowlist)", body, re.I):
-    print("routing:no-exact-native-match")
+if not re.search(r"before.{0,300}(availability|tool support|model options|allowlist)", body, re.I | re.S):
+    print("routing:no-validate-before-availability")
+if not re.search(r"tool support", body, re.I):
+    print("routing:no-tool-support-check")
+for failure in ("empty", "whitespace"):
+    if not re.search(failure, body, re.I):
+        print(f"routing:validation-missing:{failure}")
 if not re.search(r"trim|hardcode", body, re.I):
     print("routing:no-validation-hygiene")
 if not re.search(r"unused|not used", body, re.I):
     print("routing:no-inline-cli-ack")
 if not re.search(r"unsupported.{0,200}block", body, re.I):
     print("routing:no-unsupported-mode-block")
-
-# Dispatch is fresh, retry-safe, and no fallback is permitted.
 if not re.search(r"before every native (implementation )?dispatch", body, re.I):
     print("routing:no-before-dispatch-rule")
 if not re.search(r"retry", body, re.I):
@@ -410,7 +414,7 @@ if not re.search(r"`model`", body):
     print("routing:no-model-parameter")
 if not re.search(r"fork_turns.{0,40}none|fresh.{0,120}context", body, re.I):
     print("routing:no-fresh-context-rule")
-if not re.search(r"omit.{0,120}model|session default.{0,120}omit", body, re.I):
+if not re.search(r"omit.{0,120}`model`|`model`.{0,120}omit|session default.{0,120}omit", body, re.I):
     print("routing:no-session-default-model-rule")
 if not re.search(r"blocked", body, re.I):
     print("routing:no-blocked-consequence")
@@ -420,32 +424,41 @@ if not re.search(r"change.{0,280}explicit", body, re.I):
     print("routing:no-explicit-change-rule")
 PY
 )
-if [ -z "$gate25a_errs" ]; then ok "Codex implementer model contract is present"; else bad "Codex implementer contract missing:$gate25a_errs"; fi
+if [ -z "$codex_implementer_contract_errs" ]; then
+  ok "Codex implementer model contract is present with saved-choice precedence"
+else
+  bad "Codex implementer contract missing:$codex_implementer_contract_errs"
+fi
 
-# gate27: Codex implementation-model integration (#93). The orchestrator owns
-# the saved-choice ask/write; execute-tasks owns reading, dispatch, retry, and
-# honest reporting. Checks stay section-scoped, not sentence-frozen.
-gate27_errs=$(python3 -B - <<'PY'
+# codex-implementation-integration guard (#93, task 2): the orchestrator owns the
+# saved-choice ask/write; execute-tasks owns host-scoped reading/dispatch/retry/report.
+
+codex_implementation_integration_errs=$(python3 -B - <<'PY'
 import re
 import sys
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
-
 try:
     nf = Path("skills/new-feature/SKILL.md").read_text()
 except FileNotFoundError:
     print("new-feature:missing")
     sys.exit(0)
-
+except OSError as error:
+    print(f"new-feature:unreadable:{error}")
+    sys.exit(0)
 state = section(nf, "State files")
 field_rules = nf[nf.index("Field rules:"):nf.index("### Index file")]
 step5 = section(nf, "Step 5")
 if "**Codex implementer model:**" not in state:
     print("new-feature:state-template-missing-implementer-field")
+if not re.search(r"optional.{0,300}omitted until.{0,160}(confirm|choice)|omit.{0,240}until.{0,160}(confirm|choice)", field_rules, re.I | re.S):
+    print("new-feature:field-not-optional-until-choice")
 if not re.search(r"Codex implementer model.{0,320}outside the Roles block", field_rules, re.S):
     print("new-feature:implementer-field-scope-missing")
-for value in ("exact model", "_(session default)_", "_(not used — inline)_", "_(not used — cli)_"):
+if "exact selected model" not in field_rules:
+    print("new-feature:no-selected-model-grammar")
+for value in ("_(session default)_", "_(not used — inline)_", "_(not used — cli)_"):
     if value not in field_rules and value not in state:
         print(f"new-feature:implementer-value-missing:{value}")
 if not re.search(r"missing (field ).{0,220}(legacy|older|unconfirmed)", field_rules, re.I):
@@ -454,11 +467,14 @@ if not re.search(r"change.{0,260}explicit", field_rules, re.I):
     print("new-feature:implementer-change-rule-missing")
 if "references/model-routing.md" not in field_rules and "references/model-routing.md" not in state:
     print("new-feature:implementation-routing-pointer-missing")
-
 if not re.search(r"[Cc]ombined Roles ask", step5):
     print("new-feature:step5-no-combined-roles-ask")
 if "codex_implementer_model" not in step5:
     print("new-feature:step5-no-implementer-config")
+if not re.search(r"validation contract|Codex implementer model contract", step5):
+    print("new-feature:step5-no-validation-contract")
+if not re.search(r"before.{0,240}task work", step5, re.I | re.S):
+    print("new-feature:step5-no-before-task-work")
 if not re.search(r"execution mode.{0,160}model|model.{0,160}execution mode", step5, re.I):
     print("new-feature:step5-no-mode-model-pair")
 if not re.search(r"native (implementation )?subagent", step5, re.I):
@@ -475,33 +491,38 @@ if not re.search(r"unused", step5, re.I):
     print("new-feature:step5-no-unused-ack")
 if not re.search(r"Tester", step5) or not re.search(r"Reviewer", step5):
     print("new-feature:step5-no-all-roles-pair")
-
 try:
     et = Path("skills/execute-tasks/SKILL.md").read_text()
 except FileNotFoundError:
     print("execute-tasks:missing")
     sys.exit(0)
-
+except OSError as error:
+    print(f"execute-tasks:unreadable:{error}")
+    sys.exit(0)
 gate = section(et, "Gate")
 before = section(et, "Before starting")
 choose = section(et, "Choose a mode")
 routing = section(et, "Model routing")
 dispatch = section(et, "Subagent dispatch — per-task loop")
 state_updates = section(et, "Shared: state-file updates")
-
-if not re.search(r"`issue`|already `execute`|re-entry", gate):
-    print("execute-tasks:gate-no-issue-or-execute-reentry")
+if "`issue`" not in gate:
+    print("execute-tasks:gate-no-issue-entry")
+if "`execute`" not in gate or not re.search(r"re-entry|already", gate, re.I):
+    print("execute-tasks:gate-no-execute-reentry")
 if not re.search(r"branch.{0,160}Base branch", gate, re.I):
     print("execute-tasks:gate-no-branch-check")
-if not re.search(r"Codex implementer model", before):
-    print("execute-tasks:no-saved-implementer-choice-read")
+if not re.search(r"On Claude Code.{0,360}ignore", before, re.I | re.S):
+    print("execute-tasks:no-claude-host-ignore")
+if not re.search(r"malformed.{0,240}codex|malformed.{0,240}implementer|codex_implementer_model.{0,240}malformed", before, re.I | re.S):
+    print("execute-tasks:no-claude-malformed-key-ignore")
+if not re.search(r"On Codex.{0,360}read.{0,240}Codex implementer model", before, re.I | re.S):
+    print("execute-tasks:codex-only-choice-read-missing")
 if not re.search(r"re-ask", before):
     print("execute-tasks:no-confirmed-no-reask-rule")
 if not re.search(r"missing.{0,300}(legacy|older|unconfirmed)|legacy", before, re.I):
     print("execute-tasks:no-legacy-field-rule")
 if not re.search(r"block.{0,180}task work", before, re.I):
     print("execute-tasks:no-malformed-state-block")
-
 if "codex_implementer_model" not in choose:
     print("execute-tasks:standalone-no-implementer-config")
 if not re.search(r"equivalent", choose, re.I):
@@ -510,42 +531,47 @@ if not re.search(r"retain|throughout", choose, re.I):
     print("execute-tasks:standalone-no-choice-retention")
 if not re.search(r"native", choose, re.I):
     print("execute-tasks:standalone-no-native-option")
-
 if "Codex implementer model" not in routing:
     print("execute-tasks:routing-no-implementer-contract")
 if not re.search(r"shared contract", routing, re.I):
     print("execute-tasks:routing-no-shared-contract")
 if not re.search(r"native.{0,160}Claude|Claude.{0,160}native|separate", routing, re.I):
     print("execute-tasks:routing-no-host-separation")
+if not re.search(r"native.{0,360}(Claude Code|claude|CLI)", routing, re.I | re.S):
+    print("execute-tasks:routing-no-native-only-scope")
 if not re.search(r"self-review", routing, re.I):
     print("execute-tasks:routing-no-self-review")
 if not re.search(r"commit ownership|never commits|commits via", routing, re.I):
     print("execute-tasks:routing-no-commit-ownership")
-
 if not re.search(r"one implementer|Never dispatch more than one", dispatch, re.I):
     print("execute-tasks:dispatch-not-serial")
 if not re.search(r"fresh|brief", dispatch, re.I):
     print("execute-tasks:dispatch-no-fresh-brief")
-if not re.search(r"Execution model", dispatch):
+if "Execution model" not in dispatch:
     print("execute-tasks:report-no-execution-model")
 if not re.search(r"session-default|session default", dispatch, re.I):
     print("execute-tasks:report-no-session-default")
 if not re.search(r"backend identifier", dispatch, re.I):
     print("execute-tasks:report-no-backend-honesty")
-if not re.search(r"NEEDS_CONTEXT", dispatch):
+if "NEEDS_CONTEXT" not in dispatch:
     print("execute-tasks:retry-status-missing")
 if not re.search(r"retry.{0,240}(same|retain|unchanged|pinned)|pinned.{0,200}(unchanged|same|explicit)", dispatch, re.I):
     print("execute-tasks:retry-model-preservation-missing")
+if not re.search(r"native.{0,360}(Claude Code|claude|CLI)|Claude Code.{0,360}(existing|unchanged)", dispatch, re.I | re.S):
+    print("execute-tasks:retry-native-vs-existing-model-rule-missing")
 if not re.search(r"explicit", dispatch, re.I):
     print("execute-tasks:retry-explicit-change-rule-missing")
-
 if "inline" not in state_updates or "provenance" not in state_updates:
     print("execute-tasks:inline-provenance-missing")
 if not re.search(r"Last verification", state_updates):
     print("execute-tasks:state-updates-no-verification")
 PY
 )
-if [ -z "$gate27_errs" ]; then ok "Codex implementation-model integration is present"; else bad "Codex implementation integration missing:$gate27_errs"; fi
+if [ -z "$codex_implementation_integration_errs" ]; then
+  ok "Codex implementation-model integration is present with host-scoped retries"
+else
+  bad "Codex implementation integration missing:$codex_implementation_integration_errs"
+fi
 
 # gate28: Codex implementation-model documentation (#93). README owns the
 # user-facing configuration explanation; bootstrap owns preserving user choices
