@@ -422,6 +422,131 @@ PY
 )
 if [ -z "$gate25a_errs" ]; then ok "Codex implementer model contract is present"; else bad "Codex implementer contract missing:$gate25a_errs"; fi
 
+# gate27: Codex implementation-model integration (#93). The orchestrator owns
+# the saved-choice ask/write; execute-tasks owns reading, dispatch, retry, and
+# honest reporting. Checks stay section-scoped, not sentence-frozen.
+gate27_errs=$(python3 -B - <<'PY'
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+
+try:
+    nf = Path("skills/new-feature/SKILL.md").read_text()
+except FileNotFoundError:
+    print("new-feature:missing")
+    sys.exit(0)
+
+state = section(nf, "State files")
+field_rules = nf[nf.index("Field rules:"):nf.index("### Index file")]
+step5 = section(nf, "Step 5")
+if "**Codex implementer model:**" not in state:
+    print("new-feature:state-template-missing-implementer-field")
+if not re.search(r"Codex implementer model.{0,320}outside the Roles block", field_rules, re.S):
+    print("new-feature:implementer-field-scope-missing")
+for value in ("exact model", "_(session default)_", "_(not used — inline)_", "_(not used — cli)_"):
+    if value not in field_rules and value not in state:
+        print(f"new-feature:implementer-value-missing:{value}")
+if not re.search(r"missing (field ).{0,220}(legacy|older|unconfirmed)", field_rules, re.I):
+    print("new-feature:legacy-implementer-field-rule-missing")
+if not re.search(r"change.{0,260}explicit", field_rules, re.I):
+    print("new-feature:implementer-change-rule-missing")
+if "references/model-routing.md" not in field_rules and "references/model-routing.md" not in state:
+    print("new-feature:implementation-routing-pointer-missing")
+
+if not re.search(r"[Cc]ombined Roles ask", step5):
+    print("new-feature:step5-no-combined-roles-ask")
+if "codex_implementer_model" not in step5:
+    print("new-feature:step5-no-implementer-config")
+if not re.search(r"execution mode.{0,160}model|model.{0,160}execution mode", step5, re.I):
+    print("new-feature:step5-no-mode-model-pair")
+if not re.search(r"native (implementation )?subagent", step5, re.I):
+    print("new-feature:step5-no-native-subagent")
+if not re.search(r"roles.implementer", step5, re.I):
+    print("new-feature:step5-no-conflicting-mode-handling")
+if not re.search(r"prefill", step5, re.I):
+    print("new-feature:step5-no-prefill")
+if not re.search(r"confirm", step5, re.I):
+    print("new-feature:step5-no-confirmation")
+if not re.search(r"silent", step5, re.I):
+    print("new-feature:step5-no-no-silent-switch-rule")
+if not re.search(r"unused", step5, re.I):
+    print("new-feature:step5-no-unused-ack")
+if not re.search(r"Tester", step5) or not re.search(r"Reviewer", step5):
+    print("new-feature:step5-no-all-roles-pair")
+
+try:
+    et = Path("skills/execute-tasks/SKILL.md").read_text()
+except FileNotFoundError:
+    print("execute-tasks:missing")
+    sys.exit(0)
+
+gate = section(et, "Gate")
+before = section(et, "Before starting")
+choose = section(et, "Choose a mode")
+routing = section(et, "Model routing")
+dispatch = section(et, "Subagent dispatch — per-task loop")
+state_updates = section(et, "Shared: state-file updates")
+
+if not re.search(r"`issue`|already `execute`|re-entry", gate):
+    print("execute-tasks:gate-no-issue-or-execute-reentry")
+if not re.search(r"branch.{0,160}Base branch", gate, re.I):
+    print("execute-tasks:gate-no-branch-check")
+if not re.search(r"Codex implementer model", before):
+    print("execute-tasks:no-saved-implementer-choice-read")
+if not re.search(r"re-ask", before):
+    print("execute-tasks:no-confirmed-no-reask-rule")
+if not re.search(r"missing.{0,300}(legacy|older|unconfirmed)|legacy", before, re.I):
+    print("execute-tasks:no-legacy-field-rule")
+if not re.search(r"block.{0,180}task work", before, re.I):
+    print("execute-tasks:no-malformed-state-block")
+
+if "codex_implementer_model" not in choose:
+    print("execute-tasks:standalone-no-implementer-config")
+if not re.search(r"equivalent", choose, re.I):
+    print("execute-tasks:standalone-not-equivalent")
+if not re.search(r"retain|throughout", choose, re.I):
+    print("execute-tasks:standalone-no-choice-retention")
+if not re.search(r"native", choose, re.I):
+    print("execute-tasks:standalone-no-native-option")
+
+if "Codex implementer model" not in routing:
+    print("execute-tasks:routing-no-implementer-contract")
+if not re.search(r"shared contract", routing, re.I):
+    print("execute-tasks:routing-no-shared-contract")
+if not re.search(r"native.{0,160}Claude|Claude.{0,160}native|separate", routing, re.I):
+    print("execute-tasks:routing-no-host-separation")
+if not re.search(r"self-review", routing, re.I):
+    print("execute-tasks:routing-no-self-review")
+if not re.search(r"commit ownership|never commits|commits via", routing, re.I):
+    print("execute-tasks:routing-no-commit-ownership")
+
+if not re.search(r"one implementer|Never dispatch more than one", dispatch, re.I):
+    print("execute-tasks:dispatch-not-serial")
+if not re.search(r"fresh|brief", dispatch, re.I):
+    print("execute-tasks:dispatch-no-fresh-brief")
+if not re.search(r"Execution model", dispatch):
+    print("execute-tasks:report-no-execution-model")
+if not re.search(r"session-default|session default", dispatch, re.I):
+    print("execute-tasks:report-no-session-default")
+if not re.search(r"backend identifier", dispatch, re.I):
+    print("execute-tasks:report-no-backend-honesty")
+if not re.search(r"NEEDS_CONTEXT", dispatch):
+    print("execute-tasks:retry-status-missing")
+if not re.search(r"retry.{0,240}(same|retain|unchanged|pinned)|pinned.{0,200}(unchanged|same|explicit)", dispatch, re.I):
+    print("execute-tasks:retry-model-preservation-missing")
+if not re.search(r"explicit", dispatch, re.I):
+    print("execute-tasks:retry-explicit-change-rule-missing")
+
+if "inline" not in state_updates or "provenance" not in state_updates:
+    print("execute-tasks:inline-provenance-missing")
+if not re.search(r"Last verification", state_updates):
+    print("execute-tasks:state-updates-no-verification")
+PY
+)
+if [ -z "$gate27_errs" ]; then ok "Codex implementation-model integration is present"; else bad "Codex implementation integration missing:$gate27_errs"; fi
+
 # gate26: Status-since timing protocol (issue #76) — the status transition is
 # three writes in one breath (Goal status + index + Status since), defined once
 # in new-feature's gate rule and template, and cited from every skill that
