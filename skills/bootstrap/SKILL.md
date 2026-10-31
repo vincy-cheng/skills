@@ -41,9 +41,14 @@ git check-ignore -q .dev-flow/ || echo "NOT_IGNORED"
 - **Single-branch repos:** if the user's dev branch == main branch, warn that `open-pr` refuses `main` as a PR target and resolve first: a separate dev branch, or main-only mode (`new-feature`'s existing main-only handling — base/target both the main branch; such repos don't use open-pr). Write the config only after this is resolved.
 - Config file `.dev-flow/config.json` (repo root):
   ```json
-  { "main_branch": "<main>", "dev_branch": "<dev>" }
+  {
+    "main_branch": "<main>",
+    "dev_branch": "<dev>",
+    "roles": { "implementer": "inline", "tester": "session", "reviewer": "session" }
+  }
   ```
-  `main_branch` documents the main branch for health-check reporting; `dev_branch` is the consumed key (read by `new-feature` step 1).
+  `main_branch` documents the main branch for health-check reporting; `dev_branch` is the consumed key (read by `new-feature` step 1). On Claude Code, `roles` seeds the step-5 combined Roles ask and the config-only lanes ("reviewer" feeds the step-7 reviewer, the brainstorm red-team, and the plan review pass). **Merge semantics:** a legacy config carrying only the branch keys is compatible — merge the missing `roles` keys with their defaults, never overwrite values already set, and report the merge rather than ask on re-run (the green-no-op contract holds).
+- **Codex native model config (optional):** users may add top-level `"codex_reviewer_model": "<available-native-model>"` and `"codex_implementer_model": "<available-native-model>"`. The first selects red-team, plan, main, and focused reviewers; the second selects native implementation subagents. Replace each placeholder with an option supported by the current native subagent tool; resolution and validation live in `references/model-routing.md` (**Codex reviewer model** and **Codex implementer model**). Leave both keys absent in newly created configs for session-default behavior; never seed an empty value or choose a model during bootstrap. On updates and legacy merges, preserve existing `codex_reviewer_model` and `codex_implementer_model` values and other unrelated keys. Claude Code ignores both Codex-only settings.
 - Dev branch exists (the chosen name) → report "already exists".
 - Dev branch missing → **offer**: create it off the main branch (locally + push, or locally only — ask which). Never create silently.
 - Config exists and matches → report. Names differ → show the diff and ask whether to update.

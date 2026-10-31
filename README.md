@@ -39,6 +39,21 @@ codex plugin marketplace add .
 
 After updating a local checkout, refresh it with `codex plugin marketplace upgrade vincy-skills` and restart Codex.
 
+### Native model selection
+
+On Codex, reviewers and native implementation subagents can use separately selected models. Add either optional top-level setting to the target repo's gitignored `.dev-flow/config.json`:
+
+```json
+{
+  "codex_reviewer_model": "<available-native-model>",
+  "codex_implementer_model": "<available-native-model>"
+}
+```
+
+Replace each placeholder with a model supported by the current Codex native subagent tool, then merge your existing branch and role settings. The reviewer key selects the brainstorm red-team, plan reviewer, and step-7 main and focused reviewers. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
+
+Claude Code ignores both keys and continues to route implementation and reviewers through `roles.implementer` and `roles.reviewer`. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting either native key selects its role's session default. See [model routing](references/model-routing.md) for validation, host precedence, and lane details.
+
 ## The `dev-flow` workflow
 
 `dev-flow` guides a feature or fix through 11 steps in four phases:
@@ -79,9 +94,9 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | Skill | Step | Purpose |
 |-------|------|---------|
 | `brainstorm` | 1 | Work through the design and write an approved spec |
-| `plan` | 3 | Turn the spec into a contract-first implementation plan |
+| `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a fresh-subagent plan review |
 | `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
-| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>) |
+| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; on Claude Code, dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>); on Codex, native `session` uses the saved `codex_implementer_model` |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
@@ -100,7 +115,7 @@ These skills can also run on their own. The test skill uses each target reposito
 | `commit` skill | Write Conventional Commit messages without AI attribution |
 | `document-structure` skill | Generate or update agent-facing documentation in a target repo's `docs/agents/` |
 | `whats-new` skill | Summarize recent work and check for documentation drift |
-| `standardize-prose` skill | Standardize spec/plan prose for human readers (adapted from ASD-STE100, guided, standalone) |
+| `standardize-prose` skill | Standardize spec/plan prose for human readers (adapted from ASD-STE100, guided, standalone; non-English docs supported — rare/translated terms cited, per-term) |
 
 ## `/new-idea`: capture an idea before building
 
@@ -115,12 +130,12 @@ Before creating files, the command discusses and grills the idea, summarizes the
 The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces run state in your session, reading `docs/features/.feature-states/` live. Three behaviors:
 
 - **Status line (ambient):** `dev-flow: <feat> · step 6/11 · test · 45m` — the current run, its step, and how long the step has been running. Updated at session start and after every turn; cleared when no run is active. Duration comes from the state file's `Status since:` field; state files written before that field existed show no duration.
-- **`/flow` pane (on-demand):** type `/flow` to open a compact card of the current run — step and status, an 11-step lifecycle strip, tasks/issue/branch refs, and the next step with the skill that runs it. To resume a stale run from a fresh session, type `/new-feature resume`. No active run → a hint to start one with `/new-feature <idea>`. When the run finishes (`done`/`merged`), the pane closes itself with a farewell toast; a pane you re-open after that stays open showing the final state.
+- **Band pane opener (always drawn):** the **`[ Flow ]` button** on the band row above the prompt opens a compact card of the current run — step and status, an 11-step lifecycle list rendered vertically (one row per step: done ✓ / current ▸ / upcoming ·, full names at any pane width), tasks/issue/branch refs, and the next step with the skill that runs it. The press works mid-response too: the pane appears while Claude is still answering. In the classic terminal renderer mouse clicks don't register — run `/tui fullscreen`. **Resuming:** a Resume section lists the unfinished runs (active plus merged-with-close-out-pending; `done` never) — one `[ Resume ]` press submits the resume prompt and closes the pane; the run's own card carries its coverage, so it is not listed again. With nothing resumable the pane names the manual path: `/new-feature resume`. No active run → a hint to start one with `/new-feature <idea>`. When the run finishes (`done`/`merged`), the pane closes itself with a farewell toast; a pane you re-open after that stays open showing the final state.
 - **Step toast:** when a run's Goal status flips between turns — `dev-flow: <feat> execute → test (step 6/11)`.
 
-**Opening and closing the pane:** the `/flow` command opens it. The pane carries its own **`[ Close ]` button** — the reliable path, and the one that works mid-response (the host's `Esc` interrupts a running response before it closes anything). `Esc` closes the pane when it holds focus, between turns; some hosts also offer the frame's close mark or `ctrl+x x`. The mod never opens a pane on its own.
+**Closing the pane:** the pane carries its own **`[ Close ]` button** — the reliable path, and the one that works mid-response (the host's `Esc` interrupts a running response before it closes anything); the Resume section, when drawn, renders above it under a divider. `Esc` closes the pane when it holds focus, between turns; some hosts also offer the frame's close mark or `ctrl+x x`. The mod never opens a pane on its own. The band's `[-]` mark is the host engine's, not the plugin's: it collapses the whole band row — every mod's row in it, `[ Flow ]` included — and re-expanding brings the button back.
 
-**Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (side) pane needs the fullscreen transcript — Ctrl+O toggles it there; otherwise the pane sits inline above the prompt. On other hosts the surface decides; the plugin has no placement setting.
+**Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (right-side) pane needs **fullscreen rendering** — run `/tui fullscreen` to enable it (in the classic renderer the pane sits inline above the prompt, and mouse clicks on its buttons don't register). On other hosts the surface decides; the plugin has no placement setting.
 
 **The 11 steps**, for reference (the status line and pane show these):
 

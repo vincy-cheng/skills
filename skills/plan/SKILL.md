@@ -7,7 +7,7 @@ description: Use when turning an approved spec or settled requirements into an i
 
 Turn an approved design into a complete implementation plan — bite-sized tasks a fresh implementer could execute one by one with TDD.
 
-**Core principle:** The plan is complete only when every downstream consumer can run from it alone. In a dev-flow run those consumers are steps 4–11; standalone, they're whoever executes next. **No implementation action** — the plan is written, presented, and approved; building starts after approval.
+**Core principle:** The plan is complete only when every downstream consumer can run from it alone. In a dev-flow run those consumers are steps 4–11; standalone, they're whoever executes next. **No implementation action** — the plan is written, presented, and approved; building starts after approval. The terminal state is the approved plan **carrying its `## Plan review pass` section** — see below; a plan without one is not approvable.
 
 **Precondition:** an approved spec or settled requirements. If neither exists, do not write the plan — say so and ask for the design to be settled first (in a dev-flow run, that means back to step 1 / `dev-flow:brainstorm`; never invent requirements to fill the gap).
 
@@ -65,18 +65,30 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 
 ## Prose quality (plan text)
 
-Plans are read by humans at every checkpoint. Write them under these rules:
+Plans are read by humans at every checkpoint. Write them under the brainstorm skill's prose-quality rules (one term per concept, frozen modals — shall, must, will, may never swap force — sentences ≲ 20 words, no vague quantifiers, active voice); those rules live once in `skills/brainstorm/SKILL.md` *Spec output*. Plan-specific addition:
 
-- Active voice preferred; a deliberate passive with an unspecified agent stays passive — never invent an agent.
-- One term per concept — no synonym drift within the plan (a component is never also a module).
-- Frozen modals — shall, must, will, may carry distinct force; never swap one for another.
-- Sentences ≲ 20 words, one idea per sentence.
-- No vague quantifiers ("several", "appropriate") — the concrete number, or the named thing.
 - Task lines stay verbatim-copyable — style rewrites never touch them, nor the `Risk:` lines.
 
 ## Self-review
 
 Before presenting the plan, check it with fresh eyes and fix inline: every task has a `Risk:` line (a task missing one is a fail-closed defect, not a default-low — fix it before the plan is presented); no placeholders ("TBD", "TODO"); the Flow Chart's nodes match the `### Task N` headings and their files match the `**Files:**` blocks; the task list is clean `- [ ]` lines, copyable verbatim.
+
+## Plan review pass
+
+After generation and self-review, before presenting the plan for approval, dispatch a fresh plan reviewer — the plan skill is the plan's author, so it must not judge the plan alone (the same fresh-eyes pattern as the brainstorm viability red-team and the test/review gates).
+
+**Dispatch.** Fresh subagent, read-only critique. Resolve the host before choosing a model. Semantics live in `references/model-routing.md` — the single source.
+
+- **Codex:** before dispatch, resolve config `codex_reviewer_model` per **Codex reviewer model** in that reference. Pass a validated native `model` argument; absent → session default; invalid or unavailable → BLOCKED without dispatch. Ignore Claude lanes. Standalone mode on Codex reads the target repo's same optional setting, without a lane ask.
+- **Claude Code:** lane is config `roles.reviewer`; unset → `session`; malformed or unavailable → BLOCKED stop-and-ask, never a silent downgrade. Standalone mode asks the lane directly (same shape as the review/test skills' standalone ask).
+
+**Checklist — judgment only.** The reviewer checks: does the task list cover the whole spec (nothing quietly skipped); is the order sane (no task reading an earlier task's output that lands later); missing or phantom work (spec asks with no task, tasks doing work outside the spec). It does **not** re-run the contract-shaped checks above — `## Self-review` already owns Risk-line, Flow-chart, and verbatim-copyable presence, and grep-able structure checks gain nothing from a subagent dispatch.
+
+**Verdict — binary.** `pass` or `needs-rework`; no middle states. A plan is not shippable-with-notes, so "yellow" has no meaning here. On `needs-rework`, revise the plan per the findings and re-dispatch — maximum 2 rework rounds (3 dispatches total). Still `needs-rework` after round 2 → stop and present the findings to the user; that stop is the real judgment signal.
+
+**Tiering + waiver.** A trivial plan (a single mechanical task, or a docs-only word change) may run a one-line self-check instead of the dispatch — but the choice is shown to the user first, and the user may demand the full pass. The pass is never silently skipped.
+
+**Recording.** The pass writes a `## Plan review pass` section into the plan document: the verdict, the findings with their handling, rounds used, and the model used when the lane was configured (adversarial review on an external model must not be silent). A plan without this section is **not approvable** — the section is the structural trace that makes a silently-skipped pass visible.
 
 ## Standalone mode
 
@@ -86,5 +98,5 @@ In any repo, without dev-flow: same sections, same contract — the consumers ar
 
 **In-flow mode:** invoked by `dev-flow:new-feature` step 3.
 
-- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes other skills. Its terminal state is the approved plan; control returns to the orchestrator; step order is governed solely by the hard gate in `commands/new-feature.md`.
+- **No handoff.** This skill never advances, skips, or reorders dev-flow steps, and never invokes other skills. Its terminal state is the approved plan carrying its `## Plan review pass` section — see above; control returns to the orchestrator; step order is governed solely by the hard gate in `skills/new-feature/SKILL.md`.
 - Plans are never committed. Artifacts stay under `docs/features/` — never `.superpowers/`.

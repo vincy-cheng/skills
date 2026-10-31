@@ -3,13 +3,21 @@ import { describe, expect, test } from 'claude-code/testing'
 import { stepOf, type GoalStatus } from './state'
 
 /**
- * Task 3 behaviors: status-line text shaping and the toast's status-diff +
- * main-loop filter. The functions under test are pure — exported from
- * register.tsx alongside the hooks wiring (same module, testable seams).
+ * The hooks module's behaviors: status-line text shaping, the toast's
+ * status-diff + main-loop filter, the pane's shared open-args, and the
+ * command surface (none — the band button is the sole opener). The exported
+ * pieces under test come from register.tsx alongside the hooks wiring (same
+ * module, testable seams).
  */
-import { humanizeSince, nextOf, statusLine, toastsFor } from './register'
+import { humanizeSince, nextOf, statusLine, toastsFor, resumableList, resumePrompt, FLOW_PANE, register } from './register'
+import type { Run, RunStates } from './state'
 
 const NOW = new Date('2026-10-23T22:14:00+08:00')
+
+/** A minimal run — the shape the parser builds, filled for composition tests. */
+function makeRun(feat: string, status: GoalStatus): Run {
+  return { feat, status, since: undefined, updated: '', tasksDone: 0, tasksTotal: 0, issue: '', pr: '', branch: '' }
+}
 
 describe('humanizeSince — Status since → short duration', () => {
   test('humanizes 45 minutes', () => {
@@ -137,5 +145,72 @@ describe('nextOf — the pane next-step line', () => {
   test('terminal statuses render their wording', () => {
     expect(nextOf('done')).toBe('closed out')
     expect(nextOf('merged')).toBe('done (dev-flow:new-feature)')
+  })
+})
+describe('FLOW_PANE — the open-args both the band and the pane share', () => {
+  test('opens the dev-flow pane with the 14-row request', () => {
+    expect(FLOW_PANE).toMatchObject({ id: 'flow', title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true })
+  })
+})
+
+describe('register — the command surface', () => {
+  test('registers no commands — the band button is the sole pane opener', () => {
+    const registrations: string[] = []
+    const specs: unknown[] = []
+    // Fake On/$ stubs: record registrations, never run handlers.
+    const recordingOn = ((pattern: string) => {
+      registrations.push(pattern)
+      return () => undefined
+    }) as unknown as Parameters<typeof register>[0]
+    const $ = {
+      command: { register: (spec: unknown) => { specs.push(spec) } },
+      ui: { status: () => undefined },
+      fs: { list: () => Promise.resolve({ value: [] }) },
+    } as never
+    register(recordingOn as never, $ as never)
+    expect(registrations.filter(r => r.startsWith('command.'))).toEqual([])
+    expect(specs).toEqual([])
+  })
+})
+
+describe('resumePrompt — the text a [ Resume ] press submits', () => {
+  test('carries the run name only — no status, no step, no path', () => {
+    const run = makeRun('demo', 'test')
+    expect(resumePrompt(run)).toBe('Resume the dev-flow run "demo".')
+  })
+})
+
+describe('resumableList — the pane Resume section composition', () => {
+  const states = (active: Run[], finished: Run[], current: Run | null): RunStates => ({
+    active,
+    finished,
+    current,
+  })
+
+  test('lists active runs and merged runs from finished', () => {
+    const active = [makeRun('a', 'execute'), makeRun('b', 'spec')]
+    const finished = [makeRun('m', 'merged'), makeRun('d', 'done')]
+    const list = resumableList(states(active, finished, null))
+    expect(list.runs.map(r => r.feat)).toEqual(['a', 'b', 'm'])
+    expect(list.omitted).toBe(0)
+  })
+
+  test('excludes the current run — its card carries the coverage', () => {
+    const active = [makeRun('a', 'execute'), makeRun('b', 'spec')]
+    const list = resumableList(states(active, [], active[0]))
+    expect(list.runs.map(r => r.feat)).toEqual(['b'])
+  })
+
+  test('caps at 5 rows and counts the omitted', () => {
+    const active = ['v', 'w', 'x', 'y', 'z', 'u', 't'].map(f => makeRun(f, 'spec'))
+    const list = resumableList(states(active, [], active[0]))
+    expect(list.runs.map(r => r.feat)).toEqual(['w', 'x', 'y', 'z', 'u'])
+    expect(list.omitted).toBe(1)
+  })
+
+  test('empty when there is nothing resumable', () => {
+    const list = resumableList(states([], [], null))
+    expect(list.runs).toEqual([])
+    expect(list.omitted).toBe(0)
   })
 })

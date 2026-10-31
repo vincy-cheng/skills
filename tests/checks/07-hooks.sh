@@ -22,14 +22,17 @@ else
   bad "hooks/hooks.json missing"
 fi
 
-# the hooks module carries the four required event hooks
+# the hooks module carries the required event hooks (no command hooks: the
+# band's [ Flow ] button is the pane's sole opener — no /flow command)
 if [ -f "$MOD" ]; then
   mod_err=""
-  for ev in "session.start" "turn.complete" "command.run" "ui.render"; do
+  for ev in "session.start" "turn.complete" "ui.render"; do
     $G -q "'$ev'" "$MOD" || mod_err="$mod_err missing:$ev"
   done
   # the pane's on-demand open is person-initiated (no session.start auto-open of the pane)
   $G -q "closeOnEscape" "$MOD" || mod_err="$mod_err missing:closeOnEscape"
+  # no command surface: /flow was removed in favor of the band button
+  $G -q "command.run" "$MOD" && mod_err="$mod_err banned:command.run-should-not-exist"
   if [ -z "$mod_err" ]; then ok "hooks module carries required event hooks"; else bad "hooks module:$mod_err"; fi
 else
   bad "hooks module missing:$MOD"

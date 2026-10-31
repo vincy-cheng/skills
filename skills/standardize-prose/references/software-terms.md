@@ -11,6 +11,28 @@ How to use: for each entry, pick the preferred term at the start of a doc
 (or keep the author's first choice) and fix every other occurrence to match.
 Frozen entries are absolute — never rewritten in a cleanup pass.
 
+The term list below is a floor, not a ceiling. For domain-specific or rare
+terms not listed, the pass picks one form per doc and proposes it in the
+guided preview as its own category, applied on confirmation like any
+term-pick entry — never silently. Rare and translated-term proposals are
+shown individually in the preview, never collapsed into the "N more: same
+fix" line: they are per-term distinct, and the term choice is what the user
+confirms.
+
+A translated-term proposal cites the source English term, so the reviewer
+confirms against the original word instead of guessing between two local
+renderings. The proposal line pins a three-field format — the template uses
+generic placeholders:
+
+```
+<existing renderings> → <chosen term> (譯自 "source term")
+```
+
+For example: `訊息佇列、訊息隊列 → 訊息佇列 (譯自 "message queue")` — the
+doc renders the concept two ways, and the pick chooses one of them (the
+first occurrence), inventing no third form. The template's placeholders are
+generic; a doc in another language fills them with its own renderings.
+
 ## Frozen entry
 
 - **Modals: shall, must, will, may.** These carry distinct force and are

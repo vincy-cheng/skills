@@ -1,6 +1,6 @@
 import type { Register, RenderNode } from 'claude-code'
 
-import { readStates, stepOf, STEPS, type FsList, type FsRead, type GoalStatus, type Run } from './state'
+import { readStates, stepOf, STEPS, type FsList, type FsRead, type GoalStatus, type Run, type RunStates } from './state'
 
 type Fs = { list: FsList; read: FsRead }
 
@@ -13,17 +13,26 @@ function readRunStates($: { fs: Fs }) {
 }
 
 /**
- * dev-flow session help: three person-facing behaviors, all reading
- * `docs/features/.feature-states/` live:
+ * dev-flow session help: four person-facing behaviors:
  * - status line (ambient): `dev-flow: <feat> · step 6/11 · test · 45m`
- * - `/flow` pane (on-demand): a compact 4-row card of the current run
+ * - band (always drawn): the [ Flow ] button — the pane's sole opener
+ * - pane (opened by that button): a compact 14-row card of the current run
  * - step toast: fires when a run's Goal status flips between turns
+ *
+ * The state-reading three (status line, pane, toast) read
+ * `docs/features/.feature-states/` live; the band is stateless.
  *
  * Placement and close are the surface's: `rows` is a request, not a grant;
  * a person-opened pane seats at any width; the mod never auto-opens.
  */
 
 const PANE = 'flow'
+
+/** The open-args the band's [ Flow ] button passes — the pane's sole opener
+ *  (the /flow command is gone; no command registers). rows: 14 — header, 11
+ *  strip rows, refs, button. Requests, not grants: a person-opened pane still
+ *  seats at any size the surface picks. */
+export const FLOW_PANE = { id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true } as const
 
 /** Status → the skill whose run *advances the run into* that status (the gate table's "Sets" column). */
 const ENTERED_BY: Record<GoalStatus, string> = {
@@ -88,6 +97,35 @@ export function toastsFor(runs: Run[], prev: Record<string, GoalStatus>): string
   return toasts
 }
 
+/**
+ * The text a [ Resume ] press submits: the run's name, one fact only. The
+ * orchestrator re-reads the state file — a render-time status snapshot would
+ * ride as the person's own words (asUser) and go stale between draw and press.
+ */
+export function resumePrompt(run: Run): string {
+  return `Resume the dev-flow run "${run.feat}".`
+}
+
+/** How many rows the Resume section shows before the ellipsis line. */
+const RESUME_ROWS = 5
+
+/** A feat name for a resume row: truncated with an ellipsis past 28 chars —
+ *  `step N/11 · status` follows on the row, and the pane's 44-column request
+ *  must still fit both, plus the [ Resume ] button. */
+function resumeRowName(feat: string): string {
+  return feat.length > 28 ? `${feat.slice(0, 27)}…` : feat
+}
+
+/** The Resume section's composition: resumable runs, capped, plus the omitted count.
+ *  Active runs (newest first) plus merged runs from finished — merged means
+ *  close-out pending, resumable per the lifecycle; done never resumes. The
+ *  current run is excluded: its card carries the coverage. */
+export function resumableList(states: RunStates): { runs: Run[]; omitted: number } {
+  const runs = [...states.active, ...states.finished.filter(run => run.status === 'merged')]
+  const withoutCurrent = states.current === null ? runs : runs.filter(run => run.feat !== states.current?.feat)
+  return { runs: withoutCurrent.slice(0, RESUME_ROWS), omitted: Math.max(0, withoutCurrent.length - RESUME_ROWS) }
+}
+
 export const register: Register = on => {
   /** Last-known statuses — the flip cache (session-scoped, ambient; not a cross-session ledger). */
   let lastKnown: Record<string, GoalStatus> = {}
@@ -95,10 +133,6 @@ export const register: Register = on => {
   let farewelled = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: 'flow',
-      description: 'Open the dev-flow pane: current run, lifecycle, refs, next step',
-    })
 
     const states = await readRunStates($)
     lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
@@ -154,13 +188,25 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // /flow: opens the pane. The render hook below draws it fresh each time.
-  on('command.run', { command: 'flow' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'dev-flow', rows: 4, closeOnEscape: true })
-    return { text: 'dev-flow pane opened. Esc closes it when it holds focus.' }
+  // The band: an always-drawn row above the prompt whose [ Flow ] button opens
+  // the pane. A press is person input — the pane it opens places at any width,
+  // where an unasked open waits below 144 columns. The band draws nothing else
+  // (the status line owns the ambient text) and yields to surveys; stacking
+  // under whatever other mods drew follows next(e).
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
+    const below = await next(e).catch(() => undefined)
+
+    const { Box, Button } = $.ui.resolve(e)
+    const mine = (
+      <Box>
+        <Button key="flow-open" plain label="[ Flow ]" onPress={() => void $.ui.open(FLOW_PANE)} />
+      </Box>
+    )
+    return below ? <Box flexDirection="column">{mine}{below as RenderNode}</Box> : mine
   })
 
-  // The pane: a compact 4-row card — header+step, strip, refs+next, buttons.
+  // The pane: a compact 14-row card — header+step, 11 strip rows, refs+next, buttons.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const states = await readRunStates($)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -170,6 +216,8 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Text dimColor>No active dev-flow run. Start one: /new-feature &lt;idea&gt;</Text>
+          <Text dimColor>Resume an unfinished run: /new-feature resume</Text>
+          {ResumeSection($, Box, Text, Button, states)}
           {CloseButton($, Button)}
         </Box>
       )
@@ -185,9 +233,13 @@ export const register: Register = on => {
           {'  '}step {stepOf(run.status)}/11 · {run.status}{duration !== undefined ? ` · ${duration}` : ''}
         </Text>
         {LifecycleStrip(Box, Text, stepOf(run.status))}
+        <Box>
+          <Button key="resume-current" label="Resume" onPress={() => void resumePress($, run)} />
+        </Box>
         <Text dimColor>
           Tasks {run.tasksDone}/{run.tasksTotal} · {run.issue || '—'} → {run.branch || '—'} · next: {nextOf(run.status)}
         </Text>
+        {ResumeSection($, Box, Text, Button, states)}
         <Box>
           {CloseButton($, Button)}
         </Box>
@@ -211,6 +263,52 @@ function CloseButton($: { ui: { close: (args: { id: string }) => Promise<void> }
   )
 }
 
+/** The [ Resume ] press: submit the prompt (asUser), close the pane on
+ *  success; a rejection toasts the manual path and keeps the pane open. `$`
+ *  is the parameter — the engine's real one or the test's stub shape alike. */
+/** The $-shape resumePress needs — the real engine's $ and the tests' fake satisfy it alike. */
+type Resume$ = { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } }
+
+export async function resumePress(
+  $: Resume$,
+  run: Run,
+): Promise<void> {
+  try {
+    await $.prompt.submit({ text: resumePrompt(run), asUser: true })
+  } catch {
+    $.ui.toast('dev-flow: resume submit failed — use /new-feature resume')
+    return
+  }
+  // Submitted — the resume is queued. A close failure is cosmetic (the pane
+  // lingers); toasting "submit failed" here would invite a duplicate resume.
+  await $.ui.close({ id: PANE }).catch(() => undefined)
+}
+function ResumeSection(
+  $: Resume$,
+  Box: El,
+  Text: El,
+  Button: (props: { key?: string; label: string; onPress: () => void }) => RenderNode | null | undefined,
+  states: RunStates,
+) {
+  const list = resumableList(states)
+  if (list.runs.length === 0) return null
+
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>── Resume ──────────────</Text>
+      {list.runs.map(run => (
+        <Box key={`resume-row-${run.feat}`}>
+          <Text color={run.status === 'merged' ? 'success' : 'subtle'}>
+            {resumeRowName(run.feat)} · step {stepOf(run.status)}/11 · {run.status}
+          </Text>
+          <Button key={`resume-${run.feat}`} label="Resume" onPress={() => void resumePress($, run)} />
+        </Box>
+      ))}
+      {list.omitted > 0 ? <Text dimColor>… and {list.omitted} more (/new-feature resume)</Text> : null}
+    </Box>
+  )
+}
+
 /** The 11 lifecycle names after `fresh`, keyed by step number. */
 const STEP_NAME = STEPS.slice(1)
 
@@ -220,12 +318,13 @@ type El = (props: Record<string, unknown>) => RenderNode | null | undefined
 /**
  * The elements come from $.ui.resolve(e); pass them in, they are no globals.
  * Done steps: success. Current: bold accent. Future: subtle — never red; a
- * run's ahead steps are normal, not failures. The strip carries no unique
- * data (row 1 has the step number and status); wrap or truncation is fine.
+ * run's ahead steps are normal, not failures. One row per step so the full
+ * names always fit any granted width — the horizontal strip truncated
+ * mid-name against the pane's 44-column request.
  */
 function LifecycleStrip(Box: El, Text: El, step: number) {
   return (
-    <Box>
+    <Box flexDirection="column">
       {STEP_NAME.map((name: string, i: number) => {
         const stepNo = i + 1
         const isDone = stepNo < step
@@ -236,8 +335,7 @@ function LifecycleStrip(Box: El, Text: El, step: number) {
             color={isCurrent ? 'claude' : isDone ? 'success' : 'subtle'}
             bold={isCurrent}
           >
-            {stepNo === 1 ? '' : ' → '}
-            {isDone ? '✓' : ''}
+            {isDone ? '✓ ' : isCurrent ? '▸ ' : '· '}
             {name}
           </Text>
         )

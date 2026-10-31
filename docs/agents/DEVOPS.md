@@ -14,7 +14,7 @@ Both packages use the same standalone skills; no other plugin is required.
 ## Git workflow
 
 - Branches: `dev` is the integration branch by default; PRs target the integration branch, never the default branch. Feat/fix branches: `feat/<issue>-<name>` or `fix/<issue>-<name>` off the integration branch.
-- **Branch names derive from the state file** (`Base`/`Target branch` fields), never a literal. `.dev-flow/config.json` (`{"main_branch": ..., "dev_branch": ...}`) seeds the state file at `new-feature` step 1 — written by the `bootstrap` skill, read by `new-feature` only; no other skill touches it.
+- **Branch names derive from the state file** (`Base`/`Target branch` fields), never a literal. Bootstrap writes `.dev-flow/config.json`; `new-feature` step 1 reads its `main_branch`/`dev_branch` defaults. The same config holds Claude Code's `roles` lanes and optional top-level `codex_reviewer_model`, read by brainstorm, plan, and review for Codex's native reviewers, plus optional top-level `codex_implementer_model`, read by the orchestrator/execute flow for Codex native implementation. Bootstrap preserves existing `codex_reviewer_model` and `codex_implementer_model` values and leaves both keys absent by default. Model validation and host precedence live in `references/model-routing.md`.
 - No dev branch → ask the user: create it off the default branch, or run off the default branch. Don't silently pick.
 - Published to `github.com/vincy-cheng/skills`.
 

@@ -9,7 +9,9 @@ description: Use whenever the user wants to create, open, file, or draft a GitHu
 
 ## Gate check
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), **verify Goal status is `planning` and set it to `issue` before drafting.** If not `planning`, stop — a step was skipped — and tell the user which step to run. No state file (invoked standalone) → skip the gate, proceed.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), require **Goal status `planning`**. If not `planning`, stop — a step was skipped — and tell the user which step to run. Before advancing status or drafting, check the referenced plan for a `## Plan review pass` section recording `pass` or a user-accepted self-check. A new plan missing that pass or recording `needs-rework` must stop; rewind to `spec` before returning to step 3. Update Goal status in the state file, the index row and Updated timestamp, and `Status since:` together; this skill owns the rewind for both direct and orchestrated calls. Do not create an issue. A plan that predates this gate and has no pass is the legacy exception: ask whether to run the pass now or proceed as-is, and record the user's choice in the run. After the read-gate succeeds, this skill owns step 4's transition to `issue`: update Goal status, the state file's Updated timestamp, the index row and its Updated timestamp, and `Status since:` together before drafting. The orchestrator defers that transition to this skill so a failed pass remains resumable.
+
+No state file (invoked standalone) → skip the workflow status gate. If a plan document is supplied or found for the issue, apply the same pass check and legacy-plan exception. A plain standalone bug issue with no plan has no plan-pass requirement.
 
 ## Why a fixed structure
 
@@ -21,9 +23,9 @@ A reader (human or agent) should understand the *what*, *boundaries*, *done-stat
 2. **Draft the body** with the template below. Fill every required section; add suggested sections when they add signal.
 3. **Show the draft** (title + body) and ask for confirmation. The user picks labels here.
 4. **Publish** with `gh issue create` (heredoc). Capture the URL and issue number.
+5. **Offer a branch** (see Branches) if the repo's workflow calls for one. Only if the user accepts.
 
 **One-issue-ahead.** When operating inside a dev-flow run whose state-file References carry an Overview path, open an issue only for the **imminent** run — later runs stay in the overview spec (pre-opened issues go stale when direction shifts mid-way). Standalone use (no state file, no Overview) is unaffected — never refuse a plain issue request.
-5. **Offer a branch** (see Branches) if the repo's workflow calls for one. Only if the user accepts.
 
 ## The template
 
@@ -93,11 +95,10 @@ git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git check
 
 ## State file (dev-flow only)
 
-If a state file exists, update it as part of step 4:
-- Set **Goal status** to `issue` — with the `Status since:` timestamp (third write of the status-transition protocol); leave it for step 5 to advance.
+If a state file exists, the Gate check owns the `planning` → `issue` status transition and its `Status since:` timestamp before drafting. After the user confirms and the issue is published:
 - Record `Issue: #NN` in References (replace `_(pending)_`).
 - If the user accepts the branch, set **Base branch** to `feat/NN-<name>` or `fix/NN-<name>`; **Target branch** stays the state file's Target branch (the configured dev branch, `dev` by default).
-- Bump **Updated**.
+- Bump **Updated** in the state file and update the matching index row's Issue, Branch, and Updated fields. Keep its status as `issue`; do not rewrite `Status since:`.
 
 You don't create the state file (step 1 does). Touch it only if it exists, and only the fields above.
 
