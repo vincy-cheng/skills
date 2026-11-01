@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 05-implementer-enforced-enum
+description: "Implementer: authoritative enforced enum excludes requested model"
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

@@ -393,9 +393,9 @@ if not re.search(r"unavailable.{0,200}inactive|inactive.{0,200}unavailable", bod
 for failure in ("unreadable", "malformed JSON", "non-object", "schema", "non-string"):
     if not re.search(failure, body, re.I):
         print(f"routing:validation-missing:{failure}")
-if not re.search(r"before.{0,300}(availability|tool support|model options|allowlist)", body, re.I | re.S):
-    print("routing:no-validate-before-availability")
-if not re.search(r"tool support", body, re.I):
+if "Native model validation" not in body:
+    print("routing:no-shared-native-validation-pointer")
+if not re.search(r"tool support|string-parameter support", body, re.I):
     print("routing:no-tool-support-check")
 for failure in ("empty", "whitespace"):
     if not re.search(failure, body, re.I):
@@ -783,7 +783,6 @@ checks = {
     "blank-rejected": r"whitespace-only",
     "wrong-types-rejected": r"null.*boolean.*number.*array.*object",
     "malformed-json": r"malformed JSON",
-    "current-availability": r"current.*(?:options|allowlist)",
     "before-every-dispatch": r"[Bb]efore every.*dispatch",
     "blocked": r"BLOCKED.*(?:no|zero).*dispatch",
     "codex-ignores-roles": r"Codex.*ignore.*`roles`",
@@ -791,6 +790,23 @@ checks = {
 }
 for name, pattern in checks.items():
     if not re.search(pattern, codex, re.S):
+        print(f"routing:codex-{name}-missing")
+if "Native model validation" not in codex:
+    print("routing:codex-shared-native-validation-pointer-missing")
+validation = section(routing, "Native model validation")
+for name, pattern in {
+    "authoritative-restriction": r"authoritative.{0,160}(?:restriction|allowlist|enum)|(?:restriction|allowlist|enum).{0,160}authoritative",
+    "example-list-distinction": r"example.{0,160}(?:list|options)|(?:list|options).{0,160}example",
+    "unlisted-attempt": r"absence.{0,120}list.{0,120}alone|unlisted|not listed",
+    "string-model-dispatch": r"native tool.{0,180}accepts a string.*model|accepts a string `model`",
+    "no-hardcoded-list": r"Do not hardcode a model availability list",
+    "dispatch-rejection": r"dispatch itself rejects",
+    "original-reason": r"preserve the original rejection reason",
+    "rejection-no-fallback": r"Never fall back",
+    "rejection-correction-resume": r"rejection.{0,180}(?:correct|enable|configur).{0,180}(?:exact|requested).{0,180}(?:resume|retry)|(?:correct|enable|configur).{0,180}(?:exact|requested).{0,180}(?:resume|retry)",
+    "provider-enable-hint": r"provider.{0,160}(?:enable|configur).{0,160}(?:exact|requested).{0,100}(?:model|provider)",
+}.items():
+    if not re.search(pattern, validation, re.I | re.S):
         print(f"routing:codex-{name}-missing")
 schema = section(routing, "Config schema")
 if '"codex_reviewer_model"' not in schema:

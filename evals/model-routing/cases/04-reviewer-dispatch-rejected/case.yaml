@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 04-reviewer-dispatch-rejected
+description: "Reviewer: exact model dispatch is rejected"
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill
