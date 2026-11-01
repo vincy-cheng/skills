@@ -803,6 +803,8 @@ for name, pattern in {
     "dispatch-rejection": r"dispatch itself rejects",
     "original-reason": r"preserve the original rejection reason",
     "rejection-no-fallback": r"Never fall back",
+    "rejection-correction-resume": r"rejection.{0,180}(?:correct|enable|configur).{0,180}(?:exact|requested).{0,180}(?:resume|retry)|(?:correct|enable|configur).{0,180}(?:exact|requested).{0,180}(?:resume|retry)",
+    "provider-enable-hint": r"provider.{0,160}(?:enable|configur).{0,160}(?:exact|requested).{0,100}(?:model|provider)",
 }.items():
     if not re.search(pattern, validation, re.I | re.S):
         print(f"routing:codex-{name}-missing")
