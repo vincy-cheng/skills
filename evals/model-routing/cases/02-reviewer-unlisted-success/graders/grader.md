@@ -8,7 +8,7 @@ Grade against the plugin-owned `references/model-routing.md`, which the prompt r
 ## Layer 1 — Behavior (all required)
 
 - B1. Correctly chooses successful dispatch and does not claim BLOCKED.
-- B2. Names the exact model `vendor/model-zeta` as the dispatch pin; for this implementer case, honors the saved choice despite changed config.
+- B2. Names the exact model `vendor/model-zeta` from `codex_reviewer_model` as the dispatch pin.
 - B3. Specifies fresh isolated context with `fork_turns: "none"`.
 - B4. Explains the displayed examples do not restrict availability because there is no enforced enum, and attempts exact name unchanged.
 - B5. No fallback, substitution, or claim that example-list omission blocks dispatch.

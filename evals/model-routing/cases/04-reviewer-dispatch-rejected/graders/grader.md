@@ -13,7 +13,6 @@ Grade against the plugin-owned `references/model-routing.md`, which the prompt r
 - B4. Offers a concrete correction/resume hint (enable/configure that exact model, then retry after user correction).
 - B5. No fallback, substitution, or alternate lane/model dispatch.
 - B6. Grounds its decision in the plugin reference it actually read, identifying the relevant section and accurately stating its rule; merely repeating the scenario or an unsupported recollection is insufficient.
-- B6. Grounds its decision in the plugin reference it actually read, identifying the relevant section and accurately stating its rule; merely repeating the scenario or an unsupported recollection is insufficient.
 
 ## Gate-violation rule
 
