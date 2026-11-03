@@ -11,7 +11,15 @@ A pre-PR judgment review gate: does the branch do what the spec said, is anythin
 
 ## Gate (dev-flow, step 7)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `test`. Don't advance the status here — step 7 in the orchestrator sets `review`. Wrong status → stop, tell the user which step to run. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `test`. Don't advance the status here — step 7 in the orchestrator sets `review`. Wrong status → stop, tell the user which step to run. The only exception is an explicit Step 10 `pr-review` validation delegation from `new-feature`; it does not change Goal status or permit ordinary review dispatch. No state file (standalone) → see *Standalone mode*.
+
+## Post-PR validation (explicit Step 10 delegation only)
+
+When Step 10 explicitly delegates `pr-review` validation, inspect the current PR and saved evidence before dispatch. A prior review is reusable only when its report exists, its R5 outcome is clear to proceed (including any yellow finding's recorded handling), and its repository, head SHA, base ref, and base SHA exactly match the current PR. Any focused review required by the recorded risk tier must also have a clear verdict and report for those same version values, or a recorded user waiver. If all required evidence matches, reuse the review without repeating it. For test evidence, Step 10 requires an existing report, a green verdict, and exact repository/head/base matches; missing or stale test evidence is handled by Step 10's delegated test subflow, which records its result and returns to the test gate on failure. These evidence checks never advance or rewrite Goal status.
+
+For a changed head, incremental review is allowed only when the prior review report exists with a green or blue verdict, the repository matches, the base ref and base SHA are unchanged, and `git merge-base --is-ancestor <reviewed-head> <current-head>` succeeds. Review `<reviewed-head>..<current-head>` plus the previous report and any affected callers or other related changes, including doc-fix commits. Archive the old report before writing the new report and record the prior report path. A failed ancestry check, missing or invalid report/verdict, changed repository, changed base ref/SHA, or unavailable evidence requires a full review of the current PR diff; do not infer approval for new scope from a full review.
+
+For either scope, rerun the existing escalation-only risk recheck against the newly reviewed changes. Any newly triggered high-risk category requires the existing fresh focused reviewer after the main reviewer clears green/blue; record the focused report or user waiver under the normal verdict contract. If the spec/design no longer covers the changed scope, stop and get the user's design confirmation before the required full review. A full review alone never approves a design change.
 
 ## Before starting
 

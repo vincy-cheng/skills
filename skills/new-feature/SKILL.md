@@ -213,7 +213,7 @@ This is the gate that makes the PR worth a human's review — it does not replac
 **Gate:** `doc-fix` → set `pr-review`. Invoke `dev-flow:open-pr`. It pushes, opens the PR targeting the state file's Target branch with `gh pr create`, links the issue, syncs the issue body (acceptance-criteria checkboxes + `PR: #NN` reference), and records the PR number in the state file's References. Step 10 is manual — the skill never merges.
 
 ## Step 10 — Merge (manual)
-**Gate:** `pr-review` → set `merged`. Do not merge. Tell the user the PR is ready for their manual review and merge. On their confirmation, record the merged state and advance to step 11 (close-out). `merged` is the intermediate — a crash here lands back on `merged` and re-runs step 11.
+**Gate:** `pr-review` → set `merged`. Before presenting the manual merge gate, explicitly delegate the `pr-review` validation subflow to `dev-flow:review`; this is the only post-PR invocation allowed to bypass that skill's ordinary step-7 `test` status gate. It validates current PR head/base applicability of the saved test and review evidence, then runs or reuses the required checks. Do not merge. Tell the user the PR is ready for their manual review and merge only after the validation subflow passes. On their confirmation, record the merged state and advance to step 11 (close-out). `merged` is the intermediate — a crash here lands back on `merged` and re-runs step 11.
 
 ## Step 11 — Close-out
 **Gate:** `merged` → set `done`. The work is shipped and the doc-fix already happened in step 8; step 11 is **close-out only** — no doc edits here **except the roadmap refresh** (below).

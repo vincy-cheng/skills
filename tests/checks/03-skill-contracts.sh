@@ -269,6 +269,39 @@ PY
 )
 if [ -z "$evidence_errs" ]; then ok "test and review reports carry version-bound evidence"; else bad "verification evidence contract missing:$evidence_errs"; fi
 
+# post-PR review reuses matching evidence, incrementally reviews trusted descendants,
+# and falls back to a full review whenever ancestry or base evidence is stale.
+incremental_review_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+review = Path("skills/review/SKILL.md").read_text()
+
+if not re.search(r"Step 10.{0,240}(?:explicitly delegate|delegate).{0,160}pr-review", new_feature, re.I | re.S):
+    print("new-feature:step-10-does-not-delegate-post-pr-review")
+if not re.search(r"repository, head SHA, base ref, and base SHA.{0,120}exactly match.{0,300}reuse", review, re.I | re.S):
+    print("review:no-same-version-review-reuse")
+if not re.search(r"R5 outcome.{0,120}clear to proceed", review, re.I | re.S):
+    print("review:reuse-does-not-require-cleared-r5-outcome")
+if not re.search(r"focused review.{0,160}(?:same version|version values).{0,100}waiver", review, re.I | re.S):
+    print("review:reuse-ignores-required-focused-review-or-waiver")
+if not re.search(r"git merge-base --is-ancestor", review):
+    print("review:no-ancestor-proof-for-incremental-review")
+if not re.search(r"base ref.{0,120}base SHA.{0,160}(?:match|unchanged|same)", review, re.I | re.S):
+    print("review:no-base-version-check-for-incremental-review")
+if not re.search(r"(?:incremental|full).{0,160}(?:report|verdict).{0,160}(?:valid|missing|fallback|complete)", review, re.I | re.S):
+    print("review:no-report-validity-or-full-review-fallback")
+if not re.search(r"<reviewed-head>\.\.\.?<current-head>|<reviewed-head>\.\.<current-head>", review):
+    print("review:no-incremental-diff-range")
+if not re.search(r"escalation-only risk recheck.{0,240}newly triggered high-risk category.{0,200}focused reviewer", review, re.I | re.S):
+    print("review:no-risk-escalation-on-incremental-review")
+if not re.search(r"design.{0,100}(?:confirm|approval).{0,120}full review|full review.{0,120}design.{0,100}(?:confirm|approval)", review, re.I | re.S):
+    print("review:design-change-can-be-approved-by-full-review")
+PY
+)
+if [ -z "$incremental_review_errs" ]; then ok "post-PR review reuses matching evidence and fails closed to full review"; else bad "incremental review contract missing:$incremental_review_errs"; fi
+
 # gate25: model routing — lanes doc, dispatch-skill pointers, combined ask, sandbox/errors
 gate25_errs=$(python3 -B - <<'PY'
 import re
