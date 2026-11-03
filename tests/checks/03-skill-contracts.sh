@@ -347,6 +347,46 @@ PY
 )
 if [ -z "$step10_errs" ]; then ok "Step 10 checks remote PR status and required checks before manual merge"; else bad "Step 10 PR check contract missing:$step10_errs"; fi
 
+# Post-PR repair loops reuse the same PR and preserve the run's saved context.
+repair_loop_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+open_pr = Path("skills/open-pr/SKILL.md").read_text()
+execute = Path("skills/execute-tasks/SKILL.md").read_text()
+doc_fix = Path("skills/doc-fix/SKILL.md").read_text()
+resume = re.search(r"^## Resume\b(.*?)(?=^## Preflight\b)", new_feature, re.M | re.S)
+step9 = re.search(r"^## Step 9\b(.*?)(?=^## Step 10\b)", new_feature, re.M | re.S)
+resume_body = resume.group(1) if resume else ""
+step9_body = step9.group(1) if step9 else ""
+
+if not re.search(r"`pr-review`.{0,180}(?:existing|recorded).{0,120}PR", resume_body, re.I | re.S):
+    print("resume:pr-review-does-not-inspect-existing-pr")
+if not re.search(r"identity is missing.{0,120}(?:locate|find).{0,120}verify the existing PR", resume_body, re.I | re.S):
+    print("resume:missing-pr-identity-does-not-find-existing-pr")
+if not re.search(r"rewind to `execute` by updating Goal status.{0,180}index row.{0,160}Updated.{0,100}Status since", new_feature, re.I | re.S) or not re.search(r"Preserve the saved Roles block and existing Tasks", new_feature):
+    print("repair:rewind-does-not-preserve-run-context-and-mirrors")
+if not re.search(r"existing recorded PR.{0,180}update that same PR.{0,180}do not create another issue or PR", step9_body, re.I | re.S):
+    print("step9:existing-pr-may-be-duplicated")
+if not re.search(r"orchestrator's verified `pr-review` entry context", open_pr, re.I) or not re.search(r"orchestrator alone writes `pr-review`", open_pr, re.I):
+    print("open-pr:orchestrator-status-context-not-defined")
+if not re.search(r"invoked directly with `doc-fix`.{0,180}return to `/new-feature`.{0,180}do not publish", open_pr, re.I | re.S):
+    print("open-pr:direct-call-can-publish-before-status-transition")
+if not re.search(r"doc-fix.{0,160}(?:commit|new head).{0,220}(?:evidence|test).{0,220}Step 10", doc_fix, re.I | re.S):
+    print("doc-fix:commit-does-not-invalidate-evidence")
+if not re.search(r"execute.{0,100}re-entry", execute, re.I):
+    print("execute:repair-reentry-not-supported")
+if not re.search(r"unpushed local head remains recorded but cannot pass the remote PR", new_feature, re.I | re.S):
+    print("step10:unpushed-local-fix-not-kept-pending")
+if not re.search(r"Invoke it, then run Step 10 automatically", step9_body):
+    print("step9:does-not-enter-step10-automatically")
+if not re.search(r"same PR version and same reason.{0,180}without a new change.{0,180}stop retrying", new_feature, re.I | re.S):
+    print("step10:no-progress-loop-does-not-stop")
+PY
+)
+if [ -z "$repair_loop_errs" ]; then ok "Post-PR repair loops retain PR identity and version evidence"; else bad "Post-PR repair-loop contract missing:$repair_loop_errs"; fi
+
 # gate25: model routing — lanes doc, dispatch-skill pointers, combined ask, sandbox/errors
 gate25_errs=$(python3 -B - <<'PY'
 import re

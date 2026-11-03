@@ -1,15 +1,15 @@
 ---
 name: open-pr
-description: Use to open a pull request for a feat or fix branch — dev-flow step 9 (after doc-fix, before the manual merge). Pushes, drafts the PR body (issue link, spec/plan summary, closing keyword), shows it for confirmation, opens with `gh pr create` targeting the state file's Target branch (`dev` by default), links the issue via `Closes #N`, syncs the issue body (flips satisfied acceptance-criteria checkboxes, adds `PR: #NN` to References), and records the PR number in the state file. Also runs standalone for any branch ("open a PR for this branch", "create the PR"). Never merges — step 10 is manual. No AI attribution in the PR body.
+description: Use to open a pull request for a feat or fix branch — dev-flow step 9 after doc-fix. For a new PR, drafts the body and asks for confirmation before opening; for a repair loop, updates the recorded PR and issue instead of creating duplicates. Records PR identity and hands back for Step 10. Also runs standalone for any branch ("open a PR for this branch", "create the PR"). Never merges. No AI attribution in the PR body.
 ---
 
 # Open PR
 
-Step 9 of dev-flow. The branch's work is done, tested (step 6), reviewed (step 7), and doc-fixed (step 8) — this skill ships it as a reviewable PR. It never merges — step 10 is the human's manual merge.
+Step 9 of dev-flow. The branch's work is tested (step 6), reviewed (step 7), and doc-fixed (step 8) — this skill opens or updates its reviewable PR. It never merges.
 
 ## Gate (dev-flow, step 9)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `doc-fix`. **The orchestrator sets `pr-review`** — the skill checks the incoming status; the orchestrator writes the advance. Wrong status → stop, tell the user which step to run. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow, require the orchestrator's verified `pr-review` entry context before any PR publication. If invoked directly with `doc-fix`, return to `/new-feature` for the orchestrator to verify the incoming status, write `pr-review` and its mirrors, then reinvoke this skill with that verified context; do not publish in the first invocation. The orchestrator alone writes `pr-review`; do not expect `doc-fix` again or write the status a second time. Any other or unverified status → stop and report the required step. No state file (standalone) → see *Standalone mode*.
 
 ## What you need
 
@@ -18,7 +18,13 @@ If running inside dev-flow (state file at `docs/features/.feature-states/<feat-n
 - The **issue number** — from the state file's References.
 - The state file's **References** — spec/plan paths are local-only (`docs/features/` is gitignored); their substance is summarized into the PR body, never linked.
 
-## Draft the PR body
+For an existing PR, use its recorded number/URL and verify repository, source branch, and target branch. If identity is missing, locate and verify a matching existing PR before any update. Do not guess or open a replacement.
+
+## Existing PR repair loop
+
+Show the proposed update and wait for confirmation, preserving the PR number, URL, and issue link. Then push the authorized local branch update so the existing PR updates; never call `gh pr create` or create another issue. An ambiguous or absent match → stop and ask; do not create a replacement during resume.
+
+## Draft the PR body (new PR only)
 
 Mine the issue body and the branch's commit messages — the PR body summarizes what and why, translating the issue's structure, not re-deriving it:
 
@@ -42,10 +48,10 @@ Closes #11
 
 ## Show, confirm, open
 
-Show the user the drafted title + body. On confirmation:
+For a new PR, show the user the drafted title + body and wait for confirmation. The `gh pr create` command is new-PR-only. For an existing PR, use the confirmed update from *Existing PR repair loop* and skip this create flow. The commit guard applies before either push.
 
 1. **Commit guard first** — `git status --porcelain docs/features/` must be empty. Not empty → stop and fix before pushing.
-2. Push and open:
+2. For a new PR, push and open:
 
 ```bash
 git push -u origin HEAD
@@ -55,7 +61,7 @@ EOF
 )"
 ```
 
-`<target-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`; standalone mode: confirmed with the user). Capture the PR URL and number.
+`<target-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`; standalone mode: confirmed with the user). Capture the PR URL and number. For an existing PR, push the confirmed update to the same source branch and verify its PR URL and number remain unchanged. Push only when authorized by the target repository's instructions and applicable user authorization; otherwise stop before pushing, preserve local work, and leave the run pending at `pr-review` for the user's push.
 
 ## Link the issue (sidebar)
 
@@ -74,7 +80,7 @@ This is the durable text record inside the issue; it complements (not duplicates
 
 ## Record and hand back
 
-Record `PR: #NN` in the state file's **References** (replace `_(pending)_`); bump **Updated**; hand back to `/new-feature` for step 10 (manual merge — the user merges, this skill never does).
+Record or confirm the same `PR: #NN` in the state file's **References**; bump **Updated** and the index row; hand back to `/new-feature` to run Step 10. In an orchestrated repair loop, `pr-review` remains current; do not change **Status since** unless the orchestrator changed status.
 
 ## Standalone mode (outside dev-flow)
 
