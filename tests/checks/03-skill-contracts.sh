@@ -224,6 +224,51 @@ else:
 PY
 )
 if [ -z "$gate24_errs" ]; then ok "risk-tiered review structurally present (plan Risk line + step-7 recheck + focused reviewer)"; else bad "risk-tier concept missing:$gate24_errs"; fi
+
+# post-PR review evidence contract: test and review reports are tied to the
+# exact repository head and base they checked, and dirty/legacy evidence fails closed.
+evidence_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+test_skill = Path("skills/test/SKILL.md").read_text()
+review_skill = Path("skills/review/SKILL.md").read_text()
+
+required_fields = ("Repository", "Head SHA", "Base ref", "Base SHA", "Report path", "Verdict", "Time")
+state_section = new_feature.split("### Per-feature state file", 1)[-1].split("### Index file", 1)[0]
+if "## Verification evidence" not in state_section:
+    print("state:no-verification-evidence-section")
+else:
+    for field in ("Test evidence", "Review evidence"):
+        if field not in state_section:
+            print(f"state:missing-{field.lower().replace(' ', '-')}")
+    if not all(field in state_section for field in required_fields):
+        print("state:missing-version-evidence-fields")
+    if not re.search(r"uncommitted path.{0,100}proven irrelevant", state_section, re.I | re.S):
+        print("state:no-irrelevant-dirty-path-exception")
+    if not re.search(r"uncommitted path may affect.{0,100}stop", state_section, re.I | re.S):
+        print("state:no-relevant-dirty-path-stop")
+    if not re.search(r"report completion.{0,100}recheck", state_section, re.I | re.S):
+        print("state:no-completion-recheck")
+    if not re.search(r"old state.{0,100}(missing|absent)|(?:missing|absent).{0,100}old state", state_section, re.I | re.S):
+        print("state:no-legacy-evidence-rule")
+
+for label, text in (("test", test_skill), ("review", review_skill)):
+    if not all(field in text for field in ("Repository", "Head SHA", "Base ref", "Base SHA")):
+        print(f"{label}:report-missing-head-base-evidence")
+    if not re.search(r"uncommitted path may affect.{0,100}stop", text, re.I | re.S):
+        print(f"{label}:no-relevant-dirty-path-stop")
+    if not re.search(r"uncommitted path.{0,100}proven irrelevant", text, re.I | re.S):
+        print(f"{label}:no-irrelevant-dirty-path-exception")
+    if not re.search(r"report completion.{0,100}recheck", text, re.I | re.S):
+        print(f"{label}:no-completion-recheck")
+    if not re.search(r"evidence.{0,120}(report|path)|(report|path).{0,120}evidence", text, re.I | re.S):
+        print(f"{label}:evidence-not-linked-to-report")
+PY
+)
+if [ -z "$evidence_errs" ]; then ok "test and review reports carry version-bound evidence"; else bad "verification evidence contract missing:$evidence_errs"; fi
+
 # gate25: model routing — lanes doc, dispatch-skill pointers, combined ask, sandbox/errors
 gate25_errs=$(python3 -B - <<'PY'
 import re
