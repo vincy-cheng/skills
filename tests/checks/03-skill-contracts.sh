@@ -278,7 +278,8 @@ from pathlib import Path
 new_feature = Path("skills/new-feature/SKILL.md").read_text()
 review = Path("skills/review/SKILL.md").read_text()
 
-if not re.search(r"Step 10.{0,240}(?:explicitly delegate|delegate).{0,160}pr-review", new_feature, re.I | re.S):
+step10_section = re.search(r"^## Step 10\b(.*?)(?=^## Step 11\b)", new_feature, re.M | re.S)
+if not step10_section or not re.search(r"delegate.{0,240}pr-review.{0,80}validation subflow", step10_section.group(1), re.I | re.S):
     print("new-feature:step-10-does-not-delegate-post-pr-review")
 if not re.search(r"repository, head SHA, base ref, and base SHA.{0,120}exactly match.{0,300}reuse", review, re.I | re.S):
     print("review:no-same-version-review-reuse")
@@ -301,6 +302,50 @@ if not re.search(r"design.{0,100}(?:confirm|approval).{0,120}full review|full re
 PY
 )
 if [ -z "$incremental_review_errs" ]; then ok "post-PR review reuses matching evidence and fails closed to full review"; else bad "incremental review contract missing:$incremental_review_errs"; fi
+
+# Step 10 checks the remote PR and its required checks before the manual merge gate.
+step10_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+test_skill = Path("skills/test/SKILL.md").read_text()
+step10 = re.search(r"^## Step 10\b(.*?)(?=^## Step 11\b)", new_feature, re.M | re.S)
+body = step10.group(1) if step10 else ""
+
+for pattern, label in (
+    (r"`pr-review`", "step10:no-pr-review-status"),
+    (r"gh pr view", "step10:no-remote-pr-view"),
+    (r"gh pr checks", "step10:no-required-check-query"),
+    (r"300 seconds|five minutes|5 minutes", "step10:no-ci-timeout"),
+    (r"unknown.{0,80}(?:pending|pass)|(?:pending|pass).{0,80}unknown", "step10:unknown-checks-not-fail-closed"),
+    (r"closed.{0,80}unmerged", "step10:no-closed-unmerged-outcome"),
+    (r"merged.{0,100}(?:remote|PR).{0,100}confirm|(?:remote|PR).{0,100}confirm.{0,100}merged", "step10:no-remote-merge-confirmation"),
+):
+    if not re.search(pattern, body, re.I | re.S):
+        print(label)
+
+if not re.search(r"PR check", body):
+    print("step10:no-pr-check-record")
+if not all(result in body for result in ("passed", "pending", "needs-fix")):
+    print("step10:missing-distinct-results")
+if not re.search(r"immediately record `merged`.{0,180}without readiness checks or old evidence", body, re.I | re.S):
+    print("step10:no-early-merged-routing")
+if not re.search(r"CLOSED.{0,180}keep `pr-review`", body, re.I | re.S):
+    print("step10:no-early-closed-unmerged-routing")
+if not re.search(r"Before any delegated test or review.{0,180}equal the captured PR tuple.{0,160}do not dispatch", body, re.I | re.S):
+    print("step10:no-matching-checkout-dispatch-gate")
+if not re.search(r"unknown mergeability", body, re.I):
+    print("step10:unknown-mergeability-not-pending")
+if not re.search(r"\| 10 PR check / merge \| `pr-review` \| `pr-review` while open or unresolved; `merged` only after remote merge confirmation \|", new_feature):
+    print("new-feature:step10-gate-table-sets-merged-too-early")
+if not re.search(r"300 seconds|five minutes|5 minutes", test_skill, re.I):
+    print("test:no-step10-time-bounded-validation")
+if not re.search(r"pr-review.{0,240}(?:return|back).{0,100}Step 10|Step 10.{0,240}(?:return|back).{0,100}pr-review", test_skill, re.I | re.S):
+    print("test:no-step10-validation-return")
+PY
+)
+if [ -z "$step10_errs" ]; then ok "Step 10 checks remote PR status and required checks before manual merge"; else bad "Step 10 PR check contract missing:$step10_errs"; fi
 
 # gate25: model routing — lanes doc, dispatch-skill pointers, combined ask, sandbox/errors
 gate25_errs=$(python3 -B - <<'PY'
