@@ -63,7 +63,7 @@ Claude Code ignores both keys and continues to route implementation and reviewer
 | Plan | 1–4 | Brainstorm, approve a spec, plan, create a GitHub issue |
 | Build | 5 | Execute the plan with TDD and per-task commits |
 | Verify | 6–8 | Test, review, and fix documentation drift |
-| Ship | 9–11 | Open a pull request, merge it manually, close out the run |
+| Ship | 9–11 | Open or update a pull request, check readiness, wait for the user's manual merge, close out the run |
 
 The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies.
 
@@ -83,8 +83,11 @@ flowchart TD
     choice -- no, note in PR --> docfix
     docfix -- stop --> execute
     docfix --> pr[9 open PR]
-    pr --> merge[10 manual merge]
-    merge --> closeout[11 close-out]
+    pr --> check[10 PR readiness check]
+    check -->|pending: resolve unknown or wait, then recheck| check
+    check -->|needs-fix: repair| execute
+    check -->|passed| manual[User reviews and merges manually]
+    manual -->|remote MERGED confirmed| closeout[11 close-out]
 ```
 
 For requests spanning independent subsystems, step 1 can create an overview spec that records the sub-projects, order, dependencies, and deferred work. Each sub-project gets its own `/new-feature` run. Close-out updates the overview and prints the next run's command.
@@ -101,7 +104,8 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
 | `doc-fix` | 8 | Find and fix documentation drift caused by the run |
-| `open-pr` | 9 | Open a pull request targeting the state file's Target branch and sync the issue; never merges |
+| `open-pr` | 9 | Open or update the recorded pull request and sync the issue; never merges |
+| `new-feature` | 10 | Check remote PR state and readiness against matching test/review evidence; report readiness and wait for the user's manual merge |
 
 These skills can also run on their own. The test skill uses each target repository's test and lint commands; this repository's suite is `bash tests/check.sh` and it has no linter.
 
@@ -150,7 +154,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 | 7 | review | `dev-flow:review` |
 | 8 | doc-fix | `dev-flow:doc-fix` |
 | 9 | pr-review | `dev-flow:open-pr` |
-| 10 | merged | (manual merge, confirmed) |
+| 10 | pr-review → merged | Check readiness at `pr-review`; set `merged` only after remote merge confirmation |
 | 11 | done | close-out via `/new-feature` |
 
 **Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).

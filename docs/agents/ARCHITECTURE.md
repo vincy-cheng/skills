@@ -16,7 +16,7 @@ Single-plugin repo: the repo root **is** the plugin root (official plugin-struct
 
 ## The pipeline
 
-`/new-feature` (the command, a thin wrapper) and `$dev-flow:new-feature` (the skill) both land on `skills/new-feature/SKILL.md` — the single source — which orchestrates 11 steps in 4 phases: plan (1 brainstorm → 2 spec → 3 plan → 4 create issue), build (5 execute TDD), verify (6 test → 7 review → 8 doc-fix), ship (9 PR → 10 merge manual → 11 close-out). It uses the status lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `test` → `review` → `doc-fix` → `pr-review` → `merged` → `done`.
+`/new-feature` (the command, a thin wrapper) and `$dev-flow:new-feature` (the skill) both land on `skills/new-feature/SKILL.md` — the single source — which orchestrates 11 steps in 4 phases: plan (1 brainstorm → 2 spec → 3 plan → 4 create issue), build (5 execute TDD), verify (6 test → 7 review → 8 doc-fix), ship (9 open/update PR → 10 check readiness and wait for manual merge → 11 close-out). Step 10 validates the open PR against required checks and test/review evidence bound to the exact repository, head SHA, base ref, and base SHA. A readiness result is `passed`, `pending`, or `needs-fix`; it is separate from Goal status. The workflow never merges and advances to `merged` only after remote confirmation. It uses the status lifecycle: `brainstorm` → `spec` → `planning` → `issue` → `execute` → `test` → `review` → `doc-fix` → `pr-review` → `merged` → `done`.
 
 ## The hard gate (backbone)
 
@@ -25,7 +25,7 @@ Each step reads the state file's **Goal status** on entry, refuses to run unless
 ## State files (source of truth)
 
 `docs/features/.feature-states/` (gitignored, never committed):
-- `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Status since (timing source for session-help), Base/Target branch, Goal status, Kind, Last verification, Risk tier, Focused verdict, optional `Codex implementer model`, a `## Roles` block (Implementer/Tester/Reviewer lanes — the step-5 combined ask writes them; sub-skill entry read-gates stop when missing), Tasks, References.
+- `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Status since (timing source for session-help), Base/Target branch, Goal status, Kind, Last verification, version-bound `## Verification evidence` (test and review reports with repository/head/base identity and verdict), `## PR check` (PR identity, matching head/base, result, reason, report), Risk tier, Focused verdict, optional `Codex implementer model`, a `## Roles` block (Implementer/Tester/Reviewer lanes — the step-5 combined ask writes them; sub-skill entry read-gates stop when missing), Tasks, References.
 - `.state.md` — index (dot-prefixed, sorts to top): `Feat-name | Kind | Status | Issue | Updated | Branch`, newest first; top non-`done` row is the current run; `Issue` is `—` until step 4, then `#NN`.
 
 Resume: read the index, jump to the step matching Goal status. Only `done` is finished; `merged` still has close-out pending.
