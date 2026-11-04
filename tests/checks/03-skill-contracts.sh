@@ -289,6 +289,13 @@ if not re.search(r"focused review.{0,160}(?:same version|version values).{0,100}
     print("review:reuse-ignores-required-focused-review-or-waiver")
 if not re.search(r"git merge-base --is-ancestor", review):
     print("review:no-ancestor-proof-for-incremental-review")
+incremental_eligibility = re.search(r"For a changed head, incremental review is allowed only when(.*?)(?=\n\n)", review, re.S)
+if not incremental_eligibility or not re.search(r"R5.{0,120}clear|clear.{0,120}R5", incremental_eligibility.group(1), re.I | re.S):
+    print("review:incremental-baseline-does-not-require-cleared-r5")
+if not incremental_eligibility or not re.search(r"focused review.{0,160}(?:clear|waiver).{0,100}(?:report|same version|version values)|focused report.{0,160}(?:clear|waiver)", incremental_eligibility.group(1), re.I | re.S):
+    print("review:incremental-baseline-does-not-require-focused-evidence")
+if not re.search(r"eligibility fails.{0,120}risk recheck.{0,120}full diff", review, re.I | re.S):
+    print("review:full-review-fallback-does-not-recheck-full-diff-risk")
 if not re.search(r"base ref.{0,120}base SHA.{0,160}(?:match|unchanged|same)", review, re.I | re.S):
     print("review:no-base-version-check-for-incremental-review")
 if not re.search(r"(?:incremental|full).{0,160}(?:report|verdict).{0,160}(?:valid|missing|fallback|complete)", review, re.I | re.S):
