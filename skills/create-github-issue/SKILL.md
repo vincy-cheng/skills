@@ -86,12 +86,14 @@ Step 9's PR is on the default branch → the state file's **Target branch** → 
 
 If accepted:
 ```bash
-git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git checkout -b feat/NN-<name>
+git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git switch --no-track -c feat/NN-<name>
 # or, for a fix:
-git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git checkout -b fix/NN-<name>
+git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git switch --no-track -c fix/NN-<name>
 ```
 
 `<dev-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`). `pull --ff-only` keeps it current. If rejected (the local branch diverged), surface it — don't force. Don't commit anything; the branch is just scaffolding for step 5.
+
+Immediately afterward, verify the branch: `git branch --show-current` must return the feature name, and `git rev-parse --abbrev-ref '@{upstream}'` must not return `<dev-branch>`. A branch with no upstream is normal for this new branch. If the branch or upstream is wrong, stop and report the actual values; don't push or silently rewrite tracking.
 
 ## State file (dev-flow only)
 
