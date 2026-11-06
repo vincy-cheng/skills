@@ -158,6 +158,8 @@ Then **run the gate check**: read that feat's state file, jump to the step match
 
 Only `done` is "finished" — `merged` still has close-out pending. Treat `done` rows as history; resume any non-`done` row.
 
+**Resume restrictions:** read the applicable user and repository restrictions when action is actually required. They apply to scripts, CLIs, and APIs as well; never route a prohibited `git push`, remote-branch change, or issue action through another tool. If the resumed step is normally interactive or publishes state, state what can safely proceed and what remains blocked.
+
 ## Preflight — `docs/features/` is gitignored
 
 Run before step 1, every invocation. The folder holds local-only artifacts and must never reach the remote.
@@ -229,6 +231,8 @@ If required checks are pending, re-query at intervals no longer than 60 seconds,
 
 Only after a passed check, tell the user the open PR is ready for their manual review and merge. Never merge. The initial remote-state read handles already merged and closed-unmerged PRs before any readiness check. At the end of an open-PR check, reread remote state; only a confirmed `MERGED` result advances to `merged`. If state remains open, wait for manual merge at `pr-review`. If it becomes closed-unmerged, keep `pr-review` with `pending` and require user handling. If remote state or mergeability cannot be read, do not accept a user statement alone as merge confirmation. `merged` is the intermediate — a crash here lands back on `merged` and re-runs step 11 (close-out).
 
+Issue closing follows the user's intended closure path. If the user requires closure through PR merge, preserve `Closes #N`; never directly close the issue as a substitute. Preserve the keyword even though a Target branch that is not the default branch means the merge may not auto-close the issue; after remote merge, say so and give the user the manual action if restrictions permit.
+
 ## Step 11 — Close-out
 **Gate:** `merged` → set `done`. The work is shipped and the doc-fix already happened in step 8; step 11 is **close-out only** — no doc edits here **except the roadmap refresh** (below).
 
@@ -240,12 +244,13 @@ Rules:
 - **Show the user any proposed memory update before applying** — close-out is guided, not fire-and-forget.
 - **No memory update needed** → say so plainly and mark the run `done`. Don't invent edits to justify the step.
 - **Ask before deleting the branch** — after the merge, offer to clean up: check out the state file's Target branch first (you can't delete the branch you're on), then `git branch -d <branch>` locally (safe post-merge) and `git push origin --delete <branch>` for the remote. Only with the user's yes; a declined offer is a normal outcome, not a failure.
+- **Read close-out restrictions** — before any branch cleanup, remote issue action, or other remote modification, read the applicable user and repository restrictions. They bind scripts, CLIs, and APIs too. If remote branch deletion is prohibited, finish only the authorized close-out, hand off the exact command and context, and record it as pending for the user; don't ask again for the same prohibited operation or claim it happened.
 - **Never commit `docs/features/`** (preflight + commit guard keep it ignored).
 
 When done, the run is `done` — fully closed. The state file and index row stay as history.
 
 ## Notes
-- No `dev` branch (the configured dev branch — `.dev-flow/config.json`'s `dev_branch`, default `dev`) → ask the user: create it off the default branch (push it, then branch `feat/...`/`fix/...` off it), or run everything off the default branch. Don't silently pick.
+- No configured target branch → delegate to `dev-flow:create-github-issue`’s **Branches** missing-target procedure: read runtime restrictions before offering any creation or publication action, hand off prohibited operations without re-asking, and ask only among permitted branch choices. Don’t silently pick.
 - Keep the user in the loop at each checkpoint; this is guided, not fire-and-forget.
 - The state files are the source of truth for resuming — keep them honest. A stale state file is worse than none.
 - The hard gate is the backbone. If you're doing step N's work while the state file is at a different status, stop and fix the state file first.

@@ -20,6 +20,12 @@ If running inside dev-flow, require the orchestrator's verified `pr-review` entr
 
 For an existing PR, use its recorded number/URL and verify repository, source branch, and target branch. If identity is missing, locate and verify a matching existing PR before any update. Do not guess or open a replacement.
 
+**Read restrictions before publishing.** Read the target repository's instructions and the applicable user authorization, especially push/remote-modification restrictions. Those restrictions are runtime inputs — do not hardcode this guide's examples as a deny list. They also apply through scripts, CLIs, and APIs; don't relabel a prohibited publication and execute it elsewhere. If publication is prohibited, stop for that operation and build the handoff; do not ask again.
+
+**Verify branch identity.** Confirm the working branch is exactly the recorded feature branch. Then read its upstream with `git rev-parse --abbrev-ref '@{upstream}'`. No upstream is normal for a new local branch. If the upstream name or its target differs from the expected source branch, stop before publication.
+
+**Wrong upstream is a publication pause.** If the feature branch tracks the state file's Target branch (for example, `refs/remotes/origin/dev` when the target is `dev`), report the actual branch and upstream and the mis-push impact to `<dev>` (or the configured target): the feature commits would be pushed as target-branch history and push would update the wrong upstream. Preserve local commits; don't silently change tracking, unset the upstream, or push while the reader rechecks the configuration. Resume only after the branch/upstream relationship is corrected outside this publication action or the user explicitly accepts a separate safe path.
+
 ## Existing PR repair loop
 
 Show the proposed update and wait for confirmation, preserving the PR number, URL, and issue link. Then push the authorized local branch update so the existing PR updates; never call `gh pr create` or create another issue. An ambiguous or absent match → stop and ask; do not create a replacement during resume.
@@ -51,21 +57,21 @@ Closes #11
 For a new PR, show the user the drafted title + body and wait for confirmation. The `gh pr create` command is new-PR-only. For an existing PR, use the confirmed update from *Existing PR repair loop* and skip this create flow. The commit guard applies before either push.
 
 1. **Commit guard first** — `git status --porcelain docs/features/` must be empty. Not empty → stop and fix before pushing.
-2. For a new PR, push and open:
+2. For a new PR, push with an explicit refspec and open:
 
 ```bash
-git push -u origin HEAD
+git push origin HEAD:<current-branch>
 gh pr create --base <target-branch> --title "<title>" --body "$(cat <<'EOF'
 <body>
 EOF
 )"
 ```
 
-`<target-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`; standalone mode: confirmed with the user). Capture the PR URL and number. For an existing PR, push the confirmed update to the same source branch and verify its PR URL and number remain unchanged. Push only when authorized by the target repository's instructions and applicable user authorization; otherwise stop before pushing, preserve local work, and leave the run pending at `pr-review` for the user's push.
+`<target-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`; standalone mode: confirmed with the user). Capture the PR URL and number. For an existing PR, `git push origin HEAD:<current-branch>` sends the confirmed update to the same source branch and keeps its tracking unchanged; verify its PR URL and number remain unchanged. Push only when the restrictions read above authorize it; otherwise stop before pushing, preserve local work, record the run pending at `pr-review`, and hand off the PR title, PR body, verification results, and concrete manual steps. Never claim that a PR was opened, a push happened, or a merge completed when it did not.
 
 ## Link the issue (sidebar)
 
-A `Closes #N` keyword in the body creates the issue↔PR sidebar cross-reference the moment the PR opens — no extra API call. Because the PR targets the state file's Target branch (not the default branch), GitHub won't auto-close the issue on merge — if it should close on this merge, close it explicitly in step 10 or 11 (`gh issue close <N>`).
+A `Closes #N` keyword in the body creates the issue↔PR sidebar cross-reference the moment the PR opens — no extra API call. Because the PR targets the state file's Target branch (not necessarily the repository default branch), GitHub may not auto-close the issue when this PR merges. Keep the closing keyword for merge-driven closure; let the user choose the explicit close action in step 10 or 11 unless restrictions forbid it.
 
 ## Sync the issue body
 
@@ -84,7 +90,7 @@ Record or confirm the same `PR: #NN` in the state file's **References**; bump **
 
 ## Standalone mode (outside dev-flow)
 
-No state file → open a PR for the current branch against its base (ask which base if unclear). Still draft and show the body for confirmation first. No issue link or issue-body sync unless the user points to an issue.
+No state file → open a PR for the current branch against its base (ask which base if unclear). Still draft and show the body for confirmation first. No issue link or issue-body sync unless the user points to an issue. Run the restrictions and branch/upstream checks before publication here too; no-upstream is normal for a new local branch.
 
 ## What not to do
 
