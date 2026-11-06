@@ -250,7 +250,7 @@ Rules:
 When done, the run is `done` — fully closed. The state file and index row stay as history.
 
 ## Notes
-- No `dev` branch (the configured dev branch — `.dev-flow/config.json`'s `dev_branch`, default `dev`) → ask the user: create it off the default branch (push it, then branch `feat/...`/`fix/...` off it), or run everything off the default branch. Don't silently pick.
+- No configured target branch → delegate to `dev-flow:create-github-issue`’s **Branches** missing-target procedure: read runtime restrictions before offering any creation or publication action, hand off prohibited operations without re-asking, and ask only among permitted branch choices. Don’t silently pick.
 - Keep the user in the loop at each checkpoint; this is guided, not fire-and-forget.
 - The state files are the source of truth for resuming — keep them honest. A stale state file is worse than none.
 - The hard gate is the backbone. If you're doing step N's work while the state file is at a different status, stop and fix the state file first.
