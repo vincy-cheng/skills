@@ -5,6 +5,10 @@ description: Use when designing or exploring a feature or fix before building it
 
 # Brainstorming
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Turn an idea into a validated design and a written spec — through collaborative dialogue, never implementation.
 
 **Core principle:** No implementation action until your human partner approves the design.

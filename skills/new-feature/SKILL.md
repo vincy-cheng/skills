@@ -5,6 +5,10 @@ description: Start or resume a feature or fix through the complete dev-flow pipe
 
 # New feature or fix — full workflow
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 > **Single source of truth.** This file carries the full workflow — gate table, state-file template, resume rules, preflight, commit guard, and every step definition. Command surfaces (`commands/new-feature.md` and any host's equivalent entry point) are thin wrappers that delegate here; don't duplicate workflow content in a wrapper.
 
 Drive the feature or fix in the user's request through all steps, in order. Do not skip steps because the request seems simple. Treat the user's message as the input brief or resume selector.

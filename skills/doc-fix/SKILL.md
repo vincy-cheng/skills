@@ -5,6 +5,10 @@ description: Use to fix doc drift caused by the current run before opening its P
 
 # Doc-fix
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Pre-PR doc gate: the work is done and reviewed; before the PR opens, close the loop on docs the run itself may have invalidated. Find doc drift caused by *this* run — not a general audit.
 
 ## Gate (dev-flow, step 8)

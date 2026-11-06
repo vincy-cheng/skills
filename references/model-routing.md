@@ -2,6 +2,8 @@
 
 Single source of truth for dev-flow's model routing: lane semantics, config schema, availability checks, the thin-driver flow, the sandbox map, commit ownership, and the error contract. Every dispatching skill (`execute-tasks`, `test`, `review`, the plan skill's plan review pass, and the brainstorm viability red-team) points here and never re-derives lane semantics from its own text.
 
+Before composing any native or CLI dispatch brief, load `references/output-style.md` from the plugin root and include its actual contents in the brief. Isolated reviewers and drivers must receive the reference directly; they cannot rely on parent context. Preserve each role's existing report contract and required evidence.
+
 Roles: **implementer** (execute-tasks step 5, one per task), **tester** (test step 6), **reviewer** (brainstorm red-team, plan review, and step-7 main and focused review). Select the host before interpreting routing settings: Codex reviewers follow **Codex reviewer model** (`codex_reviewer_model`) and Codex native implementation follows **Codex implementer model** (`codex_implementer_model`) below; Claude Code uses the lanes below. Tester routing is unchanged.
 
 ## Lanes

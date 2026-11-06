@@ -5,6 +5,10 @@ description: Use to open a pull request for a feat or fix branch — dev-flow st
 
 # Open PR
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Step 9 of dev-flow. The branch's work is tested (step 6), reviewed (step 7), and doc-fixed (step 8) — this skill opens or updates its reviewable PR. It never merges.
 
 ## Gate (dev-flow, step 9)

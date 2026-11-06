@@ -5,6 +5,10 @@ description: "Use to summarize what's new in a repo — recent shipped work AND 
 
 # What's new
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Answer "what's new in this repo?" as a compact summary. Two sources, one output:
 
 1. **History** — what *happened*: git log + merged PRs + closed issues in a window.

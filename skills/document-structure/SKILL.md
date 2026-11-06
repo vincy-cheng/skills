@@ -5,6 +5,10 @@ description: Use to generate or update a repo's agent-facing docs — a layered 
 
 # Agent docs
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Generate and maintain this repo's **agent-facing documentation**: a layered tree under `docs/agents/` built for progressive disclosure — an agent loads the tiny index first, a mid-level map only when working in that area, deep detail only when truly needed. The docs are written for AI coding agents; humans read the README, but keep the prose human-legible for free (plain sentences, no cryptic shorthand).
 
 The skill is **stateless** — the docs themselves are the state. No state file, no gate, no step sequence.

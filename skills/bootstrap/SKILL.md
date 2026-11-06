@@ -5,6 +5,10 @@ description: Use to prepare a repo for dev-flow in one pass — gitignore for th
 
 # Bootstrap
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Prepare the **current** repo for dev-flow use in one invocation. Five components, run in order, each independently idempotent: report **already ready / partial / missing** per component, act only on confirmation. **Never silently overwrite** — every mutation is presented before being applied.
 
 Bootstrap is **standalone** — not a dev-flow step, never gated by the state file. Re-invocation is a green no-op ("already initialized") per component; the skill doubles as a health check. **Bootstrap never commits** — every change is left uncommitted in the working tree and reported in the closing checklist; the user reviews and commits.
