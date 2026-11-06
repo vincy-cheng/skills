@@ -80,7 +80,9 @@ EOF
 
 ## Branches
 
-Step 9's PR is on the default branch → the state file's **Target branch** → `feat/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off the state file's **Target branch** (`dev` by default, or `.dev-flow/config.json`'s `dev_branch` — see the new-feature skill's step 1), not the default branch. Use `fix/` when the state file's **Kind** is `fix`, else `feat/`. If that target branch doesn't exist, ask before doing anything: create it off the default branch (`git checkout -b <dev-branch> && git push -u origin <dev-branch>`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
+Step 9's PR is on the default branch → the state file's **Target branch** → `feat/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off the state file's **Target branch** (`dev` by default, or `.dev-flow/config.json`'s `dev_branch` — see the new-feature skill's step 1), not the default branch. Use `fix/` when the state file's **Kind** is `fix`, else `feat/`.
+
+If that target branch doesn't exist, read the applicable runtime user and AGENTS restrictions before making the missing-target offer. If target creation or publishing the new target is prohibited, don't offer that choice, re-ask for the same authorization, or bypass; preserve safe local work and hand off the blocked action instead. If such actions are authorized, ask before doing anything: create it off the default branch (`git checkout -b <dev-branch> && git push -u origin <dev-branch>`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
 
 > "Issue #NN created. Want me to create a `feat/NN-<name>` (or `fix/NN-<name>`) branch off `<dev-branch>` and switch to it?"
 
@@ -93,7 +95,13 @@ git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git switc
 
 `<dev-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`). `pull --ff-only` keeps it current. If rejected (the local branch diverged), surface it — don't force. Don't commit anything; the branch is just scaffolding for step 5.
 
-Immediately afterward, verify the branch: `git branch --show-current` must return the feature name, and `git rev-parse --abbrev-ref '@{upstream}'` must not return `<dev-branch>`. A branch with no upstream is normal for this new branch. If the branch or upstream is wrong, stop and report the actual values; don't push or silently rewrite tracking.
+Immediately afterward, verify the branch and absence of upstream for a newly created `--no-track` branch:
+```bash
+branch="$(git branch --show-current)"
+upstream="$(LC_ALL=C git rev-parse --abbrev-ref '@{upstream}' 2>&1)"
+upstream_status=$?
+```
+The branch must match the expected feature name. For this new branch, no upstream is the expected result. Any successful `rev-parse` is already an inherited upstream, so stop. On a failed command, only output containing `fatal: no upstream configured for branch` is expected absence; report any other failure as `upstream check failed: <output>` and stop. In the wrong-branch, inherited-upstream, or unexpected-command-error cases, stop and report the actual values; don't push or silently rewrite tracking.
 
 ## State file (dev-flow only)
 

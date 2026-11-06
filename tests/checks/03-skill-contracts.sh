@@ -1093,6 +1093,10 @@ create_checks = {
     "local-no-track-creation": r"git (?:switch --no-track -c|checkout --no-track -b)",
     "branch-upstream-verify": r"(?:verify|check).{0,220}upstream|upstream.{0,220}(?:verify|check)",
     "missing-upstream-normal": r"(?:missing|no) upstream.{0,240}(?:normal|expected)|normal.{0,240}(?:missing|no) upstream",
+    "missing-target-restrictions-before-offer": r"target branch doesn't exist.{0,500}(?:read|check).{0,500}(?:user and repository|runtime).{0,500}restrictions?",
+    "missing-target-prohibited-handoff": r"prohibited.{0,480}(?:re-ask|bypass).{0,480}(?:preserv|handoff|hand off)|preserv.{0,480}(?:prohibited|handoff).{0,480}(?:re-ask|bypass)",
+    "new-branch-upstream-absence-required": r"new(?:ly created)?.{0,260}--no-track.{0,260}(?:no|absent|missing).{0,260}upstream",
+    "upstream-check-error-distinguished": r"no upstream configured.{0,240}expected|upstream check failed",
 }
 for name, pattern in create_checks.items():
     if not re.search(pattern, create, re.I | re.S):
