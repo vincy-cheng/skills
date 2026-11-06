@@ -5,6 +5,10 @@ description: Use to run a fresh-subagent test gate on a feat or fix branch — f
 
 # Test
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 A pre-review test gate: is the suite green and are the tests honest? It does **not** review code — that's `dev-flow:review`. Runs against the branch's diff and the repo's test + lint commands.
 
 ## Gate (dev-flow, between step 5 and 7)

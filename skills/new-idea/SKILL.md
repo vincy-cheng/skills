@@ -5,6 +5,10 @@ description: Use when the user asks to create / brainstorm an idea, scaffold an 
 
 # new-idea
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 ## Overview
 
 Scaffold a structured idea folder for a brainstormed product or concept. Every idea lives under `ideas/[<project>/]<slug>/` and contains a fixed set of five self-contained markdown documents — six if the user opts into cost research (`cost.md`, asked up front) — no ad-hoc file names, no root-level folders.

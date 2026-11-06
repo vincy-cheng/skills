@@ -14,6 +14,7 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `test` | `dev-flow:test` | 1 | unavailable cli lane → BLOCKED stop-and-ask, never a silent downgrade |
 | `model-routing` | Codex native model routing | 6 | unlisted exact-name success, rejected dispatch, and enforced-enum refusal for implementer and reviewer; no fallback |
 | `standardize-prose` | `standardize-prose` | 1 | guided cleanup: proposal-before-apply, violation detection, never-touch regions preserved (modals, code, Risk/checkbox lines) |
+| `output-style` | response and file output style | 4 | fast reading with complete detail across English, formal Traditional Chinese, standalone skills, and subagent reports |
 
 ## How to run
 
@@ -35,6 +36,13 @@ claude plugin eval /path/to/plugin --eval-dir evals/new-feature \
 
 Results land under `evals/results/<timestamp>/` (`aggregate-result.json`;
 `report.html` when the run produces one — observed layouts have varied).
+
+The `output-style` suite includes cases that write a memo or report. Grant the
+Write tool when running it:
+
+```bash
+claude plugin eval /path/to/plugin --eval-dir evals/output-style --allow-tools Write
+```
 
 ## Known quirks
 

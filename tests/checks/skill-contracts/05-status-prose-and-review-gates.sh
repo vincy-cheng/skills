@@ -78,6 +78,37 @@ for sk in skills/brainstorm/SKILL.md skills/plan/SKILL.md; do
 done
 [ -z "$pq_errs" ] && ok "brainstorm + plan carry prose-quality rule blocks" || bad "prose blocks missing:$pq_errs"
 
+# Shared output rules: every skill loads the plugin-root reference and passes
+# its contents into isolated subagent briefs.
+output_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import re
+skills = ("bootstrap", "brainstorm", "commit", "create-github-issue", "doc-fix",
+          "document-structure", "execute-tasks", "new-feature", "new-idea", "open-pr",
+          "plan", "review", "standardize-prose", "tdd", "test", "whats-new")
+reference = Path("references/output-style.md")
+if not reference.is_file():
+    print("output-style:missing-reference")
+for skill in skills:
+    path = Path("skills") / skill / "SKILL.md"
+    if not path.is_file():
+        print(f"{skill}:missing")
+        continue
+    text = path.read_text()
+    if "references/output-style.md" not in text or "load" not in text.lower():
+        print(f"{skill}:no-shared-rule-load")
+    section = re.search(r"## Output style\s+(.*?)(?=\n## |\Z)", text, re.S | re.I)
+    if section is None or not re.search(r"pass.{0,100}actual contents.{0,100}subagent", section.group(1), re.I | re.S):
+        print(f"{skill}:subagent-no-shared-rules")
+routing = Path("references/model-routing.md").read_text()
+if not re.search(r"native or CLI dispatch brief.{0,160}actual contents", routing, re.I | re.S):
+    print("routing:no-native-cli-output-rules")
+if not re.search(r"isolated reviewers.{0,100}directly", routing, re.I | re.S):
+    print("routing:isolated-reviewer-no-output-rules")
+PY
+)
+[ -z "$output_errs" ] && ok "shared output rules loaded and propagated" || bad "shared output rules missing:$output_errs"
+
 # plan review pass + step-4 read-gate + bootstrap roles + red-team key
 # retirement (issue #90). Concept greps scoped per file — never exact
 # sentences (#38); key-shape probes, not bare words (#70).

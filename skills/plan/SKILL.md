@@ -5,6 +5,10 @@ description: Use when turning an approved spec or settled requirements into an i
 
 # Planning
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Turn an approved design into a complete implementation plan — bite-sized tasks a fresh implementer could execute one by one with TDD.
 
 **Core principle:** The plan is complete only when every downstream consumer can run from it alone. In a dev-flow run those consumers are steps 4–11; standalone, they're whoever executes next. **No implementation action** — the plan is written, presented, and approved; building starts after approval. The terminal state is the approved plan **carrying its `## Plan review pass` section** — see below; a plan without one is not approvable.
