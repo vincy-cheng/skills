@@ -56,3 +56,92 @@ if [ -z "$context_errs" ]; then
 else
   bad "context reuse contract missing:$context_errs"
 fi
+
+boundary_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+errors = []
+
+def require(path, pattern, label, flags=re.I | re.S | re.M):
+    try:
+        body = Path(path).read_text()
+    except FileNotFoundError:
+        errors.append(f"{path}:missing")
+        return
+    if (flags := re.I | re.S | re.M) and not re.search(pattern, body, flags):
+        errors.append(f"{path}:{label}")
+
+# One isolated-brief boundary, not a second boundary copied into each chain.
+require("references/model-routing.md", r"^## Isolated brief boundary", "boundary-heading", )
+routing = Path("references/model-routing.md").read_text()
+for marker in (
+    r"task\b", r"constraints?", r"relevant paths", r"exact interfaces from earlier tasks",
+    r"output-style contents", r"report contract",
+    r"no unrelated conversation history|without unrelated conversation history",
+):
+    if not re.search(marker, routing, re.I | re.S):
+        errors.append(f"model-routing:{marker}-{label if False else 'missing'}")
+if not re.search(r"one complete copy.{0,160}brief", routing, re.I | re.S):
+    errors.append("model-routing:one-copy-per-brief")
+if not re.search(r"[Dd]o not repeat.{0,160}shared guidance|shared guidance.{0,160}once|no duplicate shared guidance", routing, re.I | re.S):
+    errors.append("model-routing:deduplicate-shared-guidance")
+if not re.search(r"exit status.{0,500}failure details.{0,500}required evidence.{0,500}(?:usable|full logs)", routing, re.I | re.S):
+    errors.append("model-routing:transport-safeguards")
+if not re.search(r"[Ff]ull (?:logs|findings).{0,160}local (?:report|artifact)", routing, re.I | re.S):
+    errors.append("model-routing:local-full-report")
+if not re.search(r"orchestrator.{0,200}(?:read|reads).{0,200}report", routing, re.I | re.S):
+    errors.append("model-routing:orchestrator-report-read")
+if not re.search(r"decision-relevant findings?", routing, re.I | re.S):
+    errors.append("model-routing:decision-findings")
+if not re.search(r"stale evidence.{0,400}relevant uncommitted path.{0,400}missing report.{0,400}unavailable reference.{0,400}failed dispatch", routing, re.I | re.S):
+    errors.append("model-routing:blocking-rules")
+if not re.search(r"same evidence type.{0,200}required producer", routing, re.I | re.S):
+    errors.append("model-routing:evidence-type-producer-reuse")
+if not re.search(r"implementation evidence.{0,400}tester evidence.{0,400}separate|separate.{0,400}implementation evidence.{0,400}tester evidence", routing, re.I | re.S):
+    errors.append("model-routing:implementation-tester-separation")
+if not re.search(r"revalidat.{0,240}(?:code|requirements|evidence identity).{0,240}(?:changes?|stale)", routing, re.I | re.S):
+    errors.append("model-routing:revalidation")
+if not re.search(r"[Rr]epository.{0,240}HEAD SHA.{0,240}Base ref.{0,240}Base SHA.{0,240}report path.{0,240}(?:relevant )?working-tree state", routing, re.I | re.S):
+    errors.append("model-routing:evidence-tuple")
+
+# Execution keeps small probes small and separates task completion from full gates.
+require("skills/execute-tasks/SKILL.md", r"smallest targeted.{0,120}(?:RED|GREEN|check|test)", "targeted-implementation-checks")
+require("skills/execute-tasks/SKILL.md", r"task-completion checks?", "task-completion-checks")
+require("skills/execute-tasks/SKILL.md", r"after-all-tasks.{0,500}full test.{0,200}lint", "after-all-full-suite")
+
+# Step 6 remains the only independent full-suite gate.
+require("skills/test/SKILL.md", r"only independent full-suite gate", "independent-full-suite-gate")
+
+# Review is not a rerun of the test gate, and its concise return must not hide findings.
+require("skills/review/SKILL.md", r"orchestrator.{0,200}(?:read|reads).{0,200}(?:review )?report", "review-report-read")
+require("skills/review/SKILL.md", r"decision-relevant findings?", "decision-findings")
+
+# The three dispatching skills point to the shared boundary instead of copying it.
+for path in (
+    "skills/execute-tasks/SKILL.md",
+    "skills/test/SKILL.md",
+    "skills/review/SKILL.md",
+):
+    require(path, r"[Ii]solated[- ](?:worker |worker )?brief boundary", "shared-boundary-pointer")
+
+# Count one canonical copy of each deduplicated dispatch-chain phrase.
+chain_files = ("references/model-routing.md", "skills/execute-tasks/SKILL.md", "skills/test/SKILL.md", "skills/review/SKILL.md")
+for phrase in (
+    "exact interfaces from earlier tasks",
+    "no unrelated conversation history",
+    "one complete copy",
+):
+    occurrences = sum(Path(path).read_text().lower().count(phrase) for path in chain_files)
+    if occurrences != 1:
+        errors.append(f"dispatch-chain:{phrase}:{occurrences}-occurrences")
+
+print("\n".join(errors))
+
+PY
+)
+if [ -z "$boundary_errs" ]; then
+  ok "isolated dispatch keeps complete bounded briefs and evidence-bound validation"
+else
+  bad "isolated dispatch contract missing:$boundary_errs"
+fi

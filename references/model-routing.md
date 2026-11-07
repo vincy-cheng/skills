@@ -6,6 +6,16 @@ Before composing any native or CLI dispatch brief, load `references/output-style
 
 Roles: **implementer** (execute-tasks step 5, one per task), **tester** (test step 6), **reviewer** (brainstorm red-team, plan review, and step-7 main and focused review). Select the host before interpreting routing settings: Codex reviewers follow **Codex reviewer model** (`codex_reviewer_model`) and Codex native implementation follows **Codex implementer model** (`codex_implementer_model`) below; Claude Code uses the lanes below. Tester routing is unchanged.
 
+## Isolated brief boundary
+
+A dispatch brief for implementer, tester, or reviewer has the task, global constraints, relevant paths, exact interfaces from earlier tasks, output-style contents, and the role’s report contract. It has no unrelated conversation history.
+
+Keep one complete copy of each shared rule in that brief. Do not repeat shared guidance elsewhere in the dispatch chain.
+
+Keep full logs and findings in the role’s local report. Keep the transport return concise, but preserve its exit status, the failure details needed for the next action, required evidence, and a usable report/log path. The orchestrator reads the report before acting and presents every decision-relevant finding to the user or next step.
+
+Evidence reuse requires the same evidence type and the required producer, plus the complete evidence tuple: repository, HEAD SHA, Base ref, Base SHA, report path, and relevant working-tree state. Implementation evidence and tester evidence remain separate. Revalidate when code, requirements, or evidence identity changes. Stop instead of advancing on stale evidence, a relevant uncommitted path, a missing report, an unavailable reference, or a failed dispatch.
+
 ## Lanes
 
 A lane value pins where a role's work executes. Four values:
