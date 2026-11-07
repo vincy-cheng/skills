@@ -52,7 +52,7 @@ On Codex, reviewers and native implementation subagents can use separately selec
 
 Replace each placeholder with a model supported by the current Codex native subagent tool, then merge your existing branch and role settings. The reviewer key selects the brainstorm red-team, plan reviewer, and step-7 main and focused reviewers. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
 
-Claude Code ignores both keys and continues to route implementation and reviewers through `roles.implementer` and `roles.reviewer`. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting either native key selects its role's session default. See [model routing](references/model-routing.md) for validation, host precedence, and lane details.
+Claude Code ignores both keys and continues to route implementation and reviewers through `roles.implementer` and `roles.reviewer`. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting either native key selects its role's session default. See [model routing](references/model-routing.md) for validation, host precedence, lane details, and isolated brief boundaries.
 
 ## The `dev-flow` workflow
 
@@ -65,7 +65,7 @@ Claude Code ignores both keys and continues to route implementation and reviewer
 | Verify | 6–8 | Test, review, and fix documentation drift |
 | Ship | 9–11 | Open or update a pull request, check readiness, wait for the user's manual merge, close out the run |
 
-The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies.
+The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies. The workflow loads only current-step guidance, reuses unchanged guidance, and gives isolated workers bounded briefs.
 
 ```mermaid
 flowchart TD
@@ -164,7 +164,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 - Repo root = plugin root: `skills/`, `commands/`, `hooks/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
 - `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
-- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
+- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, `review`, and `context-efficiency`, run manually with `claude plugin eval`
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
 
