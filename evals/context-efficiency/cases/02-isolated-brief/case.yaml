@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 02-isolated-brief
+description: A dispatch brief for a subagent must carry the task, constraints, relevant paths, interfaces, output-style contents, and report contract while excluding unrelated conversation history.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

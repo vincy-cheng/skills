@@ -145,3 +145,33 @@ if [ -z "$boundary_errs" ]; then
 else
   bad "isolated dispatch contract missing:$boundary_errs"
 fi
+
+eval_errs=''
+required_eval_files=(
+  "evals/context-efficiency/cases/01-reuse-and-reload/case.yaml"
+  "evals/context-efficiency/cases/01-reuse-and-reload/prompt.md"
+  "evals/context-efficiency/cases/01-reuse-and-reload/graders/grader.md"
+  "evals/context-efficiency/cases/02-isolated-brief/case.yaml"
+  "evals/context-efficiency/cases/02-isolated-brief/prompt.md"
+  "evals/context-efficiency/cases/02-isolated-brief/graders/grader.md"
+  "evals/context-efficiency/cases/03-evidence-boundary/case.yaml"
+  "evals/context-efficiency/cases/03-evidence-boundary/prompt.md"
+  "evals/context-efficiency/cases/03-evidence-boundary/graders/grader.md"
+)
+for eval_file in "${required_eval_files[@]}"; do
+  [ -s "$eval_file" ] || eval_errs="$eval_errs $eval_file:missing-or-empty"
+done
+grep -q '`context-efficiency`' evals/README.md || eval_errs="$eval_errs evals/README.md:context-efficiency-suite-not-listed"
+comparison='docs/features/.eval/context-efficiency/before-after.md'
+if [ ! -s "$comparison" ]; then
+  eval_errs="$eval_errs $comparison:missing-or-empty"
+else
+  for comparison_marker in baseline SHA revised SHA context size dispatch count repeated reads 'token counters' cache billing limitations; do
+    grep -qi -- "$comparison_marker" "$comparison" || eval_errs="$eval_errs $comparison:missing-$comparison_marker"
+  done
+fi
+if [ -z "$eval_errs" ]; then
+  ok "context-efficiency evals and bounded comparison evidence are present"
+else
+  bad "context-efficiency eval evidence missing:$eval_errs"
+fi
