@@ -31,7 +31,7 @@ if not reuse_body:
 else:
     require("new-feature", r"only.{0,120}current step.{0,120}required (?:skills|references)", "current-step-scope", reuse_body)
     require("new-feature", r"reuse.{0,80}unchanged (?:guidance|skills|references)", "reuse", reuse_body)
-    require("new-feature", r"(?:changed|modified) (?:file|guidance|reference)", "changed-reload", reuse_body)
+    require("new-feature", r"when (?:it|a (?:file|guidance|reference)) changes", "changed-reload", reuse_body)
     require("new-feature", r"unavailable", "unavailable-reload", reuse_body)
     require("new-feature", r"lost.{0,80}compaction|compaction.{0,80}lost", "compaction-reload", reuse_body)
     require("new-feature", r"version.{0,80}(?:unestablishable|cannot be established)", "version-reload", reuse_body)
@@ -81,7 +81,7 @@ for marker in (
     r"no unrelated conversation history|without unrelated conversation history",
 ):
     if not re.search(marker, routing, re.I | re.S):
-        errors.append(f"model-routing:{marker}-{label if False else 'missing'}")
+        errors.append(f"model-routing:{marker}-missing")
 if not re.search(r"one complete copy.{0,160}brief", routing, re.I | re.S):
     errors.append("model-routing:one-copy-per-brief")
 if not re.search(r"[Dd]o not repeat.{0,160}shared guidance|shared guidance.{0,160}once|no duplicate shared guidance", routing, re.I | re.S):
@@ -162,16 +162,10 @@ for eval_file in "${required_eval_files[@]}"; do
   [ -s "$eval_file" ] || eval_errs="$eval_errs $eval_file:missing-or-empty"
 done
 grep -q '`context-efficiency`' evals/README.md || eval_errs="$eval_errs evals/README.md:context-efficiency-suite-not-listed"
-comparison='docs/features/.eval/context-efficiency/before-after.md'
-if [ ! -s "$comparison" ]; then
-  eval_errs="$eval_errs $comparison:missing-or-empty"
-else
-  for comparison_marker in baseline SHA revised SHA context size dispatch count repeated reads 'token counters' cache billing limitations; do
-    grep -qi -- "$comparison_marker" "$comparison" || eval_errs="$eval_errs $comparison:missing-$comparison_marker"
-  done
-fi
+# The bounded comparison is run-local evidence under gitignored docs/features/.
+# Keep the repository suite portable across clean checkouts.
 if [ -z "$eval_errs" ]; then
-  ok "context-efficiency evals and bounded comparison evidence are present"
+  ok "context-efficiency evals are present; bounded comparison evidence stays local"
 else
   bad "context-efficiency eval evidence missing:$eval_errs"
 fi
