@@ -26,6 +26,12 @@ Run each step before the next. Pause at the natural checkpoints (after spec, aft
 
 **Resume:** if the user asks to resume, provides only a feat-name, or gives no new feature brief, go to **Resume** below and discover/continue existing work before starting anything fresh.
 
+## Context reuse
+
+Load only the current step’s required skills and references. Reuse unchanged guidance that is already in context. Reload a skill or reference when it changes, is unavailable, was lost after compaction, or its version cannot be established. Cached guidance never replaces live state reads, authorization checks, or evidence identity checks.
+
+In the existing role-selection step, recommend inline execution for small, tightly coupled work. Preserve saved roles, models, and execution modes.
+
 ## Skills — all in-house
 
 Runs its own skills for every step: `dev-flow:brainstorm` (step 1, which writes the spec), `dev-flow:plan` (step 3), `dev-flow:execute-tasks` (step 5, which invokes `dev-flow:tdd` per task), `dev-flow:test`, `dev-flow:review`, `dev-flow:doc-fix`, `dev-flow:open-pr`, `dev-flow:create-github-issue`, and `dev-flow:commit`. No external plugin dependencies — no step invokes a `superpowers:*` skill or any other plugin's skills.
