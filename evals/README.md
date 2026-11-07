@@ -15,6 +15,7 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `model-routing` | Codex native model routing | 6 | unlisted exact-name success, rejected dispatch, and enforced-enum refusal for implementer and reviewer; no fallback |
 | `standardize-prose` | `standardize-prose` | 1 | guided cleanup: proposal-before-apply, violation detection, never-touch regions preserved (modals, code, Risk/checkbox lines) |
 | `output-style` | response and file output style | 4 | fast reading with complete detail across English, formal Traditional Chinese, standalone skills, and subagent reports |
+| `context-efficiency` | context reuse and dispatch boundaries | 3 | bounded loading and reload, isolated-brief completeness, and evidence-producer/version separation |
 
 ## How to run
 

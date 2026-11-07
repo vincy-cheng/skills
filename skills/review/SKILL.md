@@ -11,6 +11,8 @@ Before writing responses or human-readable files, load `references/output-style.
 
 A pre-PR judgment review gate: does the branch do what the spec said, is anything obviously wrong, is it maintainable? It does **not** run the test suite — that's `dev-flow:test` (step 6) — and does **not** replace human review at the PR. Runs against the diff between the branch and its base.
 
+**Read the report before deciding.** The orchestrator reads the review report and presents every decision-relevant finding. A concise transport return is not a substitute for the findings needed to act.
+
 **Fresh eyes, not self-review.** The session that wrote the code never reviews it — author bias hides the obvious issues. This skill dispatches a **fresh reviewer subagent** with no prior context: it gets the diff, spec, and plan, and returns a verdict. The orchestrator acts on it (advance to the PR, or return to execute) — the same dispatch isolation principle `execute-tasks` uses for implementation.
 
 ## Gate (dev-flow, step 7)
@@ -54,7 +56,7 @@ Dev-flow mode: check the Reviewer line per `## Before starting` — never ask. S
 
 **Codex:** before dispatch, resolve `codex_reviewer_model` per **Codex reviewer model** in `references/model-routing.md`, including its validation and native `model` rules. **Claude Code:** use the Reviewer lane from the state (standalone: ask, default `session`).
 
-Spawn **one** fresh reviewer subagent using that route. It has no prior context — hand it everything as a brief:
+Spawn **one** fresh reviewer subagent using that route. Use the routing reference’s isolated-worker brief boundary; supply the review-specific inputs from this skill. It has no prior context — hand it everything as a brief:
 
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.

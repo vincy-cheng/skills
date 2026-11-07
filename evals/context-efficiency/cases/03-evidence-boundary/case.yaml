@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 03-evidence-boundary
+description: Implementation checks may be targeted, but they cannot replace the independent step-6 test gate or reuse tester evidence across different evidence producers or versions.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

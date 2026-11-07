@@ -76,7 +76,7 @@ Never stage or commit `docs/features/` (state, spec, plan, briefs). Stage the ta
 
 ## Inline mode — per-task loop
 
-For each unchecked task, in order:
+For each unchecked task, in order. Use the smallest targeted RED/GREEN checks that prove the task’s behavior; keep task-completion checks and the after-all-tasks full test + lint suite separate.
 
 1. **Read the task** — its `**Files:**` block names what to create/modify and which test covers it.
 2. **RED** — write the failing test for the task's behavior. Follow `dev-flow:tdd`: one behavior, clear name, test at a public seam with real code (no mocks unless unavoidable).
@@ -88,7 +88,8 @@ For each unchecked task, in order:
 
 ## Subagent dispatch — per-task loop (`session` / `claude:<name>` / `cli:<tool>/<model>`)
 
-Per-task subagent isolation: the implementer sees only its task, you stay clean for coordination. Artifacts (briefs, reports) go under `docs/features/.sdd/<feat-name>/` — gitignored, same folder as everything else, deleted once the plan lands in git.
+Per-task subagent isolation: the implementer sees only its task, you stay clean for coordination. Use the routing reference’s isolated-worker brief boundary; this skill supplies only the task-specific inputs.
+ Artifacts (briefs, reports) go under `docs/features/.sdd/<feat-name>/` — gitignored, same folder as everything else, deleted once the plan lands in git.
 
 For each unchecked task, in order:
 

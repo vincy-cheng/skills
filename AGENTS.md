@@ -1,5 +1,6 @@
 # AGENTS.md
 
+Context reuse: load only each step’s required skills and references, reuse unchanged guidance, reload only on change, unavailability, compaction loss, or an unestablishable version; cached guidance never replaces live state, authorization, or evidence identity checks. Recommend inline execution for small, tightly coupled work through existing role selection and preserve saved roles, models, and execution modes.
 This repo publishes an AI coding-agent plugin (`dev-flow`). There is no application code and no build step; the test suite is `tests/check.sh` (bash consistency checks). Single-plugin repo: the repo root **is** the plugin root — components at the top level, host manifests in per-harness dot-dirs. `CLAUDE.md` is a symlink to this file so Claude Code, Codex, GitHub Copilot, and other agents all read the same guidance.
 
 Agent-facing docs (progressive-disclosure tree): `docs/agents/INDEX.md` — start there.
