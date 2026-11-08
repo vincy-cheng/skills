@@ -203,6 +203,68 @@ else
   bad "Implementer context integration missing:$implementer_context_integration_errs"
 fi
 
+# implementer-context execution guard (#108, task 3): execute-tasks owns the
+# shared-worker loop — first dispatch starts the worker, later tasks follow up
+# with the same worker; live recheck per follow-up; stop/handoff on context
+# overflow, lost worker, boundary change; single writer; report/diff preservation.
+implementer_context_execution_errs=$(python3 -B - <<'PY'
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+try:
+    et = Path("skills/execute-tasks/SKILL.md").read_text()
+except FileNotFoundError:
+    print("execute-tasks:missing")
+    sys.exit(0)
+except OSError as error:
+    print(f"execute-tasks:unreadable:{error}")
+    sys.exit(0)
+dispatch = section(et, "Subagent dispatch — per-task loop")
+stuck = section(et, "When a task gets stuck")
+after = section(et, "After all tasks")
+wntd = section(et, "What not to do")
+if not re.search(r"[Ss]hared.{0,160}(?:worker|context)|shared context lifecycle", dispatch, re.I):
+    print("execute-tasks:dispatch-no-shared-shape")
+if not re.search(r"follow-?up.{0,400}same (?:worker|implementer)|same (?:worker|implementer).{0,400}follow-?up", dispatch, re.I | re.S):
+    print("execute-tasks:dispatch-no-same-worker-followup")
+if not re.search(r"one task at a time|one at a time", dispatch, re.I):
+    print("execute-tasks:dispatch-no-one-task-at-a-time")
+if "brief" not in dispatch or "report" not in dispatch:
+    print("execute-tasks:dispatch-no-brief-report-per-task")
+if "TDD" not in dispatch:
+    print("execute-tasks:dispatch-no-tdd-per-task")
+if not re.search(r"recheck.{0,400}(branch|HEAD|dirty)|branch.{0,200}HEAD.{0,200}dirty", dispatch, re.I | re.S):
+    print("execute-tasks:dispatch-no-live-recheck")
+if not re.search(r"not.{0,200}resend.{0,200}(?:whole|entire).{0,200}conversation|no.{0,200}full.{0,200}resend|[Dd]o not (?:re-?send|repeat).{0,240}unchanged", dispatch, re.I):
+    print("execute-tasks:dispatch-no-full-resend-rule")
+if not re.search(r"reload.{0,240}(?:changed|can'?t confirm|unconfirmed)|(?:changed|stale).{0,240}reload", dispatch, re.I):
+    print("execute-tasks:dispatch-no-changed-reload")
+if not re.search(r"coordinator.{0,200}check", dispatch, re.I):
+    print("execute-tasks:dispatch-no-coordinator-check")
+if not re.search(r"(?:context|conversation).{0,240}(?:too long|overflow|grows)|[Ll]ost worker|worker.{0,160}lost", dispatch + stuck, re.I | re.S):
+    print("execute-tasks:no-context-overflow-handoff")
+if not re.search(r"save.{0,200}(?:report|diff|findings)|(?:report|diff).{0,200}(?:before|preserv)", dispatch + stuck, re.I | re.S):
+    print("execute-tasks:no-preserve-before-switch")
+if not re.search(r"explicit.{0,240}confirm.{0,320}(?:switch|new worker|other mode)|ask.{0,200}before.{0,200}switch", dispatch + stuck, re.I | re.S):
+    print("execute-tasks:no-confirmed-switch")
+if not re.search(r"[Ss]ingle writer|only one writer", dispatch + wntd, re.I):
+    print("execute-tasks:no-single-writer-rule")
+if not re.search(r"resume.{0,320}repair.{0,320}worker|worker.{0,320}(?:resume|repair)", et, re.I | re.S):
+    print("execute-tasks:no-resume-worker-recheck")
+if not re.search(r"(?:not|never).{0,240}claim.{0,240}(?:old conversation|worker)|can'?t (?:recover|restore)", et, re.I):
+    print("execute-tasks:no-false-continuity-claim")
+if not re.search(r"(?:cited|referenced|referenced by).{0,400}stays?|stays?.{0,240}cited|report.{0,320}(?:still )?cited", after, re.I | re.S):
+    print("execute-tasks:after-all-no-report-retention")
+PY
+)
+if [ -z "$implementer_context_execution_errs" ]; then
+  ok "Shared implementer execution loop and recovery contract are present"
+else
+  bad "Implementer context execution contract missing:$implementer_context_execution_errs"
+fi
+
 # gate28: Codex implementation-model documentation (#93). README owns the
 # user-facing configuration explanation; bootstrap owns preserving user choices
 # and leaving both native overrides absent by default; agent-facing summaries
