@@ -164,7 +164,6 @@ except OSError as error:
 state = section(nf, "State files")
 field_rules = nf[nf.index("Field rules:"):nf.index("### Index file")]
 step5 = section(nf, "Step 5")
-state_body = section(nf.replace("### Per-feature state file", "## Per-feature state file"), "Per-feature state file") if False else ""
 # the state template carries the field next to Codex implementer model
 tmpl = nf[nf.index("# <feat-name> — dev-flow state"):nf.index("Field rules:")]
 if "- **Implementer context:**" not in tmpl:
