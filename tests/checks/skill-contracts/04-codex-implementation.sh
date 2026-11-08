@@ -7,6 +7,13 @@
 codex_implementation_integration_errs=$(python3 -B - <<'PY'
 import re
 import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
@@ -138,6 +145,8 @@ if not re.search(r"Last verification", state_updates):
     print("execute-tasks:state-updates-no-verification")
 PY
 )
+codex_implementation_integration_errs_rc=$? 2>/dev/null || true
+[ -n "$codex_implementation_integration_errs_rc" ] && [ "$codex_implementation_integration_errs_rc" != "0" ] && codex_implementation_integration_errs="$codex_implementation_integration_errs py-guard-crashed"
 if [ -z "$codex_implementation_integration_errs" ]; then
   ok "Codex implementation-model integration is present with host-scoped retries"
 else
@@ -150,6 +159,13 @@ fi
 implementer_context_integration_errs=$(python3 -B - <<'PY'
 import re
 import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
@@ -196,6 +212,8 @@ if not re.search(r"(?:never|not).{0,240}(?:choose|pick|select|switch).{0,240}mod
     print("new-feature:context-step5-no-no-silent-model-pick")
 PY
 )
+implementer_context_integration_errs_rc=$? 2>/dev/null || true
+[ -n "$implementer_context_integration_errs_rc" ] && [ "$implementer_context_integration_errs_rc" != "0" ] && implementer_context_integration_errs="$implementer_context_integration_errs py-guard-crashed"
 if [ -z "$implementer_context_integration_errs" ]; then
   ok "Implementer context state field and combined-ask integration are present"
 else
@@ -209,6 +227,13 @@ fi
 implementer_context_execution_errs=$(python3 -B - <<'PY'
 import re
 import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
@@ -258,6 +283,8 @@ if not re.search(r"(?:cited|referenced|referenced by).{0,400}stays?|stays?.{0,24
     print("execute-tasks:after-all-no-report-retention")
 PY
 )
+implementer_context_execution_errs_rc=$? 2>/dev/null || true
+[ -n "$implementer_context_execution_errs_rc" ] && [ "$implementer_context_execution_errs_rc" != "0" ] && implementer_context_execution_errs="$implementer_context_execution_errs py-guard-crashed"
 if [ -z "$implementer_context_execution_errs" ]; then
   ok "Shared implementer execution loop and recovery contract are present"
 else

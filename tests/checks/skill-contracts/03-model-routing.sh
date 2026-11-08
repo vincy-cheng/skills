@@ -112,6 +112,13 @@ if [ -z "$gate25_errs" ]; then ok "model routing structurally present (lanes doc
 codex_implementer_contract_errs=$(python3 -B - <<'PY'
 import re
 import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
@@ -201,6 +208,8 @@ if not re.search(r"change.{0,280}explicit", body, re.I):
     print("routing:no-explicit-change-rule")
 PY
 )
+codex_implementer_contract_errs_rc=$? 2>/dev/null || true
+[ -n "$codex_implementer_contract_errs_rc" ] && [ "$codex_implementer_contract_errs_rc" != "0" ] && codex_implementer_contract_errs="$codex_implementer_contract_errs py-guard-crashed"
 if [ -z "$codex_implementer_contract_errs" ]; then
   ok "Codex implementer model contract is present with saved-choice precedence"
 else
@@ -214,6 +223,13 @@ fi
 implementer_context_errs=$(python3 -B - <<'PY'
 import re
 import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
@@ -277,6 +293,8 @@ if not re.search(r"fresh.{0,240}context.{0,400}per-?task|per-?task.{0,200}fresh.
     print("routing:context-no-fresh-context-scoping")
 PY
 )
+implementer_context_errs_rc=$? 2>/dev/null || true
+[ -n "$implementer_context_errs_rc" ] && [ "$implementer_context_errs_rc" != "0" ] && implementer_context_errs="$implementer_context_errs py-guard-crashed"
 if [ -z "$implementer_context_errs" ]; then
   ok "Implementer context lifecycle contract is present with host capability gates"
 else
