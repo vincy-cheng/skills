@@ -16,6 +16,7 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `standardize-prose` | `standardize-prose` | 1 | guided cleanup: proposal-before-apply, violation detection, never-touch regions preserved (modals, code, Risk/checkbox lines) |
 | `output-style` | response and file output style | 4 | fast reading with complete detail across English, formal Traditional Chinese, standalone skills, and subagent reports |
 | `context-efficiency` | context reuse and dispatch boundaries | 3 | bounded loading and reload, isolated-brief completeness, and evidence-producer/version separation |
+| `risk-proportional-effort` | plan-review depth + Implementer context | 6 | small-plan self-check eligibility, ordinary independent review, focused scope/waiver, legacy/resume/repair, shared worker follow-up and drift, unsupported-host/lost-worker stops |
 
 ## How to run
 
@@ -81,4 +82,7 @@ Two layers, strict and binary:
 - **execute-tasks mode-split suite** — evals for the inline-vs-subagent
   recommendation from task shape (count / file spread / coupling), including
   the user-override path. Mentioned in issue #43's summary but kept out of
-  its strict scope; candidate follow-up suite.
+  its strict scope; candidate follow-up suite. Partially covered since issue
+  #108: `risk-proportional-effort` cases `02`-`04` pin the lane/context
+  recommendation and override paths; the remaining piece is full
+  recommendation-from-task-shape narration.

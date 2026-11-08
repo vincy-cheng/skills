@@ -86,6 +86,24 @@ Validate config JSON/root/schema/type before implementation task work, then vali
 
 For native execution, pass the validated string exactly as the native subagent `model` argument. When the user confirms a session default, omit `model`; use fresh isolated context, including `fork_turns: "none"` where the native tool exposes it. Revalidate the authoritative restriction and tool support before every native dispatch and retry, per **Native model validation**. An authoritative restriction, unsupported pinning, invalid config, or a rejected native dispatch produces **BLOCKED** with no fallback; preserve the dispatch error's original reason. Report the setting, cause, and correction/resume hint, then leave the workflow status and task progress honest. Never switch the model, execution mode, lane, or backend silently.
 
+## Implementer context
+
+The Implementer's context lifecycle is a separate pick from the lane and the model — all three are selected in the same combined ask, explained with their trade-offs, and recorded per run. Three values:
+
+| Value | Meaning |
+|-------|---------|
+| `shared` | one implemented context carries across the task loop — the first task starts a worker, each later task is a follow-up to that same worker |
+| `per-task` | the existing default shape — every task gets a fresh, isolated worker with only that task's brief |
+| `not-used` | inline — nothing to choose; the loop runs in the orchestrator's session |
+
+Recommendations, presented as trade-offs the user decides — never chosen for the user: when a run pins a lightweight model and later tasks are related to earlier ones, recommend `shared` (context reuse is where the lightweight model needs the most help); when no model difference matters and tasks are tightly coupled, recommend `inline`; when a task needs isolation from earlier conversation state, recommend `per-task`. The orchestrator (step 5, dev-flow mode) or the standalone `## Choose a mode` ask confirms the pick; no new config key, lane, or settings frame exists for it. A saved per-run choice beats any later default and is recorded in the state file's **Implementer context** field; resume and repair read it and never re-ask.
+
+Legacy state: the field missing on an old subagent run keeps `per-task` — that was its actual shape; read-only, never migrated on disk. An unknown field value (anything outside the three above) **stops** — BLOCKED stop-and-ask per the error contract; it is never treated as unselected or defaulted. The existing no-switch rule extends to context: mid-run switching between `shared` and `per-task` requires the user's explicit direction, like a model or lane switch.
+
+**Host capability gate — before `shared` starts.** `shared` requires the host to actually provide same-worker follow-up/resume with the selected model's capabilities; Codex native, Claude native (the Agent tool's session-continuation support, e.g. SendMessage resume), and CLI drivers are each judged by their current tooling — never assumed. A CLI lane re-running the same model per task is a sequence of per-task work, not `shared`. Verify before the dispatch loop starts; a capability gap → **stop-and-ask**, listing the explicit alternatives (`per-task`, `inline`) for the user to choose — never a silent downgrade to the run's other modes.
+
+The existing fresh-context rules (`fork_turns: "none"` and the isolated-brief boundary's history rule) scope to `per-task` and to a new worker's first dispatch; a `shared` follow-up receives the accumulated context by design and is not their subject. No cross-session worker service exists — the worker handle and task scope live in the run's existing execution note, and #107's context rules govern what a dispatch carries.
+
 ## Native model validation
 
 Treat a tool's explicit, enforced allowlist or schema enum as authoritative: if it excludes the requested model, stop **BLOCKED** before dispatch. A displayed model-options list is only an example unless the tool identifies it as enforced; absence from that list alone does not establish unavailability. Do not hardcode a model availability list in the plugin. If the native tool accepts a string `model` parameter and no authoritative restriction excludes the exact requested name, pass that name unchanged and attempt dispatch. If the tool cannot accept or pin the requested string, stop **BLOCKED** before dispatch. If dispatch itself rejects the name, stop **BLOCKED**, preserve the original rejection reason, and tell the user how to correct the actual cause. For a provider-not-enabled rejection, explain that the user must enable or configure access for the exact requested provider/model; do not invent credentials or settings or promise availability. After the user's correction or explicit resume, revalidate and retry the unchanged exact selection. Never auto-correct user configuration or retry immediately. Never fall back or substitute another model.

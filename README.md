@@ -97,9 +97,9 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | Skill | Step | Purpose |
 |-------|------|---------|
 | `brainstorm` | 1 | Work through the design and write an approved spec |
-| `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a fresh-subagent plan review |
+| `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a plan review pass — an independent reviewer for ordinary and high-risk work, a recorded author self-check for small low-risk plans (≤3 tasks, one existing behavior, shared context, no unresolved dependencies) |
 | `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
-| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; on Claude Code, dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>); on Codex, native `session` uses the saved `codex_implementer_model` |
+| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; on Claude Code, dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>); on Codex, native `session` uses the saved `codex_implementer_model`. The step-5 ask also confirms the Implementer context — `shared` carries one worker across related tasks, `per-task` keeps the existing fresh-worker-per-task default, `not-used` is inline |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |

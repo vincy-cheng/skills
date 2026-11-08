@@ -260,3 +260,75 @@ if "before" not in step4.lower() or "issue" not in step4:
 PY
 )
 if [ -z "$plan_gate_errs" ]; then ok "step-4 plan-pass gate and resume rewind are structurally present"; else bad "step-4 plan gate broken:$plan_gate_errs"; fi
+
+# Work-size classification must choose the plan review depth without weakening
+# final/test/review gates or accepting an evidence-free self-check (#108).
+size_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+
+plan = Path("skills/plan/SKILL.md").read_text()
+task_rules = section(plan, "Task rules")
+review_pass = section(plan, "Plan review pass")
+standalone = section(plan, "Standalone mode")
+
+requirements = {
+    "small-task-limit": r"≤\s*3 tasks|at most three tasks",
+    "single-existing-behavior": r"single existing behavior|one existing behavior",
+    "shared-context": r"shared context",
+    "no-unresolved-dependency": r"no unresolved architecture.*cross-system|without unresolved architecture.*cross-system",
+    "all-low": r"every `Risk:` line `low`|all.*`Risk: low`",
+    "ordinary-fallback": r"[Oo]therwise.*ordinary|ordinary.*otherwise",
+    "missing-data-fail-closed": r"[Mm]issing|insufficient",
+}
+for name, pattern in requirements.items():
+    if not re.search(pattern, task_rules, re.S):
+        print(f"plan:task-rules-{name}-missing")
+if "self-check" not in review_pass.lower():
+    print("plan:small-self-check-missing")
+if not re.search(r"ordinary.*independent|independent.*ordinary", review_pass, re.S):
+    print("plan:ordinary-independent-review-missing")
+for marker in ("classification basis", "applicability", "self-check", "independent review", "verdict"):
+    if marker not in review_pass.lower():
+        print(f"plan:pass-recording-{marker.replace(' ', '-')}-missing")
+if "standalone" not in standalone.lower() or "insufficient" not in standalone.lower():
+    print("plan:standalone-insufficient-evidence-rule-missing")
+
+issue = Path("skills/create-github-issue/SKILL.md").read_text()
+gate = section(issue, "Gate check")
+if "Plan review pass" not in gate:
+    print("issue:pass-record-missing")
+if not re.search(r"eligib", gate, re.I):
+    print("issue:pass-eligibility-missing")
+if not re.search(r"self-check", gate, re.I):
+    print("issue:pass-self-check-missing")
+if not re.search(r"independent", gate, re.I):
+    print("issue:pass-independent-review-missing")
+
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+step3 = section(new_feature, "Step 3 — Plan")
+for marker in ("size", "self-check", "independent"):
+    if marker not in step3.lower():
+        print(f"new-feature:step3-{marker}-missing")
+for recheck in ("before approval", "task.*scope", "repair"):
+    if not re.search(recheck, step3, re.S | re.I):
+        print("new-feature:step3-recheck-missing")
+if "self-check" not in section(new_feature, "Step 4 — Create issue").lower():
+    print("new-feature:step4-self-check-missing")
+
+brainstorm = Path("skills/brainstorm/SKILL.md").read_text()
+viability = brainstorm.split("\n## Model routing\n", 1)[0]
+for marker in ("requirement boundary", "decomposition feasibility"):
+    if marker not in viability.lower():
+        print(f"brainstorm:viability-{marker.replace(' ', '-')}-missing")
+
+review = Path("skills/review/SKILL.md").read_text()
+focused = section(review, "Focused review")
+if "deep-scan" not in focused.lower() or not re.search(r"not.*redo|without.*redo", focused, re.I | re.S):
+    print("review:focused-scope-contract-missing")
+PY
+)
+if [ -z "$size_errs" ]; then ok "plan size classification and conditional review pass are evidenced"; else bad "plan-size review contract broken:$size_errs"; fi

@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 02-ordinary-independent-review-and-lane-recs
+description: An ordinary multi-task plan keeps the independent plan review; the mode ask recommends inline / shared / per-task per its signal.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

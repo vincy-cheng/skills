@@ -7,6 +7,13 @@
 codex_implementation_integration_errs=$(python3 -B - <<'PY'
 import re
 import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
 sys.path.insert(0, "tests/lib")
 from sections import section
 from pathlib import Path
@@ -138,10 +145,150 @@ if not re.search(r"Last verification", state_updates):
     print("execute-tasks:state-updates-no-verification")
 PY
 )
+codex_implementation_integration_errs_rc=$? 2>/dev/null || true
+[ -n "$codex_implementation_integration_errs_rc" ] && [ "$codex_implementation_integration_errs_rc" != "0" ] && codex_implementation_integration_errs="$codex_implementation_integration_errs py-guard-crashed"
 if [ -z "$codex_implementation_integration_errs" ]; then
   ok "Codex implementation-model integration is present with host-scoped retries"
 else
   bad "Codex implementation integration missing:$codex_implementation_integration_errs"
+fi
+
+# implementer-context integration guard (#108, task 2): new-feature owns the
+# state template field + field rules + the step-5 ask covering all four picks;
+# unknown values block; saved choices survive; legacy state stays per-task.
+implementer_context_integration_errs=$(python3 -B - <<'PY'
+import re
+import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+try:
+    nf = Path("skills/new-feature/SKILL.md").read_text()
+except FileNotFoundError:
+    print("new-feature:missing")
+    sys.exit(0)
+except OSError as error:
+    print(f"new-feature:unreadable:{error}")
+    sys.exit(0)
+state = section(nf, "State files")
+field_rules = nf[nf.index("Field rules:"):nf.index("### Index file")]
+step5 = section(nf, "Step 5")
+# the state template carries the field next to Codex implementer model
+tmpl = nf[nf.index("# <feat-name> — dev-flow state"):nf.index("Field rules:")]
+if "- **Implementer context:**" not in tmpl:
+    print("new-feature:state-template-missing-context-field")
+if not re.search(r"Implementer context.{0,400}(shared \| per-task \| not-used|shared/per-?task/not-used)", tmpl, re.S):
+    print("new-feature:context-field-no-value-grammar")
+# field rules: confirmed choice recorded; legacy subagent runs = per-task; unknown stops
+if not re.search(r"[Ii]mplementer context.{0,240}optional", field_rules, re.I | re.S):
+    print("new-feature:context-field-not-optional-rule")
+if not re.search(r"per-?task.{0,400}(?:legacy|older)|(?:legacy|older).{0,400}per-?task", field_rules, re.I | re.S):
+    print("new-feature:context-no-legacy-per-task-rule")
+if not re.search(r"[Uu]nknown.{0,240}stop|stop.{0,240}unknown", field_rules, re.I):
+    print("new-feature:context-unknown-stops-rule")
+if not re.search(r"[Ss]aved.{0,200}prefer|prefer.{0,200}saved", field_rules, re.I):
+    print("new-feature:context-no-saved-preference-rule")
+if not re.search(r"resume.{0,300}repair|repair.{0,300}resume", field_rules, re.I | re.S):
+    print("new-feature:context-no-resume-repair-rule")
+if not re.search(r"shared contract|references/model-routing.md", field_rules):
+    print("new-feature:context-no-routing-pointer")
+# step 5: the combined ask now covers lane + model + context lifecycle together
+if not re.search(r"[Cc]ombined Roles ask", step5):
+    print("new-feature:context-step5-no-combined-ask")
+if not re.search(r"[Ii]mplementer context", step5):
+    print("new-feature:context-step5-no-context-pick")
+if not re.search(r"shared.{0,300}per-?task.{0,300}not-used|not-used.{0,300}per-?task.{0,300}shared", step5, re.I | re.S):
+    print("new-feature:context-step5-no-value-choices")
+if not re.search(r"(?:trade-?offs?|recommend)", step5, re.I):
+    print("new-feature:context-step5-no-tradeoffs")
+if not re.search(r"(?:never|not).{0,240}(?:choose|pick|select|switch).{0,240}model|no silent", step5, re.I):
+    print("new-feature:context-step5-no-no-silent-model-pick")
+PY
+)
+implementer_context_integration_errs_rc=$? 2>/dev/null || true
+[ -n "$implementer_context_integration_errs_rc" ] && [ "$implementer_context_integration_errs_rc" != "0" ] && implementer_context_integration_errs="$implementer_context_integration_errs py-guard-crashed"
+if [ -z "$implementer_context_integration_errs" ]; then
+  ok "Implementer context state field and combined-ask integration are present"
+else
+  bad "Implementer context integration missing:$implementer_context_integration_errs"
+fi
+
+# implementer-context execution guard (#108, task 3): execute-tasks owns the
+# shared-worker loop — first dispatch starts the worker, later tasks follow up
+# with the same worker; live recheck per follow-up; stop/handoff on context
+# overflow, lost worker, boundary change; single writer; report/diff preservation.
+implementer_context_execution_errs=$(python3 -B - <<'PY'
+import re
+import sys
+import atexit, traceback as _tb
+def _uncaught(tp, val, tb):
+    print('py-guard-crashed:' + ''.join(_tb.format_exception(tp, val, tb)).replace(chr(10), ' | ').strip())
+    atexit.register(lambda: None)
+    raise SystemExit(1)
+sys.excepthook = _uncaught
+
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+try:
+    et = Path("skills/execute-tasks/SKILL.md").read_text()
+except FileNotFoundError:
+    print("execute-tasks:missing")
+    sys.exit(0)
+except OSError as error:
+    print(f"execute-tasks:unreadable:{error}")
+    sys.exit(0)
+dispatch = section(et, "Subagent dispatch — per-task loop")
+stuck = section(et, "When a task gets stuck")
+after = section(et, "After all tasks")
+wntd = section(et, "What not to do")
+if not re.search(r"[Ss]hared.{0,160}(?:worker|context)|shared context lifecycle", dispatch, re.I):
+    print("execute-tasks:dispatch-no-shared-shape")
+if not re.search(r"follow-?up.{0,400}same (?:worker|implementer)|same (?:worker|implementer).{0,400}follow-?up", dispatch, re.I | re.S):
+    print("execute-tasks:dispatch-no-same-worker-followup")
+if not re.search(r"one task at a time|one at a time", dispatch, re.I):
+    print("execute-tasks:dispatch-no-one-task-at-a-time")
+if "brief" not in dispatch or "report" not in dispatch:
+    print("execute-tasks:dispatch-no-brief-report-per-task")
+if "TDD" not in dispatch:
+    print("execute-tasks:dispatch-no-tdd-per-task")
+if not re.search(r"recheck.{0,400}(branch|HEAD|dirty)|branch.{0,200}HEAD.{0,200}dirty", dispatch, re.I | re.S):
+    print("execute-tasks:dispatch-no-live-recheck")
+if not re.search(r"not.{0,200}resend.{0,200}(?:whole|entire).{0,200}conversation|no.{0,200}full.{0,200}resend|[Dd]o not (?:re-?send|repeat).{0,240}unchanged", dispatch, re.I):
+    print("execute-tasks:dispatch-no-full-resend-rule")
+if not re.search(r"reload.{0,240}(?:changed|can'?t confirm|unconfirmed)|(?:changed|stale).{0,240}reload", dispatch, re.I):
+    print("execute-tasks:dispatch-no-changed-reload")
+if not re.search(r"coordinator.{0,200}check", dispatch, re.I):
+    print("execute-tasks:dispatch-no-coordinator-check")
+if not re.search(r"(?:context|conversation).{0,240}(?:too long|overflow|grows)|[Ll]ost worker|worker.{0,160}lost", dispatch + stuck, re.I | re.S):
+    print("execute-tasks:no-context-overflow-handoff")
+if not re.search(r"save.{0,200}(?:report|diff|findings)|(?:report|diff).{0,200}(?:before|preserv)", dispatch + stuck, re.I | re.S):
+    print("execute-tasks:no-preserve-before-switch")
+if not re.search(r"explicit.{0,240}confirm.{0,320}(?:switch|new worker|other mode)|ask.{0,200}before.{0,200}switch", dispatch + stuck, re.I | re.S):
+    print("execute-tasks:no-confirmed-switch")
+if not re.search(r"[Ss]ingle writer|only one writer", dispatch + wntd, re.I):
+    print("execute-tasks:no-single-writer-rule")
+if not re.search(r"resume.{0,320}repair.{0,320}worker|worker.{0,320}(?:resume|repair)", et, re.I | re.S):
+    print("execute-tasks:no-resume-worker-recheck")
+if not re.search(r"(?:not|never).{0,240}claim.{0,240}(?:old conversation|worker)|can'?t (?:recover|restore)", et, re.I):
+    print("execute-tasks:no-false-continuity-claim")
+if not re.search(r"(?:cited|referenced|referenced by).{0,400}stays?|stays?.{0,240}cited|report.{0,320}(?:still )?cited", after, re.I | re.S):
+    print("execute-tasks:after-all-no-report-retention")
+PY
+)
+implementer_context_execution_errs_rc=$? 2>/dev/null || true
+[ -n "$implementer_context_execution_errs_rc" ] && [ "$implementer_context_execution_errs_rc" != "0" ] && implementer_context_execution_errs="$implementer_context_execution_errs py-guard-crashed"
+if [ -z "$implementer_context_execution_errs" ]; then
+  ok "Shared implementer execution loop and recovery contract are present"
+else
+  bad "Implementer context execution contract missing:$implementer_context_execution_errs"
 fi
 
 # gate28: Codex implementation-model documentation (#93). README owns the

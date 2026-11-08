@@ -148,7 +148,7 @@ Triggers when the state's **Risk tier** is `high — <categories>` (not waived),
 - **executable-code** → each newly introduced privileged/triggered execution path: what triggers it, what it can do, who can reach it.
 - **blast-radius** → whether the diff's breadth is justified by the spec, or scope creep wearing a costume.
 
-**Any number of triggered categories → still one focused reviewer** with the combined brief; when >2 categories trigger, add a one-line user note (a wide risk surface is worth their attention — it is not a plan defect and there is no bounce).
+**Any number of triggered categories → still one focused reviewer** with the combined brief; when >2 categories trigger, add a one-line user note (a wide risk surface is worth their attention — it is not a plan defect and there is no bounce). Deep-scan only the triggered categories; do not redo R1–R4 or the independent main review.
 
 **Report + verdict** — same R5 contract and color-coded report format, written to `docs/features/.review/<feat-name>/review-report-focused.md` (gitignored; same archive rules — never shares the main report's path). The return holds only the verdict + one-line summary + counts. The orchestrator records the verdict in the state's **Focused verdict** field, then acts: **hard gate — both reviewers must clear.** Any red → red-loop rewind to step 5 (same as a main-review red); yellow → the same fix-now / note-in-PR prompt; green/blue → advance to step 8.
 

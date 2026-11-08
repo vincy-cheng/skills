@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 01-small-self-check-path
+description: A small, low-risk, tightly-coupled plan classifies for the plan self-check; independent test and main review still run.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

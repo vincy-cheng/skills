@@ -63,6 +63,7 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 - **Test-first shape** — each task states its test (what failing check proves it) and its verification command; follow `dev-flow:tdd` for the red-green loop. For docs-only work, the test is the repo's consistency suite or an explicit grep check — state it.
 - **Files block** — every task lists the files it creates/modifies.
 - **Risk line** — every task carries a `Risk:` line beside its `**Files:**` block: `Risk: low` or `Risk: high — <category>`. Low must be written explicitly — **unmarked ≠ low** (fail-closed; a task with no Risk line is a defect, not a default-low). High names one of four categories — the bars, not a list: **executable-code** (newly introduced privileged/triggered execution paths, not file-type presence), **destructive-operations** (commands that delete or force-rewrite), **auth-permissions** (auth spine, middleware, permission checks, session handling), **blast-radius** (diff breadth out of proportion to the task's stated scope). The human sees the full risk surface at plan approval. The `Risk:` line rides in the plan's task body only — the state file's Tasks copy stays clean `- [ ]` main text; tier info lands in the state's Risk tier field via the step-7 recheck, not in the copied lines (the verbatim-copyable contract is preserved).
+- **Size classification** — classify review depth before the plan is presented. A plan is **small** only when it has ≤3 tasks, one existing behavior, shared context, no unresolved architecture or cross-system dependency, and every `Risk:` line `low`. Missing or unproven evidence is not small. Otherwise, the plan is ordinary; the four high-risk categories cover any size.
 - **Verbatim-copyable** — the task list is what the state file's Tasks block copies; write them as clean `- [ ]` lines.
 - **Issue material** — each task carries an acceptance fragment the issue can lift directly.
 - **Verification per task** — name the command that proves the task done (the repo's suite, a grep, a lint run).
@@ -79,7 +80,10 @@ Before presenting the plan, check it with fresh eyes and fix inline: every task 
 
 ## Plan review pass
 
-After generation and self-review, before presenting the plan for approval, dispatch a fresh plan reviewer — the plan skill is the plan's author, so it must not judge the plan alone (the same fresh-eyes pattern as the brainstorm viability red-team and the test/review gates).
+After generation and self-review, use the size classification.
+
+- **Eligible small plan:** the author may run a self-check instead of dispatching a plan reviewer. Show this choice to the user; the user may require the independent pass.
+- **Ordinary:** an ordinary or high-risk plan keeps an independent reviewer. It checks task coverage, order, and dependencies. Standalone work uses the same classification; insufficient classification evidence keeps the independent review.
 
 **Dispatch.** Fresh subagent, read-only critique. Resolve the host before choosing a model. Semantics live in `references/model-routing.md` — the single source.
 
@@ -88,15 +92,13 @@ After generation and self-review, before presenting the plan for approval, dispa
 
 **Checklist — judgment only.** The reviewer checks: does the task list cover the whole spec (nothing quietly skipped); is the order sane (no task reading an earlier task's output that lands later); missing or phantom work (spec asks with no task, tasks doing work outside the spec). It does **not** re-run the contract-shaped checks above — `## Self-review` already owns Risk-line, Flow-chart, and verbatim-copyable presence, and grep-able structure checks gain nothing from a subagent dispatch.
 
-**Verdict — binary.** `pass` or `needs-rework`; no middle states. A plan is not shippable-with-notes, so "yellow" has no meaning here. On `needs-rework`, revise the plan per the findings and re-dispatch — maximum 2 rework rounds (3 dispatches total). Still `needs-rework` after round 2 → stop and present the findings to the user; that stop is the real judgment signal.
+**Verdict — binary.** `pass` or `needs-rework`; no middle states. A plan is not shippable-with-notes, so "yellow" has no meaning here. On `needs-rework`, revise the plan per the findings and re-dispatch — maximum 2 rework rounds (3 dispatches total). Still `needs-rework` after round 2 → stop and present the findings to the user; that stop is the real judgment signal. Recheck the size classification before approval, when tasks or scope change, and when repair adds work. If the self-check is no longer valid, add the independent review and any required human re-approval before affected work continues.
 
-**Tiering + waiver.** A trivial plan (a single mechanical task, or a docs-only word change) may run a one-line self-check instead of the dispatch — but the choice is shown to the user first, and the user may demand the full pass. The pass is never silently skipped.
-
-**Recording.** The pass writes a `## Plan review pass` section into the plan document: the verdict, the findings with their handling, rounds used, and the model used when the lane was configured (adversarial review on an external model must not be silent). A plan without this section is **not approvable** — the section is the structural trace that makes a silently-skipped pass visible.
+**Recording.** The pass writes a `## Plan review pass` section into the plan document: the size classification, its classification basis, and applicability, whether the review was a self-check or an independent review, the coverage, order, and dependencies checked, the verdict, the findings and their handling, rounds used, and the model used when the lane was configured. Keep existing passes and prior runs compatible with the rule in force when they ran. A plan without this section is **not approvable** — the section is the structural trace that makes a silently-skipped pass visible.
 
 ## Standalone mode
 
-In any repo, without dev-flow: same sections, same contract — the consumers are whoever executes next (a human, an agent session, a team). Save the plan wherever the repo's convention puts planning docs; if none, use `docs/plans/`.
+In any repo, without dev-flow: standalone work uses the same sections, contract, size classification, and review-depth rule. With insufficient classification evidence, it keeps the independent plan review. The consumers are whoever executes next (a human, an agent session, a team). Save the plan wherever the repo's convention puts planning docs; if none, use `docs/plans/`.
 
 ## dev-flow integration
 
