@@ -144,6 +144,65 @@ else
   bad "Codex implementation integration missing:$codex_implementation_integration_errs"
 fi
 
+# implementer-context integration guard (#108, task 2): new-feature owns the
+# state template field + field rules + the step-5 ask covering all four picks;
+# unknown values block; saved choices survive; legacy state stays per-task.
+implementer_context_integration_errs=$(python3 -B - <<'PY'
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+try:
+    nf = Path("skills/new-feature/SKILL.md").read_text()
+except FileNotFoundError:
+    print("new-feature:missing")
+    sys.exit(0)
+except OSError as error:
+    print(f"new-feature:unreadable:{error}")
+    sys.exit(0)
+state = section(nf, "State files")
+field_rules = nf[nf.index("Field rules:"):nf.index("### Index file")]
+step5 = section(nf, "Step 5")
+state_body = section(nf.replace("### Per-feature state file", "## Per-feature state file"), "Per-feature state file") if False else ""
+# the state template carries the field next to Codex implementer model
+tmpl = nf[nf.index("# <feat-name> — dev-flow state"):nf.index("Field rules:")]
+if "- **Implementer context:**" not in tmpl:
+    print("new-feature:state-template-missing-context-field")
+if not re.search(r"Implementer context.{0,400}(shared \| per-task \| not-used|shared/per-?task/not-used)", tmpl, re.S):
+    print("new-feature:context-field-no-value-grammar")
+# field rules: confirmed choice recorded; legacy subagent runs = per-task; unknown stops
+if not re.search(r"[Ii]mplementer context.{0,240}optional", field_rules, re.I | re.S):
+    print("new-feature:context-field-not-optional-rule")
+if not re.search(r"per-?task.{0,400}(?:legacy|older)|(?:legacy|older).{0,400}per-?task", field_rules, re.I | re.S):
+    print("new-feature:context-no-legacy-per-task-rule")
+if not re.search(r"[Uu]nknown.{0,240}stop|stop.{0,240}unknown", field_rules, re.I):
+    print("new-feature:context-unknown-stops-rule")
+if not re.search(r"[Ss]aved.{0,200}prefer|prefer.{0,200}saved", field_rules, re.I):
+    print("new-feature:context-no-saved-preference-rule")
+if not re.search(r"resume.{0,300}repair|repair.{0,300}resume", field_rules, re.I | re.S):
+    print("new-feature:context-no-resume-repair-rule")
+if not re.search(r"shared contract|references/model-routing.md", field_rules):
+    print("new-feature:context-no-routing-pointer")
+# step 5: the combined ask now covers lane + model + context lifecycle together
+if not re.search(r"[Cc]ombined Roles ask", step5):
+    print("new-feature:context-step5-no-combined-ask")
+if not re.search(r"[Ii]mplementer context", step5):
+    print("new-feature:context-step5-no-context-pick")
+if not re.search(r"shared.{0,300}per-?task.{0,300}not-used|not-used.{0,300}per-?task.{0,300}shared", step5, re.I | re.S):
+    print("new-feature:context-step5-no-value-choices")
+if not re.search(r"(?:trade-?offs?|recommend)", step5, re.I):
+    print("new-feature:context-step5-no-tradeoffs")
+if not re.search(r"(?:never|not).{0,240}(?:choose|pick|select|switch).{0,240}model|no silent", step5, re.I):
+    print("new-feature:context-step5-no-no-silent-model-pick")
+PY
+)
+if [ -z "$implementer_context_integration_errs" ]; then
+  ok "Implementer context state field and combined-ask integration are present"
+else
+  bad "Implementer context integration missing:$implementer_context_integration_errs"
+fi
+
 # gate28: Codex implementation-model documentation (#93). README owns the
 # user-facing configuration explanation; bootstrap owns preserving user choices
 # and leaving both native overrides absent by default; agent-facing summaries

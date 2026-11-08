@@ -206,3 +206,79 @@ if [ -z "$codex_implementer_contract_errs" ]; then
 else
   bad "Codex implementer contract missing:$codex_implementer_contract_errs"
 fi
+
+# implementer-context guard (#108, task 2): the routing page owns the context
+# lifecycle — lane/model/context are separate picks confirmed together; the
+# state field's grammar, legacy per-task default, saved-choice precedence,
+# host capability verification and stop rules live there.
+implementer_context_errs=$(python3 -B - <<'PY'
+import re
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+from pathlib import Path
+rt = Path("references/model-routing.md")
+try:
+    text = rt.read_text()
+except FileNotFoundError:
+    print("routing:missing")
+    sys.exit(0)
+except OSError as error:
+    print(f"routing:unreadable:{error}")
+    sys.exit(0)
+body = section(text, "Implementer context")
+if not body:
+    print("routing:no-implementer-context-section")
+    sys.exit(0)
+for value in ("shared", "per-task", "not-used"):
+    if value not in body:
+        print(f"routing:context-value-missing:{value}")
+# lane, model, context lifecycle are separate selections confirmed in one ask
+if not re.search(r"[Ss]eparate.{0,240}(?:pick|selection|select)|(?:pick|selection).{0,240}separate", body, re.I | re.S):
+    print("routing:context-no-separate-selection")
+# confirmed together in the existing combined Roles ask; no new config frame
+if not re.search(r"[Cc]ombined Roles ask|combined ask", body, re.I):
+    print("routing:context-not-in-combined-ask")
+if not re.search(r"no (?:new |additional )?(?:config|settings?|lane)", body, re.I):
+    print("routing:context-no-new-config")
+# legacy/missing field keeps per-task for old subagent runs
+if not re.search(r"[Mm]issing.{0,240}(?:legacy|older|old).{0,240}per-?task|per-?task.{0,240}(?:legacy|older|old)", body, re.I | re.S):
+    print("routing:context-no-legacy-per-task-default")
+# unknown value stops, never treated as unselected/unset
+if not re.search(r"[Uu]nknown.{0,160}stop|stop.{0,160}unknown", body, re.I):
+    print("routing:context-no-unknown-stops")
+# saved choice beats new config; resume/repair never re-ask
+if not re.search(r"[Ss]aved.{0,240}(?:choice|pick).{0,240}(?:beats?|precede|override|wins?|precedence)", body, re.I | re.S):
+    print("routing:context-no-saved-choice-precedence")
+if not re.search(r"resume.{0,240}repair.{0,240}re-ask|repair.{0,240}resume.{0,240}re-ask|(?:resume|repair).{0,240}not.{0,80}re-ask|re-ask.{0,160}(?:resume|repair)", body, re.I | re.S):
+    print("routing:context-no-resume-no-reask")
+# host capability verified before shared starts; each host judged by actual tooling
+if not re.search(r"follow-?up.{0,320}resume|resume.{0,320}follow-?up", body, re.I | re.S):
+    print("routing:context-no-worker-followup-resume-check")
+if "not-used" in body and not re.search(r"[Ii]nline.{0,240}not-used|not-used.{0,240}inline", body, re.I | re.S):
+    print("routing:context-no-inline-notused")
+# capability gap → enumerate explicit alternatives, never downgrade silently
+if not re.search(r"[Ss]top.{0,320}(?:list|enumerat|per-?task)|(?:per-?task|alternativ).{0,320}explicit.{0,120}choos", body, re.I | re.S):
+    print("routing:context-no-capability-gap-stop")
+# CLI re-run with same model is NOT shared; no-switch rules survive
+if not re.search(r"CLI.{0,320}(?:re-?run|rerun|per-?task)|re-?run.{0,320}not.{0,80}shared", body, re.I | re.S):
+    print("routing:context-no-cli-not-shared")
+if not re.search(r"no-switch|not.{0,40}switch", body, re.I):
+    print("routing:context-no-switch-rule-missing")
+# recommendations: lightweight-model+related → shared; no model difference+tight → inline; isolation → per-task
+if not re.search(r"lightweight.{0,400}shared|shared.{0,400}lightweight", body, re.I | re.S):
+    print("routing:context-no-lightweight-shared-rec")
+if not re.search(r"inline.{0,400}(?:tightly?.{0,40}coupled|no.{0,40}differ(?:ent|ent) model)", body, re.I | re.S):
+    print("routing:context-no-inline-rec")
+if not re.search(r"isolation.{0,400}per-?task|per-?task.{0,400}isolation", body, re.I | re.S):
+    print("routing:context-no-pertask-isolation-rec")
+# fresh-context rules scoped to per-task/new-worker first dispatch
+if not re.search(r"fresh.{0,240}context.{0,400}per-?task|per-?task.{0,200}fresh.{0,240}context", body, re.I | re.S):
+    print("routing:context-no-fresh-context-scoping")
+PY
+)
+if [ -z "$implementer_context_errs" ]; then
+  ok "Implementer context lifecycle contract is present with host capability gates"
+else
+  bad "Implementer context contract missing:$implementer_context_errs"
+fi
