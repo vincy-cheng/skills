@@ -50,8 +50,12 @@ else:
 print("\n".join(errors))
 PY
 )
-if [ -z "$outcome_errs" ]; then
+exit_code=$?
+output="$outcome_errs"
+if [ "$exit_code" -ne 0 ]; then
+  bad "task-outcome contract crashed (exit $exit_code):$output"
+elif [ -z "$output" ]; then
   ok "task outcomes have a shared reference with pinned step-5/step-11 anchors"
 else
-  bad "task-outcome contract missing:$outcome_errs"
+  bad "task-outcome contract missing:$output"
 fi

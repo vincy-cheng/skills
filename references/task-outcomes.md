@@ -29,7 +29,7 @@ For each field, the source and the honesty rule. An unverifiable value is `unkno
 | Difficulty and risk | The plan's per-task `Risk:` lines and the state file's **Risk tier**; the difficulty class is assigned at close-out by the definitions above. |
 | Completion criteria | `gh issue view` metadata — the issue body's acceptance criteria. |
 | Model and role configuration | State file: **Roles block**, **Codex implementer model** / reviewer model fields, **Implementer context**; reasoning setting from the host's dispatch record or `unknown` if the lane does not expose one. |
-| First-pass acceptance | Test report (state file **Last verification** from the first round) and review report verdict from the first gate round; reports archived under `docs/features/.test/` and `.pr-review/`. |
+| First-pass acceptance | Test report (state file **Last verification** from the first round) and review report verdict from the first gate round; reports archived under `docs/features/.test/` and `docs/features/.review/` (step-10 PR-check reports live under `.pr-review/`). |
 | Repair rounds | Tasks annotations (`[x]` with repair notes) and the state file's rewind history / PR check entries. |
 | Unresolved limitations | The PR body, review report's note-in-PR findings, and close-out observations. |
 | Token categories | Host output (the dispatching session's usage readout) for the recorded lane's work; per-task host readouts only where attribution exists — otherwise `unknown`. |
