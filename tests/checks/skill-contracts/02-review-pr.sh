@@ -86,6 +86,49 @@ PY
 )
 if [ -z "$incremental_review_errs" ]; then ok "post-PR review reuses matching evidence and fails closed to full review"; else bad "incremental review contract missing:$incremental_review_errs"; fi
 
+# Per-step main/focused reviewer groups (issue #100, task 3). The shared
+# routing contract owns selection and batch mechanics; these consumer checks
+# ensure review applies them without weakening R5 or the risk/lifecycle gates.
+review_group_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+review = Path("skills/review/SKILL.md").read_text()
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+
+main = re.search(r"^## Dispatch the reviewer subagent\s+(.*?)(?=^## The review )", review, re.M | re.S)
+main = main.group(1) if main else ""
+focused = re.search(r"^## Focused review\b(.*?)(?=^## Standalone mode\b)", review, re.M | re.S)
+focused = focused.group(1) if focused else ""
+for group, body in (("main", main), ("focused", focused)):
+    if not re.search(r"(?:main_review|focused_review).{0,180}(?:group|reviewer list|route)|(?:group|reviewer list|route).{0,180}(?:main_review|focused_review)", body, re.I | re.S):
+        print(f"review:{group}-step-route-not-resolved")
+    if not re.search(r"every member.{0,180}(?:complete|valid|report)|(?:complete|valid|report).{0,180}every member", body, re.I | re.S):
+        print(f"review:{group}-does-not-require-every-member")
+    if not re.search(r"unique.{0,120}(?:report|destination|path)|(?:report|destination|path).{0,120}unique", body, re.I | re.S):
+        print(f"review:{group}-no-isolated-report-paths")
+    if not re.search(r"red.{0,120}(?:blocks|blocker|hard gate)|(?:blocks|blocker|hard gate).{0,120}red", body, re.I | re.S):
+        print(f"review:{group}-red-blocker-missing")
+if not re.search(r"absent.{0,180}(?:fallback|existing).{0,180}(?:route|selection|ask)|(?:fallback|existing).{0,180}(?:route|selection|ask).{0,180}absent", review, re.I | re.S):
+    print("review:no-fallback-only-when-step-is-absent")
+if not re.search(r"focused.{0,220}after.{0,100}(?:main|R5).{0,180}(?:clear|green|blue)", review, re.I | re.S):
+    print("review:focused-does-not-follow-main-clearance")
+if not re.search(r"Focused verdict.{0,180}(?:aggregate|group).{0,120}(?:pending|current|round)|(?:aggregate|group).{0,120}Focused verdict", review, re.I | re.S):
+    print("review:focused-aggregate-not-written-to-existing-field")
+if not re.search(r"(?:fix|changed).{0,180}(?:rerun|re-review).{0,180}(?:all|every).{0,100}reviewer", review, re.I | re.S):
+    print("review:fix-does-not-invalidate-entire-group")
+if not re.search(r"read-only reviewer.{0,180}(?:returns|return).{0,100}report.{0,180}(?:verbatim|without judging|without editorial)", review, re.I | re.S):
+    print("review:cli-report-transport-not-verbatim")
+if not re.search(r"main_review|focused_review", new_feature):
+    print("new-feature:no-per-step-reviewer-guidance")
+if not re.search(r"focused reviewer.{0,180}(?:high|risk).{0,180}(?:waiv|not waived)|(?:high|risk).{0,180}(?:waiv|not waived).{0,180}focused reviewer", new_feature, re.I | re.S):
+    print("new-feature:step7-risk-conditional-review-missing")
+if not re.search(r"Risk tier.{0,240}Focused verdict.{0,240}(?:pending|not required)", new_feature, re.I | re.S):
+    print("new-feature:focused-verdict-lifecycle-missing")
+PY
+)
+[ -z "$review_group_errs" ] && ok "main and focused reviewer groups preserve R5, risk, and re-review gates" || bad "reviewer-group consumer contract missing:$review_group_errs"
+
 # Step 10 checks the remote PR and its required checks before the manual merge gate.
 step10_errs=$(python3 -B - <<'PY'
 import re
