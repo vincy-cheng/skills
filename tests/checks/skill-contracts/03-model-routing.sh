@@ -339,3 +339,43 @@ if not re.search(r"pass sections only after this acceptance check", batches):
 PY
 )
 if [ -z "$reviewer_batch_errs" ]; then ok "per-step reviewer maps and precedence are documented"; else bad "reviewer-list contract missing:$reviewer_batch_errs"; fi
+
+# Task 5 (#100): public config example and bootstrap preservation contract.
+reviewer_docs_errs=$(python3 -B - <<'PY'
+import json
+import re
+from pathlib import Path
+
+readme = Path("README.md").read_text()
+bootstrap = Path("skills/bootstrap/SKILL.md").read_text()
+example = re.search(r"### Per-step reviewer groups.*?```json\s*(.*?)```", readme, re.S)
+if not example:
+    print("reviewer-docs:no-per-step-json-example")
+else:
+    try:
+        config = json.loads(example.group(1))
+    except json.JSONDecodeError:
+        print("reviewer-docs:invalid-json-example")
+    else:
+        keys = ("red_team", "plan_review", "focused_review")
+        expected_counts = {"red_team": 2, "plan_review": 1, "focused_review": 2}
+        for host_map in ("codex_reviewers", "reviewers"):
+            routes = config.get(host_map, {})
+            if not isinstance(routes, dict) or set(routes) != set(keys):
+                print(f"reviewer-docs:incomplete-map:{host_map}")
+            for step, count in expected_counts.items():
+                if not isinstance(routes.get(step), list) or len(routes[step]) != count:
+                    print(f"reviewer-docs:wrong-count:{host_map}:{step}")
+if not re.search(r"bootstrap.{0,160}(?:preserv|keep).{0,160}codex_reviewers", readme, re.I | re.S):
+    print("reviewer-docs:readme-no-bootstrap-preservation")
+if not re.search(r"preserv.{0,180}(?:codex_reviewers|reviewers).{0,180}(?:existing|other|unrelated).{0,180}key", bootstrap, re.I | re.S):
+    print("reviewer-docs:bootstrap-no-map-preservation")
+default_config = re.search(r"```json\s*(.*?)```", bootstrap, re.S)
+if default_config and any(key in default_config.group(1) for key in ('"codex_reviewers"', '"reviewers"')):
+    print("reviewer-docs:optional-map-in-default-config")
+for key in ("codex_reviewers", "reviewers"):
+    if key not in bootstrap:
+        print(f"reviewer-docs:bootstrap-missing:{key}")
+PY
+)
+[ -z "$reviewer_docs_errs" ] && ok "reviewer config example and bootstrap preservation are documented" || bad "reviewer docs contract missing:$reviewer_docs_errs"
