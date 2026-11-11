@@ -7,7 +7,8 @@ for contract_fragment in \
   04-codex-implementation \
   05-status-prose-and-review-gates \
   06-git-safeguards \
-  07-context-efficiency; do
+  07-context-efficiency \
+  08-task-outcomes; do
   contract_path="tests/checks/skill-contracts/$contract_fragment.sh"
   [ -f "$contract_path" ] || { echo "FAIL: missing fragment $contract_path"; exit 1; }
   source "$contract_path"
