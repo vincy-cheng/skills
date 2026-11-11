@@ -300,3 +300,42 @@ if [ -z "$implementer_context_errs" ]; then
 else
   bad "Implementer context contract missing:$implementer_context_errs"
 fi
+
+# multi-model-reviewers task 1: shared reviewer-list and batch contract.
+reviewer_batch_errs=$(python3 -B - <<'PY'
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tests/lib")
+from sections import section
+
+text = Path("references/model-routing.md").read_text()
+body = section(text, "Per-step reviewer groups") or ""
+for key in ("codex_reviewers", "reviewers"):
+    if key not in body:
+        print(f"reviewers:missing-map:{key}")
+for step in ("red_team", "plan_review", "main_review", "focused_review"):
+    if step not in body:
+        print(f"reviewers:missing-step:{step}")
+if not re.search(r"list.{0,100}overrides.{0,100}step|override.{0,160}existing", body, re.I | re.S):
+    print("reviewers:missing-override-precedence")
+for term in ("Codex uses", "ignores", "state-file picks", "standalone asks", "codex_reviewer_model", "Claude Code", "unavailable", "active-host", "exact duplicate", "nonempty array", "invalid lanes"):
+    if term.lower() not in body.lower():
+        print(f"reviewers:selection-or-validation-missing:{term}")
+if not re.search(r"Native model validation", body):
+    print("reviewers:no-native-validation-pointer")
+if not re.search(r"before each queued dispatch", body):
+    print("reviewers:no-queued-availability-check")
+
+batches = section(text, "Review batches") or ""
+for term in ("fresh independent context", "available host slots", "never exceed host concurrency", "complete reviewed diff", "uncommitted changes", "substantive change invalidates", "read-only sandbox", "verbatim", "reviewer-<I>", "reviewer-<I>.md", "one-based", "fresh complete batch", "FUNDAMENTAL", "adjudication", "unanimous approval"):
+    if term.lower() not in batches.lower():
+        print(f"reviewers:batch-contract-missing:{term}")
+if not re.search(r"(?:every|all) members? must return", batches, re.I):
+    print("reviewers:missing-complete-member-reports")
+if not re.search(r"pass sections only after this acceptance check", batches):
+    print("reviewers:missing-acceptance-before-pass-record")
+PY
+)
+if [ -z "$reviewer_batch_errs" ]; then ok "per-step reviewer maps and precedence are documented"; else bad "reviewer-list contract missing:$reviewer_batch_errs"; fi
