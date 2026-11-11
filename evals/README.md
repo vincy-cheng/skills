@@ -12,7 +12,7 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `new-feature` | `dev-flow:new-feature` | 6 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask, git safeguards |
 | `review` | `dev-flow:review` | 4 | R5 verdict contract: green/blue/yellow/red + follow-on action |
 | `test` | `dev-flow:test` | 1 | unavailable cli lane → BLOCKED stop-and-ask, never a silent downgrade |
-| `model-routing` | Codex native model routing | 6 | unlisted exact-name success, rejected dispatch, and enforced-enum refusal for implementer and reviewer; no fallback |
+| `model-routing` | Codex and Claude per-step reviewer routing | 13 | both-host step overrides and legacy fallback, strict validation, batch verdicts, isolated reports, resume/rework, and required adversarial-review evidence |
 | `standardize-prose` | `standardize-prose` | 1 | guided cleanup: proposal-before-apply, violation detection, never-touch regions preserved (modals, code, Risk/checkbox lines) |
 | `output-style` | response and file output style | 4 | fast reading with complete detail across English, formal Traditional Chinese, standalone skills, and subagent reports |
 | `context-efficiency` | context reuse and dispatch boundaries | 3 | bounded loading and reload, isolated-brief completeness, and evidence-producer/version separation |
