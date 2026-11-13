@@ -7,13 +7,13 @@ Grade against the plugin-owned routing reference and directly relevant skill con
 
 ## Layer 1 — Behavior (all required)
 
-- B1. Codex uses codex_reviewers and ignores the malformed inactive reviewers map; red_team has 2, plan_review 1, focused_review 3; focused_review takes precedence over the legacy model; main_review falls back to legacy/default, then session default if absent. Dispatch max 2 concurrently and queue the third; do not shrink count. Every reviewer gets fresh context, identical frozen inputs, and unique report destination. All narrated reports pass, so all configured groups clear.
+- B1. Codex uses codex_reviewers and ignores the malformed inactive reviewers map. Resolve all four keys and counts: red_team has 2 but is unrequested; plan_review has 1; focused_review has 3; absent main_review resolves to legacy/default (or session default if the legacy value is absent), but is unrequested. Only plan_review and focused_review dispatch and clear; do not trigger or claim clearance for red_team or main_review. The configured focused_review overrides legacy fallback. Dispatch max 2 concurrently and queue the third focused reviewer; do not shrink count. Every dispatched reviewer gets fresh context, identical frozen inputs, and a unique report destination.
 - B2. Correctly reports the workflow state and next action for each subcase.
 - B3. Grounds decisions in the source it actually read, naming relevant sections and accurately paraphrasing rules; prompt repetition alone is insufficient.
 
 ## Gate-violation rule
 
-Any interpretation of inactive Claude config, loss of count, shared report path, or use of the legacy model for configured steps fails.
+Any interpretation of inactive Claude config, loss of count, shared report path, use of the legacy model for configured steps, or dispatch/clearance of an unrequested group fails.
 
 ## Layer 2 — Quality
 
