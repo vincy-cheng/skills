@@ -106,6 +106,33 @@ PY
 )
 if [ -z "$gate25_errs" ]; then ok "model routing structurally present (lanes doc + dispatch pointers + combined ask + gitignore)"; else bad "model-routing concept missing:$gate25_errs"; fi
 
+# Plugin-root reference resolution must be explicit from portable skill bases,
+# and the Claude command wrapper must point at its engine without duplicating it.
+source_pointer_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import re
+review = Path("skills/review/SKILL.md").read_text()
+feature = Path("skills/new-feature/SKILL.md").read_text()
+wrapper = Path("commands/new-feature.md").read_text()
+case12 = Path("evals/model-routing/cases/12-reviewer-group-rework/graders/grader.md").read_text()
+for name, text in (("review", review), ("new-feature", feature)):
+    for target in ("../../references/model-routing.md", "../../references/output-style.md"):
+        if target not in text:
+            print(f"{name}:missing-plugin-root-link:{target}")
+        elif not (Path("skills") / name / target).resolve().is_file():
+            print(f"{name}:dangling-plugin-root-link:{target}")
+if "[skills/new-feature/SKILL.md](../skills/new-feature/SKILL.md)" not in wrapper:
+    print("new-feature-wrapper:missing-portable-relative-engine-link")
+if "On Claude Code" not in wrapper or "Other hosts resolve the relative link" not in wrapper:
+    print("new-feature-wrapper:missing-optional-host-locator-boundary")
+if not (Path("commands") / "../skills/new-feature/SKILL.md").resolve().is_file():
+    print("new-feature-wrapper:dangling-engine-link")
+if not re.search(r"already exhausted.*cap.*stop.*without another dispatch", case12, re.I | re.S):
+    print("case12:exhausted-cap-expectation-is-ambiguous")
+PY
+)
+[ -z "$source_pointer_errs" ] && ok "plugin-root source pointers and exhausted-cap grader expectation are explicit" || bad "source-resolution/eval contract missing:$source_pointer_errs"
+
 # codex-implementer-contract guard (#93, task 1): the routing page owns
 # configuration, host scoping, saved selection, and native dispatch/failure rules.
 
@@ -300,3 +327,82 @@ if [ -z "$implementer_context_errs" ]; then
 else
   bad "Implementer context contract missing:$implementer_context_errs"
 fi
+
+# multi-model-reviewers task 1: shared reviewer-list and batch contract.
+reviewer_batch_errs=$(python3 -B - <<'PY'
+import re
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tests/lib")
+from sections import section
+
+text = Path("references/model-routing.md").read_text()
+body = section(text, "Per-step reviewer groups") or ""
+for key in ("codex_reviewers", "reviewers"):
+    if key not in body:
+        print(f"reviewers:missing-map:{key}")
+for step in ("red_team", "plan_review", "main_review", "focused_review"):
+    if step not in body:
+        print(f"reviewers:missing-step:{step}")
+if not re.search(r"list.{0,100}overrides.{0,100}step|override.{0,160}existing", body, re.I | re.S):
+    print("reviewers:missing-override-precedence")
+for term in ("Codex uses", "ignores", "state-file picks", "standalone asks", "codex_reviewer_model", "Claude Code", "unavailable", "active-host", "exact duplicate", "nonempty array", "invalid lanes"):
+    if term.lower() not in body.lower():
+        print(f"reviewers:selection-or-validation-missing:{term}")
+if not re.search(r"Native model validation", body):
+    print("reviewers:no-native-validation-pointer")
+if not re.search(r"before each queued dispatch", body):
+    print("reviewers:no-queued-availability-check")
+
+batches = section(text, "Review batches") or ""
+for term in ("fresh independent context", "available host slots", "never exceed host concurrency", "complete reviewed diff", "uncommitted changes", "substantive change invalidates", "read-only sandbox", "verbatim", "reviewer-<I>", "reviewer-<I>.md", "one-based", "fresh complete batch", "FUNDAMENTAL", "adjudication", "unanimous approval"):
+    if term.lower() not in batches.lower():
+        print(f"reviewers:batch-contract-missing:{term}")
+if not re.search(r"(?:every|all) members? must return", batches, re.I):
+    print("reviewers:missing-complete-member-reports")
+if not re.search(r"pass sections only after this acceptance check", batches):
+    print("reviewers:missing-acceptance-before-pass-record")
+PY
+)
+if [ -z "$reviewer_batch_errs" ]; then ok "per-step reviewer maps and precedence are documented"; else bad "reviewer-list contract missing:$reviewer_batch_errs"; fi
+
+# Task 5 (#100): public config example and bootstrap preservation contract.
+reviewer_docs_errs=$(python3 -B - <<'PY'
+import json
+import re
+from pathlib import Path
+
+readme = Path("README.md").read_text()
+bootstrap = Path("skills/bootstrap/SKILL.md").read_text()
+example = re.search(r"### Per-step reviewer groups.*?```json\s*(.*?)```", readme, re.S)
+if not example:
+    print("reviewer-docs:no-per-step-json-example")
+else:
+    try:
+        config = json.loads(example.group(1))
+    except json.JSONDecodeError:
+        print("reviewer-docs:invalid-json-example")
+    else:
+        keys = ("red_team", "plan_review", "focused_review")
+        expected_counts = {"red_team": 2, "plan_review": 1, "focused_review": 2}
+        for host_map in ("codex_reviewers", "reviewers"):
+            routes = config.get(host_map, {})
+            if not isinstance(routes, dict) or set(routes) != set(keys):
+                print(f"reviewer-docs:incomplete-map:{host_map}")
+            for step, count in expected_counts.items():
+                if not isinstance(routes.get(step), list) or len(routes[step]) != count:
+                    print(f"reviewer-docs:wrong-count:{host_map}:{step}")
+if not re.search(r"bootstrap.{0,160}(?:preserv|keep).{0,160}codex_reviewers", readme, re.I | re.S):
+    print("reviewer-docs:readme-no-bootstrap-preservation")
+if not re.search(r"preserv.{0,180}(?:codex_reviewers|reviewers).{0,180}(?:existing|other|unrelated).{0,180}key", bootstrap, re.I | re.S):
+    print("reviewer-docs:bootstrap-no-map-preservation")
+default_config = re.search(r"```json\s*(.*?)```", bootstrap, re.S)
+if default_config and any(key in default_config.group(1) for key in ('"codex_reviewers"', '"reviewers"')):
+    print("reviewer-docs:optional-map-in-default-config")
+for key in ("codex_reviewers", "reviewers"):
+    if key not in bootstrap:
+        print(f"reviewer-docs:bootstrap-missing:{key}")
+PY
+)
+[ -z "$reviewer_docs_errs" ] && ok "reviewer config example and bootstrap preservation are documented" || bad "reviewer docs contract missing:$reviewer_docs_errs"

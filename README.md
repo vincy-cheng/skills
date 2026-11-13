@@ -39,20 +39,36 @@ codex plugin marketplace add .
 
 After updating a local checkout, refresh it with `codex plugin marketplace upgrade vincy-skills` and restart Codex.
 
-### Native model selection
+### Per-step reviewer groups
 
-On Codex, reviewers and native implementation subagents can use separately selected models. Add either optional top-level setting to the target repo's gitignored `.dev-flow/config.json`:
+Both hosts can select a reviewer list per review step in the target repo's gitignored `.dev-flow/config.json`. `codex_reviewers` contains exact native Codex model names; `reviewers` contains Claude Code lane values. The supported keys are `red_team`, `plan_review`, `main_review`, and `focused_review`. A list starts one independent reviewer per entry. The example configures two red-team reviewers, one plan reviewer, and two focused reviewers; the main-review group inherits the existing reviewer selection because it is omitted:
 
 ```json
 {
+  "codex_reviewers": {
+    "red_team": ["<native-model-a>", "<native-model-b>"],
+    "plan_review": ["<native-model-a>"],
+    "focused_review": ["<native-model-a>", "<native-model-b>"]
+  },
+  "reviewers": {
+    "red_team": ["session", "claude:<model-name>"],
+    "plan_review": ["session"],
+    "focused_review": ["session", "claude:<model-name>"]
+  },
   "codex_reviewer_model": "<available-native-model>",
   "codex_implementer_model": "<available-native-model>"
 }
 ```
 
-Replace each placeholder with a model supported by the current Codex native subagent tool, then merge your existing branch and role settings. The reviewer key selects the brainstorm red-team, plan reviewer, and step-7 main and focused reviewers. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
+Configure only the active host's map. Codex uses `codex_reviewers` and ignores `reviewers`; Claude Code uses `reviewers` and ignores `codex_reviewers`. A configured list overrides that step's existing selection. An omitted step inherits its existing route: Codex uses `codex_reviewer_model`, then the session default; Claude Code keeps its state/config/standalone precedence. A valid override can be used even when an unused legacy default is unavailable. Bootstrap preserves existing `codex_reviewers` and `reviewers` maps and other config keys, and does not add either optional map to a new default config.
 
-Claude Code ignores both keys and continues to route implementation and reviewers through `roles.implementer` and `roles.reviewer`. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting either native key selects its role's session default. See [model routing](references/model-routing.md) for validation, host precedence, lane details, and isolated brief boundaries.
+Every member must finish and clear the step's verdict rules; a majority cannot waive a blocker. After edits, rerun the whole affected group on the revised materials. Reviewers run independently in parallel up to host slots, with the remaining entries queued; the full configured count remains in force. Focused review still runs only after main-review clearance and its existing high-risk trigger. Plan reviewers combine coverage and adversarial review in one pass. Architectural designs require recorded completed red-team evidence before approval; bounded designs retain their self-check, and existing explicit trivial-plan self-check exceptions remain. Multiple reviewers increase dispatch and rework cost. See [model routing](references/model-routing.md#per-step-reviewer-groups) for validation, batch evidence, verdicts, and resume rules.
+
+### Native model selection
+
+On Codex, the separate `codex_reviewer_model` and `codex_implementer_model` settings select legacy reviewer and native implementation defaults. Replace the model placeholders with names supported by the current native subagent tool, then merge your existing branch and role settings. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
+
+Claude Code ignores both legacy Codex model keys and routes implementation through `roles.implementer`; omitted reviewer steps keep the existing `roles.reviewer` precedence. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting `codex_implementer_model` selects its session default; `codex_reviewer_model` is the reviewer fallback only for steps without a `codex_reviewers` override. See [model routing](references/model-routing.md) for validation, host precedence, lane details, and isolated brief boundaries.
 
 ## The `dev-flow` workflow
 

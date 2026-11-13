@@ -318,6 +318,39 @@ for recheck in ("before approval", "task.*scope", "repair"):
         print("new-feature:step3-recheck-missing")
 if "self-check" not in section(new_feature, "Step 4 — Create issue").lower():
     print("new-feature:step4-self-check-missing")
+brainstorm_text = Path("skills/brainstorm/SKILL.md").read_text()
+viability = brainstorm_text.split("\n## Model routing\n", 1)[0]
+review_pass = section(plan, "Plan review pass")
+
+# Task 2 (#100): reviewer-group consumers point to the shared batch contract,
+# and gates require completed evidence rather than headings or claimed dispatch.
+route_pointer = "references/model-routing.md"
+for rel, key in (("skills/brainstorm/SKILL.md", "red_team"),
+                 ("skills/plan/SKILL.md", "plan_review"),
+                 ("skills/create-github-issue/SKILL.md", "plan_review"),
+                 ("skills/new-feature/SKILL.md", "red_team")):
+    text = Path(rel).read_text()
+    if key not in text:
+        print(f"{rel}:{key}-route-missing")
+    if route_pointer not in text:
+        print(f"{rel}:batch-contract-pointer-missing")
+
+if not re.search(r"completed.*report|report.*completed", viability, re.I | re.S):
+    print("brainstorm:viability-completion-evidence-missing")
+if not re.search(r"coverage.*adversarial|adversarial.*coverage", review_pass, re.I | re.S):
+    print("plan:adversarial-dimension-missing")
+if not re.search(r"every reviewer.*both|both.*every reviewer", review_pass, re.I | re.S):
+    print("plan:per-reviewer-both-dimensions-missing")
+if not re.search(r"material identity|reviewed revision", review_pass, re.I):
+    print("plan:material-identity-missing")
+step2 = section(new_feature, "Step 2 — Spec")
+if not re.search(r"legacy.*explicit.*record|explicit.*legacy.*record", step2, re.I | re.S):
+    print("new-feature:legacy-viability-choice-not-recorded")
+step3 = section(new_feature, "Step 3 — Plan")
+if not re.search(r"while.*`spec`.*only then.*`planning`", step3, re.I | re.S):
+    print("new-feature:step3-status-transition-before-viability-check")
+if not re.search(r"legacy.*explicit.*record|explicit.*legacy.*record", plan, re.I | re.S):
+    print("plan:legacy-viability-choice-not-recorded")
 
 brainstorm = Path("skills/brainstorm/SKILL.md").read_text()
 viability = brainstorm.split("\n## Model routing\n", 1)[0]

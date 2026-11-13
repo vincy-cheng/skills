@@ -66,7 +66,7 @@ Optional settings in `.dev-flow/config.json` (per-repo, gitignored, per-machine 
 
 On Codex, ignore the `roles` table and state-file lane values when selecting reviewer models, even if those Claude lane values are malformed. On Claude Code, ignore `codex_reviewer_model` and keep the existing reviewer lane and external CLI behavior. The dev-flow Roles-presence gate still applies; this rule changes model selection, not the step-5 ask.
 
-Before every fresh reviewer dispatch, including re-review, resolve this setting for brainstorm red-team, plan review, and step-7 main and focused review. Standalone Codex review and plan review use the same config read, without a Claude lane ask.
+For a step without a `codex_reviewers` override, before every fresh reviewer dispatch, including re-review, resolve this setting for brainstorm red-team, plan review, and step-7 main and focused review. A configured per-step list takes precedence as described in **Per-step reviewer groups**. Standalone Codex review and plan review use the same config read, without a Claude lane ask.
 
 1. Read `.dev-flow/config.json` from the target repo. A missing file or absent key means the session default: omit the native `model` argument. An existing unreadable file, malformed JSON, or a non-object top level is invalid config, not an absent setting.
 2. A present `codex_reviewer_model` must be a nonempty string. Reject empty or whitespace-only strings, null, boolean, number, array, and object values. Apply **Native model validation** below; do not trim, translate, or guess model aliases.
@@ -75,6 +75,45 @@ Before every fresh reviewer dispatch, including re-review, resolve this setting 
 **Failure:** invalid config, an authoritative restriction that excludes the requested model, or a native tool that cannot accept a string model parameter → **BLOCKED**, no reviewer dispatch. A dispatch that rejects the exact requested model is also **BLOCKED** after preserving the tool's original reason. Show the key, failure reason, and correction/resume hint, then wait for the user. Never retry on another model, use a Claude lane or CLI driver, or silently substitute the session default. Leave the workflow status in place for resume.
 
 Record a configured model in the role's existing pass/report artifact. Re-resolve before the focused reviewer too; it shares this setting with the main reviewer, not a separate model source. This key never selects implementer or tester models.
+
+## Per-step reviewer groups
+
+Optional `codex_reviewers` and `reviewers` objects in `.dev-flow/config.json` map review steps to ordered reviewer lists:
+
+```json
+{
+  "codex_reviewers": {
+    "red_team": ["gpt-6.1-sol", "glm-5.3:cloud"],
+    "plan_review": ["gpt-6.1-sol"],
+    "main_review": ["gpt-6.1-sol"],
+    "focused_review": ["gpt-6.1-sol", "glm-5.3:cloud"]
+  },
+  "reviewers": {
+    "red_team": ["session", "claude:glm-5-3"],
+    "plan_review": ["session"],
+    "main_review": ["session"],
+    "focused_review": ["session", "claude:glm-5-3"]
+  }
+}
+```
+
+The supported step keys are `red_team`, `plan_review`, `main_review`, and `focused_review`. Select the host before reading these objects: Codex uses `codex_reviewers` and ignores `reviewers`; Claude Code uses `reviewers` and ignores `codex_reviewers`. A configured list overrides that step's prior reviewer selection. An absent step follows its existing host and step source, including state-file picks and standalone asks. On Codex, legacy fallback remains `codex_reviewer_model`, then the session default. On Claude Code, preserve the existing lane syntax and state/config/standalone precedence. An unavailable legacy choice does not block a valid active-host override. Implementer and tester routing are unchanged.
+
+Validate the active-host object before routing. It must be an object with only recognized step keys; each present value must be a nonempty array of valid, nonblank strings with no exact duplicate entries. Empty arrays never skip a required review. Reject malformed JSON, unreadable config, wrong value types, blank strings, duplicate routes, unknown keys, and invalid lanes. Ignore malformed inactive-host reviewer settings. Validate every selected route before dispatch begins, then check availability again before each queued dispatch. Keep exact native model names and apply **Native model validation** and the existing Claude lane resolution rules. An authoritative native restriction, unavailable lane/model, failed dispatch, or missing report blocks without a fallback vote.
+
+## Review batches
+
+A review batch is the complete resolved route list for one step and round. Before dispatch, the orchestrator saves exact spec, plan, or design input bytes under `docs/features/.routing/<feat>/<step>/round-<N>/inputs/`. Code review also pins base and HEAD and saves the complete reviewed diff, including relevant uncommitted changes. Every reviewer receives those same frozen inputs in a fresh independent context and cannot read peer findings before returning. Dispatch concurrently up to available host slots, then queue remaining reviewers; preserve the full configured count and never exceed host concurrency.
+
+Each reviewer and driver uses a unique directory: `docs/features/.routing/<feat>/<step>/round-<N>/reviewer-<I>/`, where reviewer indices start at one. The orchestrator alone writes aggregate reports. Before accepting an aggregate, compare live source inputs and the pinned diff with the frozen batch inputs. Any substantive change invalidates the complete batch. Write generated pass sections only after this acceptance check; recording those results alone does not invalidate the accepted round.
+
+For CLI reviewer lanes, the external reviewer stays in the read-only sandbox and returns its complete report through output. Its driver captures and saves that report verbatim to the assigned report destination, without judging or summarizing findings. Briefs, captured output, and other transient files stay in that reviewer's unique directory. Keep existing implementer and tester writer contracts unchanged.
+
+Use `docs/features/.review/<feat>/batches/<step>/round-<N>/reviewer-<I>.md` for individual reports, with one-based numeric indices and no model names in paths. Standalone mode uses the review skill's existing feature naming convention. Existing single-reviewer destinations remain compatible. Red-team and plan-review aggregates go in their existing pass sections. Main and focused review keep their existing aggregate report destinations and archives. Record each route, index, verdict, findings, reviewed material identity, round, and any adjudication exception.
+
+Every member must return a current valid report. A failed or incomplete batch blocks; preserve valid partial findings for diagnosis without claiming clearance. A dispatch error is never a fallback vote. Resume an incomplete step with a fresh complete batch and current routing. Do not reuse approvals across rounds or changed materials, and persist batch identity in local reports without adding lifecycle statuses.
+
+Apply each step's existing verdict rules: a red-team FUNDAMENTAL finding blocks; plan review requires every reviewer to pass; R5 aggregates red before yellow, blue, then green. Deduplicate displayed findings while preserving author attribution, original verdicts, and dissent. An explicit user adjudication records the user's reason as a visible exception. It does not claim unanimous approval and cannot waive unrelated blockers or dispatch failures.
 
 ## Codex implementer model
 
@@ -125,12 +164,12 @@ The cli lane runs one role's work through an external CLI, driven by a cheap in-
 1. The dispatching skill spawns one **driver** subagent (claude lane, cheap/standard — it composes and relays, it does not judge content).
 2. The driver composes the role's brief + the role's **report contract** — copied **verbatim at runtime** from the skill's own contract section (never paraphrased or remembered) — into the run folder `docs/features/.routing/<feat>/`.
 3. The driver runs the CLI via Bash, e.g.: `codex exec --model <model> --sandbox <s> -C <repo> <brief-path>` — sandbox from `## Sandbox map`.
-4. The external model reads the brief, does the role's work, and **writes the role's existing report artifact to the role's existing path** (`.sdd/<feat>/task-N-report.md`, `.test/<feat>/test-report.md`, review report likewise) — the writer changes, never the path.
+4. The external model reads the brief and does the role's work. Implementers and testers write their existing report artifacts. A reviewer returns its complete report through output; its driver saves that report verbatim to the assigned report destination. Keep existing single-reviewer destinations compatible.
 5. The driver reads the report and relays a **per-role payload**:
    - **implementer:** status + commits + one-line test summary — and the report itself must contain the RED-phase test output **verbatim** (test-first attribution survives the one-shot invocation). Missing/stale report file = hard failure → BLOCKED.
    - **tester:** green/red verdict + failure list.
-   - **reviewer:** verdict + **full findings verbatim** — the R5 yellow choice (fix-now vs note-in-PR) must reach the user uncompressed.
-   - Missing/stale report file for any role = hard failure → BLOCKED stop-and-ask.
+   - **reviewer:** verdict + **full findings verbatim** — the R5 yellow choice (fix-now vs note-in-PR) must reach the user uncompressed. The driver transports findings without judging or summarizing them.
+   - Missing/stale report file for any role = hard failure → BLOCKED stop-and-ask. For reviewer reports, the driver writes the captured output; the read-only reviewer does not create files.
 6. **Commit ownership:** the external model is **prohibited from committing**. The driver scopes the working-tree diff and commits via the `dev-flow:commit` conventions (Conventional Commits, **no AI attribution**) — per-task commits keep their contract regardless of lane.
 
 ## Sandbox map

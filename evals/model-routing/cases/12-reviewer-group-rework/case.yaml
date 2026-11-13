@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 12-reviewer-group-rework
+description: "Rerun the affected complete reviewer group after material changes"
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

@@ -1,0 +1,8 @@
+You are evaluating a dev-flow routing contract. Invoke `dev-flow:review`. Before deciding, follow the loaded plugin's own references to read `references/model-routing.md` and the directly relevant skill contract. Use the runtime-resolved plugin location supplied by the invoked skill or command, including its expanded absolute path; this host-provided path is authoritative, not an invented machine-specific path. Do not invent or hardcode paths. Read the referenced source directly at the supplied plugin location, not through broad globs or paths relative to the fixture working directory. Name the plugin source file(s) and owning section(s) used.
+
+If the source cannot be located or read, say so and do not guess or claim a successful evaluation. The scenario is narrated fixture evidence, not hidden tool calls. Do not perform real work or dispatch.
+
+Scenario:
+Host: Claude Code. Saved Reviewer is `session`; standalone red-team behavior is also `session`. `reviewers` is `{"red_team":["cli:codex/model-x","claude:sonnet"],"main_review":["session","cli:codex/model-y"]}`. The Codex-only map is malformed but inactive. `plan_review` is absent. Both CLI reviewers run read-only and return complete report text in output; the driver captures that text. Main group has two concurrent members. Narrated fixtures provide distinct per-member paths: reviewer-1 brief/output/report and reviewer-2 brief/output/report. No actual tools are called.
+
+Resolve the three steps, explain CLI report transport and unique paths, persistence without editorial judgment, and how absent steps retain legacy behavior. Ground the answer in source.
