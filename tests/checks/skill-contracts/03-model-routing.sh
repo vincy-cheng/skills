@@ -121,12 +121,12 @@ for name, text in (("review", review), ("new-feature", feature)):
             print(f"{name}:missing-plugin-root-link:{target}")
         elif not (Path("skills") / name / target).resolve().is_file():
             print(f"{name}:dangling-plugin-root-link:{target}")
-if "${CLAUDE_PLUGIN_ROOT}/skills/new-feature/SKILL.md" not in wrapper:
-    print("new-feature-wrapper:missing-plugin-root-engine-pointer")
-else:
-    engine_path = "${CLAUDE_PLUGIN_ROOT}/skills/new-feature/SKILL.md".replace("${CLAUDE_PLUGIN_ROOT}/", "", 1)
-    if not (Path(".") / engine_path).is_file():
-        print("new-feature-wrapper:dangling-engine-pointer")
+if "[skills/new-feature/SKILL.md](../skills/new-feature/SKILL.md)" not in wrapper:
+    print("new-feature-wrapper:missing-portable-relative-engine-link")
+if "${CLAUDE_PLUGIN_ROOT}" in wrapper:
+    print("new-feature-wrapper:requires-claude-plugin-root")
+if not (Path("commands") / "../skills/new-feature/SKILL.md").resolve().is_file():
+    print("new-feature-wrapper:dangling-engine-link")
 if not re.search(r"already exhausted.*cap.*stop.*without another dispatch", case12, re.I | re.S):
     print("case12:exhausted-cap-expectation-is-ambiguous")
 PY
