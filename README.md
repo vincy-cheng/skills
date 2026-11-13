@@ -39,20 +39,36 @@ codex plugin marketplace add .
 
 After updating a local checkout, refresh it with `codex plugin marketplace upgrade vincy-skills` and restart Codex.
 
-### Native model selection
+### Per-step reviewer groups
 
-On Codex, reviewers and native implementation subagents can use separately selected models. Add either optional top-level setting to the target repo's gitignored `.dev-flow/config.json`:
+Both hosts can select a reviewer list per review step in the target repo's gitignored `.dev-flow/config.json`. `codex_reviewers` contains exact native Codex model names; `reviewers` contains Claude Code lane values. The supported keys are `red_team`, `plan_review`, `main_review`, and `focused_review`. A list starts one independent reviewer per entry. The example configures two red-team reviewers, one plan reviewer, and two focused reviewers; the main-review group inherits the existing reviewer selection because it is omitted:
 
 ```json
 {
+  "codex_reviewers": {
+    "red_team": ["<native-model-a>", "<native-model-b>"],
+    "plan_review": ["<native-model-a>"],
+    "focused_review": ["<native-model-a>", "<native-model-b>"]
+  },
+  "reviewers": {
+    "red_team": ["session", "claude:<model-name>"],
+    "plan_review": ["session"],
+    "focused_review": ["session", "claude:<model-name>"]
+  },
   "codex_reviewer_model": "<available-native-model>",
   "codex_implementer_model": "<available-native-model>"
 }
 ```
 
-Replace each placeholder with a model supported by the current Codex native subagent tool, then merge your existing branch and role settings. The reviewer key selects the brainstorm red-team, plan reviewer, and step-7 main and focused reviewers. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
+Configure only the active host's map. Codex uses `codex_reviewers` and ignores `reviewers`; Claude Code uses `reviewers` and ignores `codex_reviewers`. A configured list overrides that step's existing selection. An omitted step inherits its existing route: Codex uses `codex_reviewer_model`, then the session default; Claude Code keeps its state/config/standalone precedence. A valid override can be used even when an unused legacy default is unavailable. Bootstrap preserves existing `codex_reviewers` and `reviewers` maps and other config keys, and does not add either optional map to a new default config.
 
-Claude Code ignores both keys and continues to route implementation and reviewers through `roles.implementer` and `roles.reviewer`. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting either native key selects its role's session default. See [model routing](references/model-routing.md) for validation, host precedence, and lane details.
+Every member must finish and clear the step's verdict rules; a majority cannot waive a blocker. After edits, rerun the whole affected group on the revised materials. Reviewers run independently in parallel up to host slots, with the remaining entries queued; the full configured count remains in force. Focused review still runs only after main-review clearance and its existing high-risk trigger. Plan reviewers combine coverage and adversarial review in one pass. Architectural designs require recorded completed red-team evidence before approval; bounded designs retain their self-check, and existing explicit trivial-plan self-check exceptions remain. Multiple reviewers increase dispatch and rework cost. See [model routing](references/model-routing.md#per-step-reviewer-groups) for validation, batch evidence, verdicts, and resume rules.
+
+### Native model selection
+
+On Codex, the separate `codex_reviewer_model` and `codex_implementer_model` settings select legacy reviewer and native implementation defaults. Replace the model placeholders with names supported by the current native subagent tool, then merge your existing branch and role settings. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
+
+Claude Code ignores both legacy Codex model keys and routes implementation through `roles.implementer`; omitted reviewer steps keep the existing `roles.reviewer` precedence. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting `codex_implementer_model` selects its session default; `codex_reviewer_model` is the reviewer fallback only for steps without a `codex_reviewers` override. See [model routing](references/model-routing.md) for validation, host precedence, lane details, and isolated brief boundaries.
 
 ## The `dev-flow` workflow
 
@@ -63,9 +79,9 @@ Claude Code ignores both keys and continues to route implementation and reviewer
 | Plan | 1–4 | Brainstorm, approve a spec, plan, create a GitHub issue |
 | Build | 5 | Execute the plan with TDD and per-task commits |
 | Verify | 6–8 | Test, review, and fix documentation drift |
-| Ship | 9–11 | Open a pull request, merge it manually, close out the run |
+| Ship | 9–11 | Open or update a pull request, check readiness, wait for the user's manual merge, close out the run |
 
-The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies.
+The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies. The workflow loads only current-step guidance, reuses unchanged guidance, and gives isolated workers bounded briefs.
 
 ```mermaid
 flowchart TD
@@ -83,8 +99,11 @@ flowchart TD
     choice -- no, note in PR --> docfix
     docfix -- stop --> execute
     docfix --> pr[9 open PR]
-    pr --> merge[10 manual merge]
-    merge --> closeout[11 close-out]
+    pr --> check[10 PR readiness check]
+    check -->|pending: resolve unknown or wait, then recheck| check
+    check -->|needs-fix: repair| execute
+    check -->|passed| manual[User reviews and merges manually]
+    manual -->|remote MERGED confirmed| closeout[11 close-out]
 ```
 
 For requests spanning independent subsystems, step 1 can create an overview spec that records the sub-projects, order, dependencies, and deferred work. Each sub-project gets its own `/new-feature` run. Close-out updates the overview and prints the next run's command.
@@ -94,14 +113,15 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | Skill | Step | Purpose |
 |-------|------|---------|
 | `brainstorm` | 1 | Work through the design and write an approved spec |
-| `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a fresh-subagent plan review |
+| `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a plan review pass — an independent reviewer for ordinary and high-risk work, a recorded author self-check for small low-risk plans (≤3 tasks, one existing behavior, shared context, no unresolved dependencies) |
 | `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
-| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; on Claude Code, dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>); on Codex, native `session` uses the saved `codex_implementer_model` |
+| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; on Claude Code, dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>); on Codex, native `session` uses the saved `codex_implementer_model`. The step-5 ask also confirms the Implementer context — `shared` carries one worker across related tasks, `per-task` keeps the existing fresh-worker-per-task default, `not-used` is inline |
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
 | `doc-fix` | 8 | Find and fix documentation drift caused by the run |
-| `open-pr` | 9 | Open a pull request targeting the state file's Target branch and sync the issue; never merges |
+| `open-pr` | 9 | Open or update the recorded pull request and sync the issue; never merges |
+| `new-feature` | 10 | Check remote PR state and readiness against matching test/review evidence; report readiness and wait for the user's manual merge |
 
 These skills can also run on their own. The test skill uses each target repository's test and lint commands; this repository's suite is `bash tests/check.sh` and it has no linter.
 
@@ -150,7 +170,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 | 7 | review | `dev-flow:review` |
 | 8 | doc-fix | `dev-flow:doc-fix` |
 | 9 | pr-review | `dev-flow:open-pr` |
-| 10 | merged | (manual merge, confirmed) |
+| 10 | pr-review → merged | Check readiness at `pr-review`; set `merged` only after remote merge confirmation |
 | 11 | done | close-out via `/new-feature` |
 
 **Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).
@@ -160,7 +180,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 - Repo root = plugin root: `skills/`, `commands/`, `hooks/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
 - `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
-- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, and `review`, run manually with `claude plugin eval`
+- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, `review`, and `context-efficiency`, run manually with `claude plugin eval`
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
 

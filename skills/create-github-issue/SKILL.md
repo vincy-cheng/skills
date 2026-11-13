@@ -5,13 +5,19 @@ description: Use whenever the user wants to create, open, file, or draft a GitHu
 
 # Create a GitHub issue
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 **Step 4 of dev-flow.** Turns the spec + plan into a tracked GitHub issue, published with `gh`. Steps 1–3 may have produced `docs/features/specs/` and `docs/features/plans/`; this skill translates that material into a self-contained issue. Branch for step 5 is `feat/<n>-<name>` (or `fix/<n>-<name>`) off the state file's Target branch (see *Branches*).
 
 ## Gate check
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), require **Goal status `planning`**. If not `planning`, stop — a step was skipped — and tell the user which step to run. Before advancing status or drafting, check the referenced plan for a `## Plan review pass` section recording `pass` or a user-accepted self-check. A new plan missing that pass or recording `needs-rework` must stop; rewind to `spec` before returning to step 3. Update Goal status in the state file, the index row and Updated timestamp, and `Status since:` together; this skill owns the rewind for both direct and orchestrated calls. Do not create an issue. A plan that predates this gate and has no pass is the legacy exception: ask whether to run the pass now or proceed as-is, and record the user's choice in the run. After the read-gate succeeds, this skill owns step 4's transition to `issue`: update Goal status, the state file's Updated timestamp, the index row and its Updated timestamp, and `Status since:` together before drafting. The orchestrator defers that transition to this skill so a failed pass remains resumable.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), require **Goal status `planning`**. If not `planning`, stop — a step was skipped — and tell the user which step to run. Before advancing status or drafting, check the referenced plan's `## Plan review pass` against **Per-step reviewer groups** and **Review batches** in `references/model-routing.md`. Independent evidence passes only when the complete current batch records every selected route, matching material identity, report evidence, explicit completion, and both coverage/order and adversarial outcomes for every member, plus the aggregate. A heading, claimed dispatch, stale pass, missing report, lone member pass, or either missing dimension fails the gate. Accept a self-check only when the current plan and recorded classification prove small eligibility; preserve an explicit legacy-plan choice as a distinct exception, never independent clearance. A failed gate must rewind to `spec`: update Goal status, the index row and Updated timestamp, and `Status since:` together; this skill owns the rewind for both direct and orchestrated calls. Do not create an issue. A plan that predates this gate and has no pass is the legacy exception: ask whether to run the pass now or proceed as-is, and record the user's choice in the run. After the read-gate succeeds, this skill owns step 4's transition to `issue`: update Goal status, the state file's Updated timestamp, the index row and its Updated timestamp, and `Status since:` together before drafting. The orchestrator defers that transition to this skill so a failed pass remains resumable.
 
 No state file (invoked standalone) → skip the workflow status gate. If a plan document is supplied or found for the issue, apply the same pass check and legacy-plan exception. A plain standalone bug issue with no plan has no plan-pass requirement.
+
+The independent plan-review route key is `plan_review`; the shared batch evidence contract lives in `references/model-routing.md`.
 
 ## Why a fixed structure
 
@@ -80,18 +86,28 @@ EOF
 
 ## Branches
 
-Step 9's PR is on the default branch → the state file's **Target branch** → `feat/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off the state file's **Target branch** (`dev` by default, or `.dev-flow/config.json`'s `dev_branch` — see the new-feature skill's step 1), not the default branch. Use `fix/` when the state file's **Kind** is `fix`, else `feat/`. If that target branch doesn't exist, ask before doing anything: create it off the default branch (`git checkout -b <dev-branch> && git push -u origin <dev-branch>`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
+Step 9's PR is on the default branch → the state file's **Target branch** → `feat/<n>-<name>` (or `fix/<n>-<name>`). So step 5's branch comes off the state file's **Target branch** (`dev` by default, or `.dev-flow/config.json`'s `dev_branch` — see the new-feature skill's step 1), not the default branch. Use `fix/` when the state file's **Kind** is `fix`, else `feat/`.
+
+If that target branch doesn't exist, read the applicable runtime user and AGENTS restrictions before making the missing-target offer. If target creation or publishing the new target is prohibited, don't offer that choice, re-ask for the same authorization, or bypass; preserve safe local work and hand off the blocked action instead. If such actions are authorized, ask before doing anything: create it off the default branch (`git checkout -b <dev-branch> && git push -u origin <dev-branch>`) and branch off it, or branch off the default branch directly. Update the state file's **Base branch** to match. After publishing, offer:
 
 > "Issue #NN created. Want me to create a `feat/NN-<name>` (or `fix/NN-<name>`) branch off `<dev-branch>` and switch to it?"
 
 If accepted:
 ```bash
-git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git checkout -b feat/NN-<name>
+git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git switch --no-track -c feat/NN-<name>
 # or, for a fix:
-git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git checkout -b fix/NN-<name>
+git checkout <dev-branch> && git pull --ff-only origin <dev-branch> && git switch --no-track -c fix/NN-<name>
 ```
 
 `<dev-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`). `pull --ff-only` keeps it current. If rejected (the local branch diverged), surface it — don't force. Don't commit anything; the branch is just scaffolding for step 5.
+
+Immediately afterward, verify the branch and absence of upstream for a newly created `--no-track` branch:
+```bash
+branch="$(git branch --show-current)"
+upstream="$(LC_ALL=C git rev-parse --abbrev-ref '@{upstream}' 2>&1)"
+upstream_status=$?
+```
+The branch must match the expected feature name. For this new branch, no upstream is the expected result. Any successful `rev-parse` is already an inherited upstream, so stop. On a failed command, only output containing `fatal: no upstream configured for branch` is expected absence; report any other failure as `upstream check failed: <output>` and stop. In the wrong-branch, inherited-upstream, or unexpected-command-error cases, stop and report the actual values; don't push or silently rewrite tracking.
 
 ## State file (dev-flow only)
 

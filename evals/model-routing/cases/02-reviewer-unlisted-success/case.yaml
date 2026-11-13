@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 02-reviewer-unlisted-success
+description: "Reviewer: exact model is accepted though absent from examples"
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

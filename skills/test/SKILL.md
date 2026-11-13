@@ -5,11 +5,15 @@ description: Use to run a fresh-subagent test gate on a feat or fix branch — f
 
 # Test
 
-A pre-review test gate: is the suite green and are the tests honest? It does **not** review code — that's `dev-flow:review`. Runs against the branch's diff and the repo's test + lint commands.
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
+A pre-review test gate: is the suite green and are the tests honest? Step 6 is the only independent full-suite gate. Use the routing reference’s isolated-worker brief boundary. It does **not** review code — that's `dev-flow:review`. Runs against the branch's diff and the repo's test + lint commands.
 
 ## Gate (dev-flow, between step 5 and 7)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `execute`. Don't advance the status here — step 6 in the orchestrator sets `test`. Wrong status → stop, tell the user which step to run. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), ordinary step-6 mode requires **Goal status** `execute`; don't advance the status here — step 6 in the orchestrator sets `test`. The sole exception is the Step 10 validation subflow: when explicitly delegated from `pr-review`, require status `pr-review`, preserve it, and return to Step 10 after reporting. This mode runs or reuses only the missing/stale test evidence needed for the exact PR version; it uses the same Tester lane, fresh tester gate, report contract, and verdict as step 6. A green result supplements the evidence and never advances Goal status. Actual findings return to the orchestrator for the execute rewind; wrong status or unclear delegation → stop. No state file (standalone) → see *Standalone mode*.
 
 ## Before starting
 
@@ -50,7 +54,11 @@ The brief gives the subagent:
 5. The **checklist** (both checks below) and the **verdict contract** (green / red only).
 6. The **report contract:** full findings written to `docs/features/.test/<feat-name>/test-report.md` (gitignored); the return message holds only the verdict (`green`/`red`), a one-line summary, and counts (tests passed/failed, findings). **Re-run: archive, never overwrite** — if `test-report.md` exists, rename it to `test-report-<n>.md` (next free number) before writing the new one.
 
+Before dispatch, capture the repository root, `git rev-parse HEAD`, the configured base ref, and `git rev-parse <base-ref>`, then inspect uncommitted paths for relevance. If any uncommitted path may affect the test, stop; allow a path only when inspected and proven irrelevant, and record the excluded path and rationale in the report. Never attribute dirty code to a commit. Include the exact repository/head/base values in the brief and report, labeled **Repository**, **Head SHA**, **Base ref**, and **Base SHA**. The report must identify its report path, verdict, and completion time alongside those values. At report completion, recheck `HEAD`, base ref/SHA, and relevant working-tree changes; if they changed during the run, invalidate the attempt and rerun. Only after the report exists and the tester returns its verdict, write **Test evidence** in the state file with those values and the actual verdict. A dispatch/report failure creates no new evidence and cannot make old green evidence applicable to the current attempt. A missing field in an older state file means evidence is absent and the gate must be rerun, not assumed green. A clean local HEAD may be recorded before a PR exists or before a local fix is pushed; this alone says nothing about a later PR's head.
+
 Never dispatch more than one tester at a time.
+
+For the Step 10 validation subflow, the orchestrator owns the CI wait budget: it may poll required PR checks every 60 seconds or less, for at most 300 seconds in one invocation. Keep the saved test report and evidence version-bound; return the tester verdict to Step 10 without changing Goal status.
 
 ## Model routing
 

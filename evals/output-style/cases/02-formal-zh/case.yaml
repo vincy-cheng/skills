@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 02-formal-zh
+description: Write a formal Traditional Chinese approval memo with its required criteria and evidence
+execution:
+  max_turns: 25
+  timeout_seconds: 300
+  allowed_tools:
+    - Read
+    - Write

@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 03-standalone
+description: Run whats-new standalone from narrated repository evidence without orchestrator context
+execution:
+  max_turns: 25
+  timeout_seconds: 300
+  allowed_tools:
+    - Read
+    - Skill

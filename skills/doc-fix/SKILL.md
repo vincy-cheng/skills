@@ -5,11 +5,15 @@ description: Use to fix doc drift caused by the current run before opening its P
 
 # Doc-fix
 
+## Output style
+
+Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Pre-PR doc gate: the work is done and reviewed; before the PR opens, close the loop on docs the run itself may have invalidated. Find doc drift caused by *this* run — not a general audit.
 
 ## Gate (dev-flow, step 8)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `review` before starting, and set it to `doc-fix` before scanning — with the `Status since:` timestamp (third write of the status-transition protocol). Don't advance further — step 9 (open PR) sets `pr-review`. If the status isn't `review`, stop — a step was skipped — and tell the user which step to run. No state file (standalone) → see *Standalone mode* below.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `review` before starting, and set it to `doc-fix` before scanning — with the `Status since:` timestamp (third write of the status-transition protocol). Don't advance further — the step-9 orchestrator checks this `doc-fix` entry, then sets `pr-review`. If the status isn't `review`, stop — a step was skipped — and tell the user which step to run. No state file (standalone) → see *Standalone mode* below.
 
 ## What to scan, in order of drift likelihood
 
@@ -28,6 +32,7 @@ If the target repo has no `docs/agents/` directory at all, don't treat that as "
 - **Commit doc updates as `docs:`-type commits** — a run's own drift ships in the same PR as the code, not after merge.
 - **Never commit `docs/features/`** (spec, plan, state, index) — still gitignored.
 - **No drift found** → quick no-op pass; say so plainly and hand back to advance. Don't invent edits.
+- A confirmed doc-fix commit changes `HEAD` and makes earlier test/review evidence stale for Step 10. Step 10 reruns tests and the applicable incremental review against the new commit; successful evidence supplementation returns directly to Step 10 without repeating this gate.
 
 ## Verdict
 

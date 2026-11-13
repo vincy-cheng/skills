@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 01-reuse-and-reload
+description: Four context situations for the same reference — unchanged, changed, unavailable, and lost after compaction. The agent must reuse intact guidance and reload only on a change, unavailability, loss, or an unestablishable version.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

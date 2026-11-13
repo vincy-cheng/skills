@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 06-unsupported-host-and-lost-worker-stop-rules
+description: Shared requires verified same-worker follow-up; a CLI re-run is not shared; a lost/overgrown worker stops with preserved evidence and explicit choices; unknown field stops.
+execution:
+  max_turns: 30
+  timeout_seconds: 600
