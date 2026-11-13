@@ -123,8 +123,8 @@ for name, text in (("review", review), ("new-feature", feature)):
             print(f"{name}:dangling-plugin-root-link:{target}")
 if "[skills/new-feature/SKILL.md](../skills/new-feature/SKILL.md)" not in wrapper:
     print("new-feature-wrapper:missing-portable-relative-engine-link")
-if "${CLAUDE_PLUGIN_ROOT}" in wrapper:
-    print("new-feature-wrapper:requires-claude-plugin-root")
+if "On Claude Code" not in wrapper or "Other hosts resolve the relative link" not in wrapper:
+    print("new-feature-wrapper:missing-optional-host-locator-boundary")
 if not (Path("commands") / "../skills/new-feature/SKILL.md").resolve().is_file():
     print("new-feature-wrapper:dangling-engine-link")
 if not re.search(r"already exhausted.*cap.*stop.*without another dispatch", case12, re.I | re.S):

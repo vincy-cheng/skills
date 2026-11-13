@@ -7,7 +7,7 @@ user-invocable: false
 
 This file is a **thin wrapper** — it carries no workflow content and is not the single source. The single source of truth for the full 11-step gated workflow (gate table, state-file template, resume rules, preflight, commit guard, every step definition) is:
 
-**[skills/new-feature/SKILL.md](../skills/new-feature/SKILL.md) (dev-flow plugin)** — resolve this link relative to this command file's directory, then read and follow it exactly.
+**[skills/new-feature/SKILL.md](../skills/new-feature/SKILL.md) (dev-flow plugin)** — resolve this link relative to this command file's directory, then read and follow it exactly. On Claude Code, the host-provided plugin location is `${CLAUDE_PLUGIN_ROOT}`. Other hosts resolve the relative link from this command file's location.
 
 `$ARGUMENTS` is the input brief or resume selector, exactly as the skill's **Resume** section defines.
 
