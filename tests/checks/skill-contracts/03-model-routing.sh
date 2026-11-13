@@ -106,6 +106,33 @@ PY
 )
 if [ -z "$gate25_errs" ]; then ok "model routing structurally present (lanes doc + dispatch pointers + combined ask + gitignore)"; else bad "model-routing concept missing:$gate25_errs"; fi
 
+# Plugin-root reference resolution must be explicit from portable skill bases,
+# and the Claude command wrapper must point at its engine without duplicating it.
+source_pointer_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import re
+review = Path("skills/review/SKILL.md").read_text()
+feature = Path("skills/new-feature/SKILL.md").read_text()
+wrapper = Path("commands/new-feature.md").read_text()
+case12 = Path("evals/model-routing/cases/12-reviewer-group-rework/graders/grader.md").read_text()
+for name, text in (("review", review), ("new-feature", feature)):
+    for target in ("../../references/model-routing.md", "../../references/output-style.md"):
+        if target not in text:
+            print(f"{name}:missing-plugin-root-link:{target}")
+        elif not (Path("skills") / name / target).resolve().is_file():
+            print(f"{name}:dangling-plugin-root-link:{target}")
+if "${CLAUDE_PLUGIN_ROOT}/skills/new-feature/SKILL.md" not in wrapper:
+    print("new-feature-wrapper:missing-plugin-root-engine-pointer")
+else:
+    engine_path = "${CLAUDE_PLUGIN_ROOT}/skills/new-feature/SKILL.md".replace("${CLAUDE_PLUGIN_ROOT}/", "", 1)
+    if not (Path(".") / engine_path).is_file():
+        print("new-feature-wrapper:dangling-engine-pointer")
+if not re.search(r"already exhausted.*cap.*stop.*without another dispatch", case12, re.I | re.S):
+    print("case12:exhausted-cap-expectation-is-ambiguous")
+PY
+)
+[ -z "$source_pointer_errs" ] && ok "plugin-root source pointers and exhausted-cap grader expectation are explicit" || bad "source-resolution/eval contract missing:$source_pointer_errs"
+
 # codex-implementer-contract guard (#93, task 1): the routing page owns
 # configuration, host scoping, saved selection, and native dispatch/failure rules.
 

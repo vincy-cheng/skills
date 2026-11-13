@@ -7,7 +7,7 @@ Grade against the plugin-owned routing reference and directly relevant skill con
 
 ## Layer 1 — Behavior (all required)
 
-- B1. A reruns the complete red_team group on revised design. B reruns the complete plan_review group after plan revision and cannot exceed the existing two-rework-round cap. C reruns every main reviewer on changed code. D BLUE fix-now rewinds to execute and blocks focused dispatch; after the later BLUE note-in-PR choice, the full focused group may run for high risk. E has no focused group because low risk does not trigger it. F follows the existing test-gate rewind after a code fix; preserve existing stage ordering.
+- B1. A reruns the complete red_team group on revised design. B already exhausted the two-rework-round cap, so it must stop and present findings without another dispatch; a plan revision can rerun the complete plan_review group only while a rework round remains. C reruns every main reviewer on changed code. D BLUE fix-now rewinds to execute and blocks focused dispatch; after the later BLUE note-in-PR choice, the full focused group may run for high risk. E has no focused group because low risk does not trigger it. F follows the existing test-gate rewind after a code fix; preserve existing stage ordering.
 - B2. Correctly reports the workflow state and next action for each subcase, including the two distinct BLUE choices and their sequencing.
 - B3. Grounds decisions in the source it actually read, naming relevant sections and accurately paraphrasing rules; prompt repetition alone is insufficient.
 
