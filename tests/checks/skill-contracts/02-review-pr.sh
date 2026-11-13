@@ -113,6 +113,10 @@ if not re.search(r"absent.{0,180}(?:fallback|existing).{0,180}(?:route|selection
     print("review:no-fallback-only-when-step-is-absent")
 if not re.search(r"focused.{0,220}after.{0,100}(?:main|R5).{0,180}(?:clear|green|blue)", review, re.I | re.S):
     print("review:focused-does-not-follow-main-clearance")
+if not re.search(r"green clears directly; blue and yellow.{0,180}(?:recorded note-in-PR|user chooses note-in-PR)", review, re.I | re.S):
+    print("review:blue-focused-dispatch-bypasses-r5-choice")
+if not re.search(r"green directly; blue and yellow only after the user chooses note-in-PR", new_feature, re.I):
+    print("new-feature:blue-focused-dispatch-bypasses-r5-choice")
 if not re.search(r"Focused verdict.{0,180}(?:aggregate|group).{0,120}(?:pending|current|round)|(?:aggregate|group).{0,120}Focused verdict", review, re.I | re.S):
     print("review:focused-aggregate-not-written-to-existing-field")
 if not re.search(r"(?:fix|changed).{0,180}(?:rerun|re-review).{0,180}(?:all|every).{0,100}reviewer", review, re.I | re.S):
