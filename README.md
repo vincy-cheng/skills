@@ -171,7 +171,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 | 8 | doc-fix | `dev-flow:doc-fix` |
 | 9 | pr-review | `dev-flow:open-pr` |
 | 10 | pr-review → merged | Check readiness at `pr-review`; set `merged` only after remote merge confirmation |
-| 11 | done | close-out via `/new-feature` |
+| 11 | merged → done | Keep `merged` during close-out; set `done` after task outcome recording and completion |
 
 **Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).
 
