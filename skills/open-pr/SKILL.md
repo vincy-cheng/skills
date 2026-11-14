@@ -13,7 +13,7 @@ Step 9 of dev-flow. The branch's work is tested (step 6), reviewed (step 7), and
 
 ## Gate (dev-flow, step 9)
 
-If running inside dev-flow, require the orchestrator's verified `pr-review` entry context before any PR publication. If invoked directly with `doc-fix`, return to `/new-feature` for the orchestrator to verify the incoming status, write `pr-review` and its mirrors, then reinvoke this skill with that verified context; do not publish in the first invocation. The orchestrator alone writes `pr-review`; do not expect `doc-fix` again or write the status a second time. Any other or unverified status → stop and report the required step. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow, require the orchestrator's verified `pr-review` entry context before any PR publication. If invoked directly with `doc-fix`, return to `/new-feature` for the orchestrator to verify the incoming status, write `pr-review` and its mirrors, then reinvoke this skill with that verified context; do not publish in the first invocation. The orchestrator alone writes `pr-review`; do not expect `doc-fix` again or write the status a second time. A verified first-publication `pr-review` re-entry from the orchestrator’s Resume procedure may continue the new-PR flow after a successful all-state lookup confirms no existing PR and no prior publication; retain the guided title/body confirmation. Any other or unverified status → stop and report the required step. No state file (standalone) → see *Standalone mode*.
 
 ## What you need
 
@@ -71,7 +71,7 @@ EOF
 )"
 ```
 
-`<target-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`; standalone mode: confirmed with the user). Capture the PR URL and number. For an existing PR, `git push origin HEAD:<current-branch>` sends the confirmed update to the same source branch and keeps its tracking unchanged; verify its PR URL and number remain unchanged. Push only when the restrictions read above authorize it; otherwise stop before pushing, preserve local work, record the run pending at `pr-review`, and hand off the PR title, PR body, verification results, and concrete manual steps. Never claim that a PR was opened, a push happened, or a merge completed when it did not.
+`<target-branch>` is the state file's **Target branch** (`dev` by default, else `.dev-flow/config.json`'s `dev_branch`; standalone mode: confirmed with the user). Capture the PR URL and number, then immediately persist the verified identity per *Record and hand back* before issue-body synchronization or Step 10; a crash after publication must recover this same PR. For an existing PR, `git push origin HEAD:<current-branch>` sends the confirmed update to the same source branch and keeps its tracking unchanged; verify its PR URL and number remain unchanged. Push only when the restrictions read above authorize it; otherwise stop before pushing, preserve local work, record the run pending at `pr-review`, and hand off the PR title, PR body, verification results, and concrete manual steps. Never claim that a PR was opened, a push happened, or a merge completed when it did not.
 
 ## Link the issue (sidebar)
 
@@ -90,7 +90,7 @@ This is the durable text record inside the issue; it complements (not duplicates
 
 ## Record and hand back
 
-Record or confirm the same `PR: #NN` in the state file's **References**; bump **Updated** and the index row; hand back to `/new-feature` to run Step 10. In an orchestrated repair loop, `pr-review` remains current; do not change **Status since** unless the orchestrator changed status.
+Record or confirm the verified `Repository: owner/repo`, the same `PR: #NN`, and `PR URL: <full URL>` in the state file's **References**; verify the URL host and repository, source branch, and target branch against the actual PR. Do this immediately after creation or recovery and before issue-body synchronization; bump **Updated** and the index row; hand back to `/new-feature` to run Step 10. In an orchestrated repair loop, `pr-review` remains current; do not change **Status since** unless the orchestrator changed status.
 
 ## Standalone mode (outside dev-flow)
 

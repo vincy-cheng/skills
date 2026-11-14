@@ -213,6 +213,25 @@ if not re.search(r"Invoke it, then run Step 10 automatically", step9_body):
     print("step9:does-not-enter-step10-automatically")
 if not re.search(r"same PR version and same reason.{0,180}without a new change.{0,180}stop retrying", new_feature, re.I | re.S):
     print("step10:no-progress-loop-does-not-stop")
+
+# A crash before initial publication must not become an existing-PR repair.
+if not re.search(r"confirmed no PR was ever created.{0,240}Step 9.{0,160}verified.{0,80}re-entry", resume_body, re.I | re.S):
+    print("resume:no-first-publication-reentry")
+if not re.search(r"all states.{0,180}source branch.{0,100}target", resume_body, re.I | re.S):
+    print("resume:no-all-state-duplicate-check")
+if not re.search(r"(?:failed|unreadable|ambiguous).{0,180}pending", resume_body, re.I | re.S):
+    print("resume:failed-lookup-can-authorize-creation")
+
+references = new_feature.split("## References\n", 1)[1].split(chr(96) * 3, 1)[0]
+for field in ("Repository", "PR URL"):
+    if not re.search(rf"^- {field}:", references, re.M):
+        print(f"state:missing-{field.lower().replace(' ', '-')}")
+record = open_pr.split("## Record and hand back", 1)[1].split("## Standalone mode", 1)[0]
+if not all(field in record for field in ("Repository", "PR URL", "owner/repo")):
+    print("open-pr:does-not-persist-complete-pr-identity")
+step10 = new_feature.split("## Step 10 —", 1)[1].split("## Step 11 —", 1)[0]
+if not re.search(r"legacy.{0,240}remote.{0,240}verify.{0,240}References", step10, re.I | re.S):
+    print("step10:no-verified-legacy-identity-recovery")
 PY
 )
 if [ -z "$repair_loop_errs" ]; then ok "Post-PR repair loops retain PR identity and version evidence"; else bad "Post-PR repair-loop contract missing:$repair_loop_errs"; fi
