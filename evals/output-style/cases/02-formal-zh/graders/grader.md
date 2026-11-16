@@ -6,7 +6,7 @@ Grade the created Traditional Chinese memo against the narrated acceptance recor
 
 ## Layer 1 — Behavior (all required)
 
-- B1. Opens with the conditional acceptance decision and states pilot entry is allowed only after backup restoration is demonstrated.
+- B1. The saved memo’s first substantive paragraph (after title/metadata/headings) states conditional acceptance and the backup-restoration-before-pilot condition. Quote that paragraph from the Write payload or saved artifact. A purpose/background opening followed by a later decision FAILS, regardless of the final save confirmation or complete criteria later.
 - B2. Preserves all three acceptance criteria: 12 required scenarios pass; zero unresolved severity-1/2 defects; approval audit records actor, timestamp, and outcome.
 - B3. Retains traceable evidence identifiers and results: R-204 (12/12), D-18 (zero open severity-1/2), A-09 (30 samples with all three fields).
 - B4. Uses natural, formal Traditional Chinese suited to a review committee, without changing the decision or inventing claims.

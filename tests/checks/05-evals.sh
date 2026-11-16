@@ -44,6 +44,11 @@ for case in ("02-formal-zh", "04-subagent"):
         print(f"{case}:artifact-grader-cannot-see-tools-or-file-content")
     if not (directory / "artifact.md").exists():
         print(f"{case}:no-artifact-existence-grader")
+opening = Path("evals/output-style/cases/02-formal-zh/graders/decision-first.md")
+if not opening.exists():
+    print("formal-memo:no-direct-artifact-opening-grader")
+elif not all(term in opening.read_text() for term in ("source: file", "path: acceptance-memo.md", "first substantive paragraph", "目的為記錄")):
+    print("formal-memo:opening-grader-misses-observed-false-pass")
 for skill in Path("skills").glob("*/SKILL.md"):
     text = skill.read_text().split("## Output style", 1)[-1].split("\n## ", 1)[0]
     if "../../references/output-style.md" not in text:
