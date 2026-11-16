@@ -7,7 +7,7 @@ description: Use to run a fresh-subagent test gate on a feat or fix branch — f
 
 ## Output style
 
-Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
 A pre-review test gate: is the suite green and are the tests honest? Step 6 is the only independent full-suite gate. Use the routing reference’s isolated-worker brief boundary. It does **not** review code — that's `dev-flow:review`. Runs against the branch's diff and the repo's test + lint commands.
 

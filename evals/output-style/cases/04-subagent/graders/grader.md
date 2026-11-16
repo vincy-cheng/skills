@@ -1,5 +1,6 @@
 ---
 type: llm
+focus: trace
 ---
 Grade the standalone `test` skill response against its actual contract and the narrated fixture. A simulated fixture is allowed; fabricated real execution is not.
 

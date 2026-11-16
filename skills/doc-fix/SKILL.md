@@ -7,7 +7,7 @@ description: Use to fix doc drift caused by the current run before opening its P
 
 ## Output style
 
-Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
 Pre-PR doc gate: the work is done and reviewed; before the PR opens, close the loop on docs the run itself may have invalidated. Find doc drift caused by *this* run — not a general audit.
 

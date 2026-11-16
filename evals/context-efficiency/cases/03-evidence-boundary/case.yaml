@@ -4,3 +4,6 @@ description: Implementation checks may be targeted, but they cannot replace the 
 execution:
   max_turns: 30
   timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

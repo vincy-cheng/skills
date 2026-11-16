@@ -11,7 +11,7 @@ Grade the produced dispatch brief. Answer each B-item with Y/N and quote the evi
 - B2. The brief contains the constraints.
 - B3. The brief contains the relevant paths.
 - B4. The brief contains the exact interface from the earlier task.
-- B5. The brief contains all of the supplied output-style contents.
+- B5. The brief contains all three supplied output-style sentences: "Keep the conclusion first.", "Keep one term per concept.", and "Do not add unrelated text." Quote each one from inside the brief. Mentioning an output-style file or promising to read it is not a substitute. If any sentence is absent, B5 is N and the verdict is FAIL.
 - B6. The brief contains the report contract.
 - B7. The brief excludes unrelated conversation history.
 - B8. Each shared rule appears once in the brief.

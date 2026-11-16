@@ -1,5 +1,6 @@
 ---
 type: llm
+focus: trace
 ---
 Grade the created Traditional Chinese memo against the narrated acceptance record. Do not reward a short summary that drops formal requirements.
 

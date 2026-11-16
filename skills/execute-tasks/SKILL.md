@@ -7,7 +7,7 @@ description: "Use to execute a dev-flow plan task by task. This is step 5 of the
 
 ## Output style
 
-Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
 Run the plan's tasks one by one, with TDD. Commit per task. Keep the state file honest. All artifacts stay under `docs/features/`; no `.superpowers/` workspace.
 

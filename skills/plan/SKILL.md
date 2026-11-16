@@ -7,7 +7,7 @@ description: Use when turning an approved spec or settled requirements into an i
 
 ## Output style
 
-Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
 Turn an approved design into a complete implementation plan — bite-sized tasks a fresh implementer could execute one by one with TDD.
 

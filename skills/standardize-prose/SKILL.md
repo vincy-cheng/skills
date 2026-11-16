@@ -7,7 +7,7 @@ description: Standardize the prose language of a dev-flow spec or plan for human
 
 ## Output style
 
-Before writing responses or human-readable files, load `references/output-style.md` from the plugin root (the directory containing `references/`, not the target repository root). Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
 A guided cleanup pass that rewrites a design doc's prose into controlled,
 human-friendly technical English. Language only — the doc's structure,

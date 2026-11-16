@@ -4,3 +4,6 @@ description: A dispatch brief for a subagent must carry the task, constraints, r
 execution:
   max_turns: 30
   timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill
