@@ -9,7 +9,7 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `brainstorm` | `dev-flow:brainstorm` | 4 | interview-first, idea-folder confirmation, iron law, spec path |
 | `plan` | `dev-flow:plan` | 5 | contract-complete, flow chart, no-handoff, no-spec refusal |
 | `tdd` | `dev-flow:tdd` | 4 | red-first, atomic steps, no skipping ahead, commit discipline |
-| `new-feature` | `dev-flow:new-feature` | 6 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask, git safeguards |
+| `new-feature` | `dev-flow:new-feature` | 7 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask, git safeguards, publication/close-out recovery |
 | `review` | `dev-flow:review` | 4 | R5 verdict contract: green/blue/yellow/red + follow-on action |
 | `test` | `dev-flow:test` | 1 | unavailable cli lane → BLOCKED stop-and-ask, never a silent downgrade |
 | `model-routing` | Codex and Claude per-step reviewer routing | 13 | both-host step overrides and legacy fallback, strict validation, batch verdicts, isolated reports, resume/rework, and required adversarial-review evidence |
@@ -40,11 +40,23 @@ Results land under `evals/results/<timestamp>/` (`aggregate-result.json`;
 `report.html` when the run produces one — observed layouts have varied).
 
 The `output-style` suite includes cases that write a memo or report. Grant the
-Write tool when running it:
+Read, Skill, and Write tools when running it:
 
 ```bash
-claude plugin eval /path/to/plugin --eval-dir evals/output-style --allow-tools Write
+claude plugin eval /path/to/plugin --eval-dir evals/output-style --allow-tools Read Skill Write
 ```
+
+Source-dependent cases explicitly invoke a skill to obtain its host-provided base
+directory, then read the plugin-owned references through relative links. The
+context-efficiency suite also needs `--allow-tools Read Skill`. Its case configs
+request those tools; the operator grant still controls whether they are available.
+The case's no-tool rule applies after loading the required sources.
+
+Artifact graders use `focus: trace` so the judge sees file writes and reference
+reads, rather than only the final save confirmation. File-existence and read-before-
+write graders check the required artifact and ordering separately. The isolated-
+brief case has a deterministic regex grader for the supplied output-style text;
+LLM votes cannot override a missing required sentence.
 
 ## Known quirks
 
