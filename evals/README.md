@@ -53,7 +53,9 @@ request those tools; the operator grant still controls whether they are availabl
 The case's no-tool rule applies after loading the required sources.
 
 Artifact graders use `focus: trace` so the judge sees file writes and reference
-reads, rather than only the final save confirmation. File-existence and read-before-
+reads, rather than only the final save confirmation. The formal memo also has a direct-file
+opening grader: a purpose paragraph before the decision and pilot condition fails,
+even when the rest of the artifact is complete. File-existence and read-before-
 write graders check the required artifact and ordering separately. The isolated-
 brief case has a deterministic regex grader for the supplied output-style text;
 LLM votes cannot override a missing required sentence.
