@@ -1,11 +1,10 @@
 # Clean-code checklist (review R4)
 
-The full maintainability & clean-code pass for the review's R4 — read this file before running R4, in place of the inline checklist.
+The maintainability & clean-code checklist for R4. Read this and `architecture.md` before R4; architecture boundaries and trade-offs live there.
 
 Read the changed code in place (open the files, not just the diff hunks) — what does the next maintainer inherit?
 
 - **Structure** — one thing per module/function; new code follows existing patterns?
-- **Coupling** — layering violations, hidden dependencies, leaked internals.
 - **Naming** — names that say what things do, not just locally true ones.
 - **Complexity** — deep nesting, long functions, branching a simpler shape would kill.
 - **Duplication** — logic copied from elsewhere in the codebase (diff-only reading misses this).

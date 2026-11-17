@@ -1,0 +1,9 @@
+Invoke `dev-flow:review` to load the plugin-owned guidance. Use its runtime-resolved skill base directory to read the required R4 references before answering. Read each complete R4 reference in a separate Read call, without offset/limit truncation. This is a narrated evaluation: do not inspect a real target repository, dispatch subagents, run a test suite, modify files, or start a dev-flow run. Source loading through Skill and Read is allowed. If a required reference is unavailable, report that instead of inventing it.
+
+Review the fixture below using R4 and R5. Return a concise verdict and findings with locations, concrete impact, smallest useful correction, and relevant trade-offs. All spec and plan requirements are covered and the fixture's test gate is green; assess the supplied code and contracts yourself.
+
+Two independent changes are shown. Assess each separately, then give an aggregate verdict.
+
+A. Project documentation adopts MVC and a modular monolith. Payments owns receipt persistence through its public record_receipt API. The framework permits controllers to coordinate requests. Changed checkout/controller.py:20 calls payments.record_receipt(receipt) once, then renders a receipt view. Domain calculation and validation stay in the model. No internal module data is accessed. A reviewer proposes moving this to a service because “controllers calling module APIs violate MVC” and says the existing call “will double latency.” There are no timing measurements or additional I/O in the diff.
+
+B. A documented Store protocol states save(record) persists a record and returns its ID, or raises StorageError; callers rely on that contract. New storage/read_only.py:12 implements save(record) by returning None without persistence. Its constructor accepts a writable fallback but never uses it. The caller at orders/create.py:8 treats a returned ID as proof of persistence. The author calls this a harmless exception to LSP.

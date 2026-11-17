@@ -235,3 +235,24 @@ if not re.search(r"legacy.{0,240}remote.{0,240}verify.{0,240}References", step10
 PY
 )
 if [ -z "$repair_loop_errs" ]; then ok "Post-PR repair loops retain PR identity and version evidence"; else bad "Post-PR repair-loop contract missing:$repair_loop_errs"; fi
+
+# R4 must load both checklists in-process and in isolated reviewer briefs.
+architecture_errs=$(python3 -B - <<'PYARCH'
+from pathlib import Path
+
+review = Path("skills/review/SKILL.md").read_text()
+reference = Path("skills/review/references/architecture.md")
+if not reference.is_file():
+    print("architecture:missing-reference")
+for label, section in (
+    ("dispatch", review.split("4. **The methodology**", 1)[-1].split("5. **Report contract**", 1)[0]),
+    ("R4", review.split("### R4.", 1)[-1].split("### R5.", 1)[0]),
+):
+    for name in ("clean-code.md", "architecture.md"):
+        if name not in section:
+            print(f"{label}:missing-{name}")
+    if "both" not in section or "read" not in section.lower():
+        print(f"{label}:missing-both-read-requirement")
+PYARCH
+)
+if [ -z "$architecture_errs" ]; then ok "R4 and isolated reviewers load both architecture and clean-code references"; else bad "architecture checklist wiring missing:$architecture_errs"; fi
