@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 05-architecture-boundary
+description: Harmful module boundary violation
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

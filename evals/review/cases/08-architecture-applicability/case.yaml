@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 08-architecture-applicability
+description: Conditional architectures and evidence-based performance
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill
