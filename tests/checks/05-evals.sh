@@ -79,3 +79,47 @@ elif [ -z "$source_eval_errs" ]; then
 else
   bad "eval source/grader contract missing:$source_eval_errs"
 fi
+
+# Architecture source loading must not depend on an LLM believing self-reports.
+architecture_grader_errs=$(python3 -B - <<'PYREADS'
+from pathlib import Path
+for case in ("05-architecture-boundary", "06-architecture-exception", "07-simple-design", "08-architecture-applicability"):
+    p = Path("evals/review/cases") / case / "graders/source-reads.md"
+    if not p.exists():
+        print(f"{case}:missing-deterministic-source-grader")
+        continue
+    text = p.read_text()
+    if not all(term in text for term in ("type: regex", "target: trace", "tool_result", "Architecture checklist", "Clean-code checklist")):
+        print(f"{case}:incomplete-source-grader")
+        continue
+    import json
+    pattern = text.split("---", 2)[2].strip()
+    import re
+    regex = re.compile(pattern, re.M)
+    clean = "# Clean-code checklist (review R4)\nshape would actively break under the next change."
+    architecture = "# Architecture checklist (review R4)\nA style or pattern preference is not a correctness blocker."
+    def result(content, error=False):
+        return json.dumps({"type": "tool_result", "content": content, "is_error": error})
+    good = result(clean) + "\n" + result(architecture)
+    reversed_reads = result(architecture) + "\n" + result(clean)
+    invalid = (
+        json.dumps({"type": "text", "text": "Read both: " + clean + architecture}),
+        result(clean) + "\n" + result(architecture, True),
+        result(clean) + "\n" + result("File does not exist: architecture.md", True),
+        result(clean) + "\n" + result("# Architecture checklist (review R4)"),
+        result(clean),
+    )
+    if not regex.search(good) or not regex.search(reversed_reads):
+        print(f"{case}:rejects-successful-source-reads")
+    if any(regex.search(trace) for trace in invalid):
+        print(f"{case}:accepts-missing-failed-or-claimed-source-read")
+PYREADS
+)
+architecture_grader_exit=$?
+if [ "$architecture_grader_exit" -ne 0 ]; then
+  bad "architecture source grader check crashed:$architecture_grader_errs"
+elif [ -z "$architecture_grader_errs" ]; then
+  ok "architecture evals require deterministic source-read evidence"
+else
+  bad "architecture source grader contract missing:$architecture_grader_errs"
+fi

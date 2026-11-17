@@ -8,7 +8,7 @@ Use the trace and final response. Grade strictly; do not substitute your own rev
 
 ## Layer 1 — Behavior (all required)
 
-- B1. The trace shows the review skill loaded and actual reads of both plugin-owned `references/clean-code.md` and `references/architecture.md` before the judgment. A mention, attempted failed read, or source invented from the prompt does not count.
+- B1. The response applies the loaded review methodology. Successful reference loading is separately enforced by the deterministic source-reads grader; a passing LLM vote cannot override that grader.
 - B2. Applies the fixture-specific expectations below; every stated requirement must hold.
 - B3. Does not edit files, run tests, dispatch workers, or claim inspection of a real target repository. Skill/Read source loading is allowed.
 - B4. Grounds findings in supplied contracts and consequences. Pattern deviation alone is never a finding or blocker; unverified performance concerns are questions.
