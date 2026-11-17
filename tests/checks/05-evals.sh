@@ -69,7 +69,6 @@ else:
     for missing in rules:
         if re.search(pattern.strip(), " ".join(r for r in rules if r != missing), re.I):
             print(f"isolated-brief:style-grader-accepts-missing:{missing}")
-print("", end="")
 PY
 )
 source_eval_exit=$?
