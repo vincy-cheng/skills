@@ -61,7 +61,7 @@ Dispatch every main-group member in a fresh isolated context, concurrently withi
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
-4. **The methodology** (R1–R4) — give the subagent the **absolute path** to this skill's `references/clean-code.md` (resolved from the skill's base directory — not repo-relative: in a target repo the file lives in the plugin directory), with the instruction to read it first as the review's checklist; the subagent reads it itself. Paste **R1–R2's and R3's section bodies** (spec coverage / plan coverage / obvious-issue scan) into the dispatch — the reference file carries only the R4 clean-code checklist, not the full methodology — and paste the **verdict contract** (R5) too.
+4. **The methodology** (R1–R4) — give the subagent the **absolute paths** to both `references/clean-code.md` and `references/architecture.md`, resolved from this skill's host-provided base directory, not the target repository. Require it to read both before R4. These references carry R4 only. Paste **R1–R2's and R3's section bodies** (spec coverage / plan coverage / obvious-issue scan) and the **verdict contract** (R5) into the dispatch too.
 5. **Report contract** — full findings go to each member's unique report destination under `docs/features/.review/<feat-name>/batches/main_review/round-<N>/reviewer-<I>.md` for a multi-member group (gitignored); a single reviewer keeps the existing `review-report.md` path and output contract. The return holds the verdict (`green`/`blue`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the report. The orchestrator validates every member report and frozen input, then writes the aggregate to `docs/features/.review/<feat-name>/review-report.md`; preserve individual verdicts, author attribution, and dissent while deduplicating displayed findings.
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
@@ -118,7 +118,7 @@ Not a deep architectural review — "is anything obviously wrong before a human 
 
 ### R4. Maintainability & clean code
 
-Read the changed code in place (open the files, not just the diff hunks) — full checklist in `references/clean-code.md`.
+Read the changed code in place (open the files, not just the diff hunks). Before R4, read both `references/clean-code.md` and `references/architecture.md` from this skill’s base directory. Apply architecture checks to affected boundaries using project intent and concrete trade-offs; follow each checklist’s applicability rules.
 
 ### R5. Verdict
 
