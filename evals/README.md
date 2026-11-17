@@ -60,6 +60,19 @@ write graders check the required artifact and ordering separately. The isolated-
 brief case has a deterministic regex grader for the supplied output-style text;
 LLM votes cannot override a missing required sentence.
 
+The four architecture review cases also use `source-reads.md`, a deterministic
+regex grader over the complete trace. It requires successful tool results with
+the opening and closing content of each R4 reference. The LLM behavior grader
+cannot override a failed source-read check. Each reference is read in a separate
+complete Read call. These checks depend on the current tool-result format; a
+format change must update the grader and its negative controls together.
+
+When auditing these cases, add `--keep-temp` and preserve each run's full
+`trace.jsonl` beside its result. The LLM's `focus: trace` input can elide tool
+messages; a final claim of successful reading is not evidence. A pre-change
+snapshot without `architecture.md` must fail the source-read grader even if its
+behavioral judgment is otherwise correct.
+
 ## Known quirks
 
 These are environment behaviors observed in prior runs — work within them;
