@@ -9,10 +9,14 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `brainstorm` | `dev-flow:brainstorm` | 4 | interview-first, idea-folder confirmation, iron law, spec path |
 | `plan` | `dev-flow:plan` | 5 | contract-complete, flow chart, no-handoff, no-spec refusal |
 | `tdd` | `dev-flow:tdd` | 4 | red-first, atomic steps, no skipping ahead, commit discipline |
-| `new-feature` | `dev-flow:new-feature` | 5 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask |
+| `new-feature` | `dev-flow:new-feature` | 7 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask, git safeguards, publication/close-out recovery |
 | `review` | `dev-flow:review` | 4 | R5 verdict contract: green/blue/yellow/red + follow-on action |
 | `test` | `dev-flow:test` | 1 | unavailable cli lane → BLOCKED stop-and-ask, never a silent downgrade |
+| `model-routing` | Codex and Claude per-step reviewer routing | 13 | both-host step overrides and legacy fallback, strict validation, batch verdicts, isolated reports, resume/rework, and required adversarial-review evidence |
 | `standardize-prose` | `standardize-prose` | 1 | guided cleanup: proposal-before-apply, violation detection, never-touch regions preserved (modals, code, Risk/checkbox lines) |
+| `output-style` | response and file output style | 4 | fast reading with complete detail across English, formal Traditional Chinese, standalone skills, and subagent reports |
+| `context-efficiency` | context reuse and dispatch boundaries | 3 | bounded loading and reload, isolated-brief completeness, and evidence-producer/version separation |
+| `risk-proportional-effort` | plan-review depth + Implementer context | 6 | small-plan self-check eligibility, ordinary independent review, focused scope/waiver, legacy/resume/repair, shared worker follow-up and drift, unsupported-host/lost-worker stops |
 
 ## How to run
 
@@ -34,6 +38,27 @@ claude plugin eval /path/to/plugin --eval-dir evals/new-feature \
 
 Results land under `evals/results/<timestamp>/` (`aggregate-result.json`;
 `report.html` when the run produces one — observed layouts have varied).
+
+The `output-style` suite includes cases that write a memo or report. Grant the
+Read, Skill, and Write tools when running it:
+
+```bash
+claude plugin eval /path/to/plugin --eval-dir evals/output-style --allow-tools Read Skill Write
+```
+
+Source-dependent cases explicitly invoke a skill to obtain its host-provided base
+directory, then read the plugin-owned references through relative links. The
+context-efficiency suite also needs `--allow-tools Read Skill`. Its case configs
+request those tools; the operator grant still controls whether they are available.
+The case's no-tool rule applies after loading the required sources.
+
+Artifact graders use `focus: trace` so the judge sees file writes and reference
+reads, rather than only the final save confirmation. The formal memo also has a direct-file
+opening grader: a purpose paragraph before the decision and pilot condition fails,
+even when the rest of the artifact is complete. File-existence and read-before-
+write graders check the required artifact and ordering separately. The isolated-
+brief case has a deterministic regex grader for the supplied output-style text;
+LLM votes cannot override a missing required sentence.
 
 ## Known quirks
 
@@ -71,4 +96,7 @@ Two layers, strict and binary:
 - **execute-tasks mode-split suite** — evals for the inline-vs-subagent
   recommendation from task shape (count / file spread / coupling), including
   the user-override path. Mentioned in issue #43's summary but kept out of
-  its strict scope; candidate follow-up suite.
+  its strict scope; candidate follow-up suite. Partially covered since issue
+  #108: `risk-proportional-effort` cases `02`-`04` pin the lane/context
+  recommendation and override paths; the remaining piece is full
+  recommendation-from-task-shape narration.

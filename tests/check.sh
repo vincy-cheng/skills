@@ -16,3 +16,4 @@ done
 echo "---"
 echo "$pass passed, $fail failed, $warn warned"
 [ "$fail" -eq 0 ]
+# Context efficiency is registered by the skill-contract dispatcher (issue #107).

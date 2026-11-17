@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 05-shared-worker-followup-and-live-drift
+description: A shared implementer's follow-ups hit live drift (branch, dirty paths, changed guidance); narration separates real follow-up from narrated simulation.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

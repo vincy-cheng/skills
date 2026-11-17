@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 04-legacy-per-task-saved-choices-repair-escalation
+description: Legacy state keeps per-task; saved choices survive resume; repair escalates a small run that grew past eligibility.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

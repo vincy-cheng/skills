@@ -51,6 +51,32 @@ PY
 )
 if [ -z "$docs_errs" ]; then ok "dual-host setup documentation is linked and complete"; else bad "host setup docs incomplete:$docs_errs"; fi
 
+# Step 10 documentation must describe the readiness gate, version-bound
+# evidence, result states, and the human-owned merge boundary.
+pr_docs_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+
+readme = Path("README.md").read_text().lower()
+agents = Path("AGENTS.md").read_text().lower()
+architecture = Path("docs/agents/ARCHITECTURE.md").read_text().lower()
+checks = {
+    "README step-10 transition": all(term in readme for term in (
+        "pr readiness check", "pr-review → merged", "remote merge confirmation",
+    )),
+    "AGENTS evidence and manual merge boundary": all(term in agents for term in (
+        "head sha", "base sha", "passed", "pending", "needs-fix", "never merges",
+    )),
+    "ARCHITECTURE state evidence": all(term in architecture for term in (
+        "verification evidence", "pr check", "head sha", "base sha",
+    )),
+}
+for label, present in checks.items():
+    if not present:
+        print(label.replace(" ", "-").lower())
+PY
+)
+if [ -z "$pr_docs_errs" ]; then ok "Step 10 readiness, evidence, and manual-merge documentation is consistent"; else bad "Step 10 documentation incomplete:$pr_docs_errs"; fi
+
 # plan mermaid blocks: file lists must live inside node labels. The plan
 # skill's flow-chart rule (fixed in #51) once showed 'Task N changes:'
 # under its node; agents took it literally and emitted bare lines inside

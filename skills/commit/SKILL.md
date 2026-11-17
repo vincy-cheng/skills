@@ -5,6 +5,10 @@ description: Use whenever the user wants to commit staged or current changes ("c
 
 # Commit
 
+## Output style
+
+Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
+
 Stage the right files, write a Conventional Commits message from the diff, commit. **No AI attribution, ever.**
 
 ## Iron rule — no AI attribution

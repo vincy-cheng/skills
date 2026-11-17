@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 06-git-operation-safeguards
+description: Local-only dev-flow run under explicit remote-operation restrictions — the skill must use --no-track for branch creation, accept a normal missing upstream, pause and hand off when the existing feature branch wrongly tracks the target, and preserve the PR-merge issue-closing intent honestly
+execution:
+  max_turns: 30
+  timeout_seconds: 600

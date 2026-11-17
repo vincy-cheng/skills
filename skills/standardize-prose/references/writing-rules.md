@@ -1,5 +1,8 @@
 # Writing rules for spec and plan prose
 
+These rules apply to English prose in specs and plans. For responses and other
+human-readable output, use the shared `references/output-style.md` rules.
+
 > Distilled, paraphrased writing rules for technical prose in design docs.
 > Adapted in spirit from ASD-STE100 Simplified Technical English (Issue 9),
 > owned by ASD — Aerospace, Security and Defence Industries Association of

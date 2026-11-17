@@ -1,0 +1,14 @@
+---
+type: llm
+---
+# Grader — publication and close-out recovery
+
+Grade the response against all requirements. Pass only if every item is satisfied with explicit evidence. This is a read-only walkthrough; actual edits or publication fail.
+
+- A successful all-state zero-match lookup and no prior publication evidence permits verified Step 9 re-entry at pr-review. It preserves the same run/issue and guided title/body confirmation; it does not reset to brainstorm or create another issue.
+- An unreadable or ambiguous lookup stays pending and cannot authorize creation. An existing CLOSED PR is recovered by identity and handled by Step 10 as closed-unmerged; it does not authorize a replacement. Previously published PR evidence never becomes first-publication authorization just because a lookup is empty.
+- Legacy identity is verified from the actual remote/recorded PR against repository, source and target. The response persists Repository owner/repo, PR number, and full PR URL in References before readiness work. Conflicts stay pending rather than guessed.
+- Step 11 keeps merged while close-out or Task outcome is incomplete. No memory update and declined cleanup do not bypass outcome recording. Only after required close-out and outcome completion does it save done together with index, Status since, and Updated.
+- An interruption before outcome recording resumes close-out from merged. An interruption after recording but before done preserves completed work and updates/reuses the existing outcome without duplicate records.
+
+Structural guards are not behavioral execution evidence. Do not grant credit merely for mentioning the correct step names without state and ordering details.

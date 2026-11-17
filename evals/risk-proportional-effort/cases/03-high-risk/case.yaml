@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 03-high-risk-focused-scope-and-waiver
+description: A high-risk tier demands a focused scoped review; the user may waive it (recorded honestly); the recheck never downgrades.
+execution:
+  max_turns: 30
+  timeout_seconds: 600

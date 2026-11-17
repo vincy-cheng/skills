@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 01-implementer-unlisted-success
+description: "Implementer: exact model is accepted and the saved choice wins"
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

@@ -1,0 +1,6 @@
+schema_version: "1.0"
+name: 07-publication-and-closeout-recovery
+description: Interrupted publication, legacy PR identity, and close-out resume keep recoverable states and prevent duplicate PRs
+execution:
+  max_turns: 30
+  timeout_seconds: 600
