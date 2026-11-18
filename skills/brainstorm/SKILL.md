@@ -127,6 +127,8 @@ For architectural red-team batches, use the `red_team` step key and the shared *
 
 ## Spec output
 
+Each spec defines the agreed outcome with concrete acceptance criteria. For each criterion, include an example or observable result, relevant boundaries, the evidence that can establish it, and any unresolved decision. Preserve user-approved wording and scope. A missing acceptance detail in a legacy spec is an open question: ask the user to complete the record; do not guess that the user approved it or weaken an existing condition. Evidence must match the criterion. If the environment cannot supply required UI evidence, report that limitation and leave the criterion unverified.
+
 Write the validated design to:
 
 ```

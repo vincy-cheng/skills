@@ -173,6 +173,8 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 | 10 | pr-review → merged | Check readiness at `pr-review`; set `merged` only after remote merge confirmation |
 | 11 | merged → done | Keep `merged` during close-out; set `done` after task outcome recording and completion |
 
+These statuses record different outcomes. Implementation complete means the planned changes exist; acceptance verified means agreed criteria have matching evidence; a required user confirmation may still be pending; PR ready means checks passed and the open PR awaits manual review and merge; merged requires remote confirmation; done requires all close-out work and required confirmation. A merge does not substitute for user confirmation. Missing UI evidence stays unverified, and a legacy spec with missing acceptance detail needs user input rather than an inferred approval.
+
 **Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).
 
 ## Repository guide

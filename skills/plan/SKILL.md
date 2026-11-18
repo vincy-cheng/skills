@@ -67,6 +67,7 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 - **Verbatim-copyable** — the task list is what the state file's Tasks block copies; write them as clean `- [ ]` lines.
 - **Issue material** — each task carries an acceptance fragment the issue can lift directly.
 - **Verification per task** — name the command that proves the task done (the repo's suite, a grep, a lint run).
+- **Trace agreed acceptance** — link each task to the source requirement and preserve its boundary. Name the verification method and expected evidence. Do not create a reviewer-authored requirement set; reviewers assess the spec's criteria. If a legacy spec lacks acceptance detail, ask the user to fill the gap and record the answer without guessing approval.
 
 ## Prose quality (plan text)
 

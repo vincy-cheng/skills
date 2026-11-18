@@ -5,6 +5,8 @@ description: Use to run a fresh-subagent test gate on a feat or fix branch — f
 
 # Test
 
+Test evidence must demonstrate the agreed acceptance criteria, including examples and boundaries. Report the command or observation and its result. A passing suite or narrative mention of UI behavior does not prove UI acceptance when required environment or evidence is unavailable; mark that criterion unverified and return the gap for user confirmation.
+
 ## Output style
 
 Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.

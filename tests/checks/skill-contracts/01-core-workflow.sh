@@ -222,3 +222,21 @@ else:
 PY
 )
 if [ -z "$gate24_errs" ]; then ok "risk-tiered review structurally present (plan Risk line + step-7 recheck + focused reviewer)"; else bad "risk-tier concept missing:$gate24_errs"; fi
+
+# Specs own the agreed acceptance contract; plans trace requirements and evidence.
+spec_plan_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+spec = Path("skills/brainstorm/SKILL.md").read_text()
+plan = Path("skills/plan/SKILL.md").read_text()
+for marker in ("acceptance criteria", "example", "boundaries", "evidence", "unresolved"):
+    if marker not in spec:
+        print(f"brainstorm:spec-contract-missing-{marker}")
+if not re.search(r"Trace agreed acceptance.{0,240}source requirement.{0,180}evidence", plan, re.I | re.S):
+    print("plan:tasks-do-not-trace-requirement-and-evidence")
+if "reviewer-authored requirement set" not in plan:
+    print("plan:reviewer-requirements-not-bounded-to-spec")
+PY
+)
+[ -z "$spec_plan_errs" ] && ok "spec acceptance criteria and plan traceability are explicit" || bad "spec/plan acceptance contract missing:$spec_plan_errs"

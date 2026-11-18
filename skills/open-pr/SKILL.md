@@ -60,6 +60,8 @@ Closes #11
 
 For a new PR, show the user the drafted title + body and wait for confirmation. The `gh pr create` command is new-PR-only. For an existing PR, use the confirmed update from *Existing PR repair loop* and skip this create flow. The commit guard applies before either push.
 
+Use the spec's agreed acceptance criteria as the source of truth when syncing issue criteria and describing verification. Preserve examples and boundaries. Do not silently add a new requirement or relax an existing one: ask the user to confirm any scope change before editing or publishing. Report missing UI evidence as unverified; words in the PR body do not establish acceptance.
+
 1. **Commit guard first** — `git status --porcelain docs/features/` must be empty. Not empty → stop and fix before pushing.
 2. For a new PR, push with an explicit refspec and open:
 

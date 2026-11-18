@@ -46,6 +46,36 @@ PY
 )
 if [ -z "$gate26_errs" ]; then ok "Status-since timing protocol present (gate rule + template + every flip site)"; else bad "status-since protocol missing:$gate26_errs"; fi
 
+# Acceptance contract: merged is not done until required user confirmation and
+# evidence are complete; legacy specs may be completed but not approval-guessed.
+acceptance_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+new_feature = Path("skills/new-feature/SKILL.md").read_text()
+brainstorm = Path("skills/brainstorm/SKILL.md").read_text()
+plan = Path("skills/plan/SKILL.md").read_text()
+test = Path("skills/test/SKILL.md").read_text()
+review = Path("skills/review/SKILL.md").read_text()
+open_pr = Path("skills/open-pr/SKILL.md").read_text()
+step11 = re.search(r"^## Step 11\b(.*?)(?=^## Notes\b)", new_feature, re.M | re.S)
+closeout = step11.group(1) if step11 else ""
+if not re.search(r"required user confirmation.{0,180}(?:missing|not obtained).{0,160}keep `merged`", closeout, re.I | re.S):
+    print("closeout:missing-confirmation-can-still-mark-done")
+legacy_contract = brainstorm + plan
+if not re.search(r"legacy.{0,220}acceptance", legacy_contract, re.I | re.S) or not re.search(r"ask the user.{0,120}do not guess", legacy_contract, re.I | re.S):
+    print("legacy-spec:missing-acceptance-recovery-without-guessing")
+if not re.search(r"implementation complete.{0,100}acceptance.{0,100}user confirmation", new_feature, re.I | re.S):
+    print("statuses:completion-and-confirmation-not-distinguished")
+for name, text in (("brainstorm", brainstorm), ("plan", plan), ("test", test), ("review", review), ("open-pr", open_pr)):
+    if not re.search(r"acceptance.{0,140}(?:evidence|example|boundary|verification)|(?:evidence|example|boundary|verification).{0,140}acceptance", text, re.I | re.S):
+        print(f"{name}:acceptance-contract-not-carried")
+if not re.search(r"PR ready.{0,120}merged.{0,120}done", new_feature, re.I | re.S):
+    print("statuses:pr-ready-merged-done-not-distinguished")
+PY
+)
+[ -z "$acceptance_errs" ] && ok "acceptance evidence, legacy recovery, and close-out confirmation contract present" || bad "acceptance contract missing:$acceptance_errs"
+
 # standardize-prose skill: frontmatter, references, ASD attribution, frozen modals.
 STE_SKILL="skills/standardize-prose/SKILL.md"
 ste_errs=""

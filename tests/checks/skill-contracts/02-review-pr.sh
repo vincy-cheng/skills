@@ -236,6 +236,24 @@ PY
 )
 if [ -z "$repair_loop_errs" ]; then ok "Post-PR repair loops retain PR identity and version evidence"; else bad "Post-PR repair-loop contract missing:$repair_loop_errs"; fi
 
+# Reviews and PR publication use the approved criteria and evidence; they do
+# not invent criteria or turn missing UI evidence into a success claim.
+acceptance_evidence_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+
+review = Path("skills/review/SKILL.md").read_text()
+test = Path("skills/test/SKILL.md").read_text()
+open_pr = Path("skills/open-pr/SKILL.md").read_text()
+if "do not write a competing requirement set" not in review:
+    print("review:creates-independent-requirements")
+if "mark that criterion unverified" not in test:
+    print("test:missing-unverified-environment-outcome")
+if "ask the user to confirm any scope change" not in open_pr or "relax an existing one" not in open_pr:
+    print("open-pr:scope-change-can-be-silent")
+PY
+)
+[ -z "$acceptance_evidence_errs" ] && ok "review and PR evidence remain bound to agreed criteria" || bad "acceptance evidence contract missing:$acceptance_evidence_errs"
+
 # R4 must load both checklists in-process and in isolated reviewer briefs.
 architecture_errs=$(python3 -B - <<'PYARCH'
 from pathlib import Path

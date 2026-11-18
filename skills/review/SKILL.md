@@ -95,11 +95,12 @@ Example (blue): `# Review report — <feat-name>` / `🟦 BLUE — 2 trivial fin
 
 ### R1. Spec coverage
 
-For each spec requirement, is there a plan task and branch code implementing it? Gaps:
+For each agreed spec acceptance criterion, is there a plan task and branch code implementing it, with evidence that can establish the result? The spec is the requirements source; do not write a competing requirement set. Gaps:
 
 - Spec requirement with no task → under-planned; surface it.
 - Task with no matching code → missing work; red.
 - Code matching no spec requirement → scope creep; ask keep or cut.
+- Evidence that only mentions a term, or a claim unsupported by the required result, does not establish acceptance. If required UI evidence cannot be produced in the available environment, report it as unverified; do not claim UI acceptance.
 
 ### R2. Plan coverage
 
