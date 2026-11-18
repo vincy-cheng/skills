@@ -13,13 +13,13 @@ Before writing responses or human-readable files, load [`references/output-style
 
 Drive the feature or fix in the user's request through all steps, in order. Do not skip steps because the request seems simple. Treat the user's message as the input brief or resume selector.
 
-Steps in four phases — 11 total:
+Four user-facing phases; the state lifecycle and hard-gate steps remain defined below:
 
 ```
-Plan   : 1 brainstorm → 2 spec → 3 plan → 4 create issue
-Build  : 5 execute (TDD + known documentation)
-Verify : 6 test → 7 review → 8 documentation consistency checkpoint
-Ship   : 9 PR → 10 merge (manual) → 11 close-out
+Define : brainstorm → spec → plan → create issue
+Build  : execute (TDD + known documentation)
+Verify : test → review → documentation-consistency checkpoint
+Deliver: PR readiness → manual merge → close-out
 ```
 
 These outcomes are distinct: **implementation complete** means the planned work exists; **acceptance verified** means each agreed criterion has matching evidence; **user confirmation pending** means a required user decision or UI confirmation is still open; **PR ready** means Step 10 passed and the open PR awaits the user's manual review/merge; **merged** means the remote PR is confirmed merged; **done** means all required close-out work and confirmation are complete. Merge does not replace user confirmation. Mentioning UI behavior without the required environment and evidence leaves it unverified. New or changed requirements need user confirmation; fixes must preserve the approved boundary.

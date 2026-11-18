@@ -106,3 +106,15 @@ else:
 PY
 )
 if [ -z "$codex_errs" ]; then ok "Codex manifest and marketplace wiring are valid"; else bad "Codex package metadata broken:$codex_errs"; fi
+
+phase_manifest_errs=$(python3 -B - <<'PY'
+import json
+from pathlib import Path
+for rel in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json"):
+    description = json.loads(Path(rel).read_text()).get("description", "").lower()
+    for marker in ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint"):
+        if marker not in description:
+            print(f"{rel}:missing-{marker}")
+PY
+)
+if [ -z "$phase_manifest_errs" ]; then ok "plugin descriptions name four phases and the documentation checkpoint"; else bad "plugin description drift:$phase_manifest_errs"; fi

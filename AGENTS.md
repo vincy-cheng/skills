@@ -21,8 +21,8 @@ These skill files are Markdown consumed by AI coding agents (Claude Code, Copilo
 
 ## Current plugin: `dev-flow`
 
-`dev-flow` drives a feat **or fix** end-to-end in four phases — plan / build / verify / ship:
-brainstorm → spec → plan → create GitHub issue → execute (TDD + known documentation) → test → review → documentation-consistency checkpoint → open/update PR → check PR readiness and wait for manual merge → close-out.
+`dev-flow` drives a feat **or fix** end-to-end in four phases — define / build / verify / deliver:
+brainstorm → spec → plan → create GitHub issue → execute (TDD + known documentation) → test → review → required documentation-consistency checkpoint → open/update PR → check PR readiness and wait for manual merge → close-out.
 
 - `commands/new-feature.md` and `skills/new-feature/SKILL.md` — the `/new-feature` command is a **thin wrapper** delegating to the skill; the skill is the single source of the pipeline and **hard gate** (gate table, state-file format, resume rules, all 11 steps — edit there, one edit per behavior change). The index file (`docs/features/.feature-states/.state.md`) mirrors all runs — current/last at a glance.
 - `commands/new-idea.md` + `skills/new-idea/SKILL.md` — the `/new-idea` command: scaffolds a structured brainstorm folder `ideas/<project>/<slug>/` (ideas repo) or `ideas/<slug>/` (project repo) with five fixed self-contained docs (README, research, design, **plan**, tl-dr) plus an optional **cost** doc — both the nesting level and cost inclusion are confirmed with the user up front, and the idea is **discussed and grilled with the user before any files are written** (one round: restate → grill → synthesize → explicit go-ahead). `cost.md` (when included) captures pricing/quotas; `plan.md` is a milestone-draft. Pairs with `/new-feature`: when its arguments reference an idea folder, step 1 ingests the docs as the established brief (settled choices carried forward, not re-derived), and `create-github-issue` links the folder in the issue References. Standalone like `document-structure`/`whats-new` — **not** part of the step sequence and never gated by the state file.

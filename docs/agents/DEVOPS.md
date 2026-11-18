@@ -11,6 +11,10 @@ No dependencies to install. To use the plugin (separate from editing it):
 
 Both packages use the same standalone skills; no other plugin is required.
 
+## Workflow phases
+
+The user-facing workflow has four phases: **define** (brainstorm, spec, plan, issue), **build** (TDD execution and known documentation), **verify** (test, review, and the required documentation-consistency checkpoint), and **deliver** (pull request readiness, manual merge, and close-out). The checkpoint validates current review evidence; the orchestrator requests a docs-only review supplement only when evidence is missing and does not always call `doc-fix`.
+
 ## Git workflow
 
 - Branches: `dev` is the integration branch by default; PRs target the integration branch, never the default branch. Feat/fix branches: `feat/<issue>-<name>` or `fix/<issue>-<name>` off the integration branch.

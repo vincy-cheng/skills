@@ -47,6 +47,12 @@ if [ -f "hooks/state.ts" ]; then
   # the timing source is the state file's field, not a store ledger
   $G -q "Status since" hooks/state.ts || st_err="$st_err missing:status-since-parse"
   if [ -z "$st_err" ]; then ok "state parser carries all lifecycle statuses + Status since"; else bad "state parser:$st_err"; fi
+  phase_err=""
+  $G -q "export const PHASES = \['define', 'build', 'verify', 'deliver'\]" hooks/state.ts || phase_err="$phase_err missing-four-phases"
+  $G -q "PHASE_FOR_STATUS: Record<GoalStatus, Phase>" hooks/state.ts || phase_err="$phase_err missing-status-phase-map"
+  $G -q "doc-fix checkpoint (dev-flow:new-feature)" hooks/register.tsx || phase_err="$phase_err missing-orchestrator-checkpoint"
+  if $G -Eq "step [0-9]+/11" hooks/register.tsx; then phase_err="$phase_err legacy-step-display"; fi
+  if [ -z "$phase_err" ]; then ok "hooks map lifecycle statuses to four readable phases"; else bad "hooks phase presentation:$phase_err"; fi
 else
   bad "hooks/state.ts missing"
 fi

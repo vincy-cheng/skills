@@ -83,9 +83,11 @@ flow_docs_errs=$(python3 -B - <<'PY'
 from pathlib import Path
 
 expected = {
-    "README.md": ("build (execute TDD and known documentation)", "documentation consistency checkpoint"),
-    "AGENTS.md": ("known documentation", "documentation-consistency checkpoint"),
-    "docs/agents/ARCHITECTURE.md": ("known documentation", "documentation-consistency checkpoint"),
+    "README.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint"),
+    "AGENTS.md": ("define / build / verify / deliver", "known documentation", "documentation-consistency checkpoint"),
+    "docs/agents/ARCHITECTURE.md": ("define (brainstorm", "build (execute TDD", "verify (test", "deliver (open/update PR", "documentation-consistency checkpoint"),
+    "docs/agents/DEVOPS.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint"),
+    "skills/new-feature/SKILL.md": ("four user-facing phases", "Define : brainstorm", "Build  : execute", "Verify : test", "Deliver: PR readiness", "documentation-consistency checkpoint"),
     "commands/new-feature.md": ("build (execute, TDD, known documentation)", "documentation consistency checkpoint"),
 }
 for rel, markers in expected.items():

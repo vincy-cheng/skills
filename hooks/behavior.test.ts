@@ -50,7 +50,7 @@ describe('statusLine — the ambient text', () => {
       pr: '',
       branch: '',
     }
-    expect(statusLine(run, NOW)).toBe('dev-flow: demo · step 6/11 · test · 45m')
+    expect(statusLine(run, NOW)).toBe('dev-flow: demo · verify · test · 45m')
   })
 
   test('omits duration when since is absent', () => {
@@ -65,7 +65,7 @@ describe('statusLine — the ambient text', () => {
       pr: '',
       branch: '',
     }
-    expect(statusLine(run, NOW)).toBe('dev-flow: demo · step 6/11 · test')
+    expect(statusLine(run, NOW)).toBe('dev-flow: demo · verify · test')
   })
 })
 
@@ -86,7 +86,7 @@ describe('toastsFor — status diff, main-loop only', () => {
     const prev = { demo: 'execute' as GoalStatus }
     const now = [run('demo', 'test')]
     const toasts = toastsFor(now, prev)
-    expect(toasts).toEqual(['dev-flow: demo execute → test (step 6/11)'])
+    expect(toasts).toEqual(['dev-flow: demo execute → test (verify)'])
   })
 
   test('no toast when the status is unchanged', () => {
@@ -140,6 +140,10 @@ describe('farewell transition — Y1/Y2 regression: transition-only close', () =
 describe('nextOf — the pane next-step line', () => {
   test('names the next status and its skill', () => {
     expect(nextOf('execute')).toBe('test (dev-flow:test)')
+  })
+
+  test('routes the documentation checkpoint back through the orchestrator', () => {
+    expect(nextOf('review')).toBe('doc-fix checkpoint (dev-flow:new-feature)')
   })
 
   test('terminal statuses render their wording', () => {
