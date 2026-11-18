@@ -84,6 +84,16 @@ for marker in (
         errors.append(f"model-routing:{marker}-missing")
 if not re.search(r"one complete copy.{0,160}brief", routing, re.I | re.S):
     errors.append("model-routing:one-copy-per-brief")
+for marker, label in (
+    (r"Goal.{0,160}(?:necessary )?background.{0,160}boundaries.{0,160}constraints.{0,160}(?:observable )?acceptance.{0,160}stop conditions", "complete-bounded-brief"),
+    (r"context gap.{0,200}(?:coordinator|orchestrator).{0,200}(?:revised|diagnos).{0,200}brief", "coordinator-revises-brief"),
+    (r"same[- ]issue identity.{0,240}(?:original error|diagnosis).{0,240}(?:revised handoff|recovery).{0,240}(?:used|opportunity)", "durable-recovery-record"),
+    (r"renam.{0,120}restart.{0,120}(?:does not|never).{0,120}reset", "resume-does-not-reset"),
+    (r"one revised handoff.{0,120}recovery limit.{0,120}fails.{0,120}stop", "stop-after-revised-failure"),
+    (r"without.{0,120}(?:full )?(?:workflow|conversation) history|do not paste the full workflow or full conversation history", "no-context-dump"),
+):
+    if not re.search(marker, routing, re.I | re.S):
+        errors.append(f"model-routing:{label}")
 if not re.search(r"[Dd]o not repeat.{0,160}shared guidance|shared guidance.{0,160}once|no duplicate shared guidance", routing, re.I | re.S):
     errors.append("model-routing:deduplicate-shared-guidance")
 if not re.search(r"exit status.{0,500}failure details.{0,500}required evidence.{0,500}(?:usable|full logs)", routing, re.I | re.S):
