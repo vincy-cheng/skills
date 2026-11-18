@@ -77,6 +77,26 @@ PY
 )
 if [ -z "$pr_docs_errs" ]; then ok "Step 10 readiness, evidence, and manual-merge documentation is consistent"; else bad "Step 10 documentation incomplete:$pr_docs_errs"; fi
 
+# Public workflow maps put known documentation in build and describe step 8 as
+# a consistency checkpoint while retaining the lifecycle.
+flow_docs_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+
+expected = {
+    "README.md": ("build (execute TDD and known documentation)", "documentation consistency checkpoint"),
+    "AGENTS.md": ("known documentation", "documentation-consistency checkpoint"),
+    "docs/agents/ARCHITECTURE.md": ("known documentation", "documentation-consistency checkpoint"),
+    "commands/new-feature.md": ("build (execute, TDD, known documentation)", "documentation consistency checkpoint"),
+}
+for rel, markers in expected.items():
+    text = Path(rel).read_text().lower()
+    for marker in markers:
+        if marker.lower() not in text:
+            print(f"{rel}:missing-{marker}")
+PY
+)
+[ -z "$flow_docs_errs" ] && ok "workflow docs describe build-time documentation and the consistency checkpoint" || bad "build documentation docs drift:$flow_docs_errs"
+
 # plan mermaid blocks: file lists must live inside node labels. The plan
 # skill's flow-chart rule (fixed in #51) once showed 'Task N changes:'
 # under its node; agents took it literally and emitted bare lines inside

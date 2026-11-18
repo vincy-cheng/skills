@@ -75,7 +75,7 @@ The report is color-coded, same conventions as the review report:
 
 The two checks:
 
-1. **Test + lint gate (hard).** Run the full test suite and lint. Any failure or lint warning → **stop**, report, return `red`. No test/lint command exists in the repo → say so in the report and proceed to the honesty scan (a docs-only repo passes this check by noting the absence).
+1. **Test + lint gate (hard).** Run the full test suite and lint. Include relevant checks for known documentation completed during build, and list the changed documentation paths and matching checks in the report. Any failure or lint warning → **stop**, report, return `red`. No test/lint command exists in the repo → say so in the report and proceed to the honesty scan (a docs-only repo passes this check by noting the absence).
 2. **Test honesty scan.** Read the diff's new/changed tests for:
    - **Asserts nothing** — a test with no meaningful assertion.
    - **Mocks the thing under test** — the test mocks the very function it claims to verify.

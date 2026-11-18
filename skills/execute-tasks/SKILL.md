@@ -36,6 +36,10 @@ Standalone mode (no state file) → there is no step 5 to return to; this skill 
 - The **state file** — its **Tasks** section mirrors the plan. If it already has `[x]` tasks, resume at the first unchecked one (don't redo done work).
 - The repo's test + lint commands (e.g. `flutter test`, `pytest`, `npm test`, `cargo test`). Run them per task and for the final suite.
 
+## Known documentation in build
+
+The plan's task files include documentation affected by the implementation. If a task reveals a needed documentation repair, invoke `dev-flow:doc-fix` with explicit in-flow context: the state-file path, `Goal status: execute`, task authorization, affected docs, and relevant diff. Preserve its proposal-and-user-confirmation rule. Apply confirmed edits before task verification, include their checks, and commit them with the task. The call must not change status or use standalone mode. If docs suggest new scope, stop and ask before changing them.
+
 ## Choose a mode
 
 **Dev-flow mode: the Implementer lane is already decided** — the orchestrator asked at step 5 (combined Roles ask) and wrote it to the state file's Roles block; `## Before starting` read it. Do not ask again. This section's recommendation logic ran at step 5 (the orchestrator read the same signal); resume reads the stored pick and proceeds without re-asking.
@@ -81,8 +85,8 @@ For each unchecked task, in order. Use the smallest targeted RED/GREEN checks th
 1. **Read the task** — its `**Files:**` block names what to create/modify and which test covers it.
 2. **RED** — write the failing test for the task's behavior. Follow `dev-flow:tdd`: one behavior, clear name, test at a public seam with real code (no mocks unless unavoidable).
 3. **Verify RED** — run the test, confirm it fails for the right reason (feature missing, not a typo). Passes immediately → the test is wrong; fix it before implementing.
-4. **GREEN** — implement the minimal code to pass. Don't add behavior the test doesn't require (YAGNI). Keep it clean as you write — small single-purpose functions, descriptive names, no magic numbers; `dev-flow:review`'s clean-code pass (step 7) is the backstop checklist, not a license to defer.
-5. **Verify GREEN** — run the test, confirm it passes and no other test broke.
+4. **GREEN** — implement the minimal code to pass. Don't add behavior the test doesn't require (YAGNI). Keep it clean as you write — small single-purpose functions, descriptive names, no magic numbers; `dev-flow:review`'s clean-code pass (step 7) is the backstop checklist, not a license to defer. Check the task's known docs; if repair is needed, use the explicit in-flow procedure above and wait for user confirmation before applying.
+5. **Verify GREEN** — run the test, confirm it passes and no other test broke, including checks for the task's confirmed documentation edits.
 6. **Commit** — stage the task's files explicitly, commit via `dev-flow:commit` (Conventional Commits, no AI attribution). Fallback: follow the same rules inline.
 7. **Update the state file** (shared rules above).
 
@@ -103,7 +107,7 @@ For each unchecked task, in order:
    - **DONE_WITH_CONCERNS** → read concerns; address correctness/scope ones before review, note observations and proceed.
    - **NEEDS_CONTEXT** → provide the missing context, then retry with the same confirmed native selection, revalidated per `## Model routing`; no model/mode/lane switch without explicit user direction.
    - **BLOCKED** → assess: context problem → re-dispatch with more context; on Codex native tasks, a model change to something more capable requires explicit user direction (otherwise BLOCKED), while Claude/CLI retain their existing model rules; task too large → split it or surface to the user; plan wrong → surface to the user.
-5. **Review the task yourself** — you hold cross-task context the implementer lacks. Read the diff (`git diff <BASE>..HEAD`, where BASE is the commit before the implementer ran). Check: spec/task compliance, test honesty (asserts real behavior, watched it fail), no leftover/debug, no scope creep. This is a single coordinator-side check — task scope, integration with earlier tasks, verification — **not a redo of step 7's independent main review** (that stays separate under the orchestrator). If clean → step 6. If not → send the findings back to the implementer (re-dispatch with the open findings; up to 3 rounds on the same confirmed choice; a fresh/more-capable implementer requires explicit user direction; after 5, adjudicate: park or surface as BLOCKED).
+5. **Review the task yourself** — you hold cross-task context the implementer lacks. Read the diff (`git diff <BASE>..HEAD`, where BASE is the commit before the implementer ran). Check: spec/task compliance, test honesty (asserts real behavior, watched it fail), no leftover/debug, no scope creep, and known documentation. If docs need repair, use the explicit in-flow `dev-flow:doc-fix` procedure; an implementer may propose a doc change but must not apply it before user confirmation. This is a single coordinator-side check — task scope, integration with earlier tasks, verification — **not a redo of step 7's independent main review** (that stays separate under the orchestrator). If clean → step 6. If not → send the findings back to the implementer (re-dispatch with the open findings; up to 3 rounds on the same confirmed choice; a fresh/more-capable implementer requires explicit user direction; after 5, adjudicate: park or surface as BLOCKED).
 6. **Commit** — stage the task's files explicitly, commit via `dev-flow:commit`. (If the implementer already committed with a clean message that follows the rules, you may keep it; otherwise amend/recommit.)
 7. **Update the state file** (shared rules above) — under `shared`, include the worker handle (how to reach it) and the current task scope in the execution note, so a resume or repair can recheck against live state.
 

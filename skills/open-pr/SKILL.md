@@ -1,6 +1,6 @@
 ---
 name: open-pr
-description: Use to open a pull request for a feat or fix branch — dev-flow step 9 after doc-fix. For a new PR, drafts the body and asks for confirmation before opening; for a repair loop, updates the recorded PR and issue instead of creating duplicates. Records PR identity and hands back for Step 10. Also runs standalone for any branch ("open a PR for this branch", "create the PR"). Never merges. No AI attribution in the PR body.
+description: Use to open a pull request for a feat or fix branch — dev-flow step 9 after the documentation-consistency checkpoint. For a new PR, drafts the body and asks for confirmation before opening; for a repair loop, updates the recorded PR and issue instead of creating duplicates. Records PR identity and hands back for Step 10. Also runs standalone for any branch ("open a PR for this branch", "create the PR"). Never merges. No AI attribution in the PR body.
 ---
 
 # Open PR
@@ -9,11 +9,11 @@ description: Use to open a pull request for a feat or fix branch — dev-flow st
 
 Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
-Step 9 of dev-flow. The branch's work is tested (step 6), reviewed (step 7), and doc-fixed (step 8) — this skill opens or updates its reviewable PR. It never merges.
+Step 9 of dev-flow. The branch's work is tested (step 6), reviewed (step 7), and has passed Step 8's documentation-consistency checkpoint — this skill opens or updates its reviewable PR. It never merges.
 
 ## Gate (dev-flow, step 9)
 
-If running inside dev-flow, require the orchestrator's verified `pr-review` entry context before any PR publication. If invoked directly with `doc-fix`, return to `/new-feature` for the orchestrator to verify the incoming status, write `pr-review` and its mirrors, then reinvoke this skill with that verified context; do not publish in the first invocation. The orchestrator alone writes `pr-review`; do not expect `doc-fix` again or write the status a second time. A verified first-publication `pr-review` re-entry from the orchestrator’s Resume procedure may continue the new-PR flow after a successful all-state lookup confirms no existing PR and no prior publication; retain the guided title/body confirmation. Any other or unverified status → stop and report the required step. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow, require the orchestrator's verified `pr-review` entry context and current Step 8 documentation-consistency evidence before any PR publication. Status alone is not that evidence. If invoked directly before Step 8 is complete, return to `/new-feature`; do not publish. The orchestrator alone writes `pr-review`; a doc-fix call during build does not authorize publication. A verified first-publication `pr-review` re-entry from the orchestrator’s Resume procedure may continue the new-PR flow after a successful all-state lookup confirms no existing PR and no prior publication; retain the guided title/body confirmation. Any other or unverified status → stop and report the required step. No state file (standalone) → see *Standalone mode*.
 
 ## What you need
 

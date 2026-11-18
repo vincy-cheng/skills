@@ -201,10 +201,10 @@ if not re.search(r"existing recorded PR.{0,180}update that same PR.{0,180}do not
     print("step9:existing-pr-may-be-duplicated")
 if not re.search(r"orchestrator's verified `pr-review` entry context", open_pr, re.I) or not re.search(r"orchestrator alone writes `pr-review`", open_pr, re.I):
     print("open-pr:orchestrator-status-context-not-defined")
-if not re.search(r"invoked directly with `doc-fix`.{0,180}return to `/new-feature`.{0,180}do not publish", open_pr, re.I | re.S):
-    print("open-pr:direct-call-can-publish-before-status-transition")
-if not re.search(r"doc-fix.{0,160}(?:commit|new head).{0,220}(?:evidence|test).{0,220}Step 10", doc_fix, re.I | re.S):
-    print("doc-fix:commit-does-not-invalidate-evidence")
+if not re.search(r"verified `pr-review` entry context.{0,180}Step 8 documentation-consistency evidence.{0,180}do not publish", open_pr, re.I | re.S):
+    print("open-pr:publication-can-bypass-documentation-evidence")
+if not re.search(r"In-flow edits remain part of the task's changes and verification.{0,180}test and review run afterward", doc_fix, re.I | re.S):
+    print("doc-fix:in-flow-edits-do-not-enter-test-and-review")
 if not re.search(r"execute.{0,100}re-entry", execute, re.I):
     print("execute:repair-reentry-not-supported")
 if not re.search(r"unpushed local head remains recorded but cannot pass the remote PR", new_feature, re.I | re.S):
@@ -253,6 +253,35 @@ if "ask the user to confirm any scope change" not in open_pr or "relax an existi
 PY
 )
 [ -z "$acceptance_evidence_errs" ] && ok "review and PR evidence remain bound to agreed criteria" || bad "acceptance evidence contract missing:$acceptance_evidence_errs"
+
+# The retained doc-fix checkpoint verifies evidence; it does not dispatch the
+# standalone skill or bypass review and confirmation after newly found drift.
+doc_checkpoint_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+workflow = Path("skills/new-feature/SKILL.md").read_text()
+doc_fix = Path("skills/doc-fix/SKILL.md").read_text()
+review = Path("skills/review/SKILL.md").read_text()
+step8 = re.search(r"^## Step 8\b(.*?)(?=^## Step 9\b)", workflow, re.M | re.S)
+body = step8.group(1) if step8 else ""
+if re.search(r"Invoke `dev-flow:doc-fix`", body):
+    print("step8:fixed-doc-fix-dispatch-remains")
+if not re.search(r"consistency.{0,160}evidence|evidence.{0,160}consistency", body, re.I | re.S):
+    print("step8:does-not-check-documentation-evidence")
+if not re.search(r"new drift.{0,180}(?:execute|confirmation)|(?:execute|confirmation).{0,180}new drift", body, re.I | re.S):
+    print("step8:new-drift-does-not-return-through-build")
+if not re.search(r"both current Test and Review evidence.{0,180}relevant worktree is clean", body, re.I | re.S):
+    print("step8:stale-or-dirty-evidence-can-pass-docs-only")
+if not re.search(r"explicit in-flow context.{0,180}Goal status.*`execute`", doc_fix, re.I | re.S):
+    print("doc-fix:in-flow-entry-context-missing")
+if not re.search(r"When invoked without a state file", doc_fix):
+    print("doc-fix:standalone-use-removed")
+if not re.search(r"final documentation consistency", review, re.I):
+    print("review:final-documentation-review-missing")
+PY
+)
+[ -z "$doc_checkpoint_errs" ] && ok "doc-fix checkpoint validates build and review evidence without redispatch" || bad "doc-fix checkpoint contract missing:$doc_checkpoint_errs"
 
 # R4 must load both checklists in-process and in isolated reviewer briefs.
 architecture_errs=$(python3 -B - <<'PYARCH'

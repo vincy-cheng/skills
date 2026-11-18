@@ -77,28 +77,33 @@ Claude Code ignores both legacy Codex model keys and routes implementation throu
 | Phase | Steps | Work |
 |-------|-------|------|
 | Plan | 1–4 | Brainstorm, approve a spec, plan, create a GitHub issue |
-| Build | 5 | Execute the plan with TDD and per-task commits |
-| Verify | 6–8 | Test, review, and fix documentation drift |
+| Build | 5 | Build (execute TDD and known documentation), with per-task commits |
+| Verify | 6–8 | Run tests and review, then verify documentation consistency |
 | Ship | 9–11 | Open or update a pull request, check readiness, wait for the user's manual merge, close out the run |
 
-The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies. The workflow loads only current-step guidance, reuses unchanged guidance, and gives isolated workers bounded briefs.
+The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. The plugin has no external plugin dependencies. Step 8 is an evidence checkpoint; it dispatches a docs-only review supplement only when matching evidence is missing.
 
 ```mermaid
 flowchart TD
     brainstorm[1 brainstorm] --> spec[2 approve spec] --> plan[3 approve plan]
     plan --> issue[4 create issue] --> execute[5 execute with TDD]
-    execute --> test[6 test gate]
+    execute -->|known docs, explicit in-flow context| docfix[guided documentation repair]
+    execute -->|build complete| test[6 test gate]
+    docfix --> test
     test -- red --> execute
     test -- green --> review[7 review gate]
     review -- red --> execute
     review -- blue --> bluechoice{Fix blue findings?}
     bluechoice -- yes --> execute
-    bluechoice -- no, note in PR --> docfix
+    bluechoice -- no, note in PR --> docscheck[8 documentation consistency checkpoint]
     review -- yellow --> choice{Fix findings now?}
     choice -- yes --> execute
-    choice -- no, note in PR --> docfix
-    docfix -- stop --> execute
-    docfix --> pr[9 open PR]
+    choice -- no, note in PR --> docscheck
+    review -->|green| docscheck
+    docscheck -->|missing evidence, clean tree| supplement[review docs evidence]
+    supplement --> docscheck
+    docscheck -->|new drift, after confirmation| execute
+    docscheck -->|evidence complete| pr[9 open PR]
     pr --> check[10 PR readiness check]
     check -->|pending: resolve unknown or wait, then recheck| check
     check -->|needs-fix: repair| execute
@@ -119,7 +124,8 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
-| `doc-fix` | 8 | Find and fix documentation drift caused by the run |
+| `doc-fix` | 5 / standalone | Repair known documentation during build with explicit in-flow context, or run standalone |
+| `new-feature` checkpoint | 8 | Verify independent documentation-consistency evidence; request a review supplement only when evidence is missing |
 | `open-pr` | 9 | Open or update the recorded pull request and sync the issue; never merges |
 | `new-feature` | 10 | Check remote PR state and readiness against matching test/review evidence; report readiness and wait for the user's manual merge |
 
@@ -168,7 +174,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 | 5 | execute | `dev-flow:execute-tasks` |
 | 6 | test | `dev-flow:test` |
 | 7 | review | `dev-flow:review` |
-| 8 | doc-fix | `dev-flow:doc-fix` |
+| 8 | doc-fix | `new-feature` verifies current documentation-consistency evidence; `review` may supplement missing evidence |
 | 9 | pr-review | `dev-flow:open-pr` |
 | 10 | pr-review → merged | Check readiness at `pr-review`; set `merged` only after remote merge confirmation |
 | 11 | merged → done | Keep `merged` during close-out; set `done` after task outcome recording and completion |
