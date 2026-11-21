@@ -115,24 +115,24 @@ describe('farewell transition — Y1/Y2 regression: transition-only close', () =
     branch: '',
   })
 
-  test('a merged run seen in an earlier status farewell-closes (prev ≠ current)', () => {
+  test('merged is an intermediate state and is excluded from final farewell', () => {
     const prev: Record<string, GoalStatus> = { demo: 'pr-review' }
     const finished = [run('demo', 'merged')]
-    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
-    expect(just).toBeDefined()
-  })
-
-  test('a session that starts on a finished run does not close (no earlier status)', () => {
-    const prev: Record<string, GoalStatus> = {}
-    const finished = [run('demo', 'merged')]
-    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
+    const just = finished.find(r => r.status === 'done' && prev[r.feat] !== undefined && prev[r.feat] !== r.status)
     expect(just).toBeUndefined()
   })
 
-  test('a steady-state finished run does not close (status unchanged)', () => {
-    const prev: Record<string, GoalStatus> = { demo: 'merged' }
-    const finished = [run('demo', 'merged')]
-    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
+  test('a done run first seen on session start does not close (no earlier status)', () => {
+    const prev: Record<string, GoalStatus> = {}
+    const finished = [run('demo', 'done')]
+    const just = finished.find(r => r.status === 'done' && prev[r.feat] !== undefined && prev[r.feat] !== r.status)
+    expect(just).toBeUndefined()
+  })
+
+  test('a steady-state done run does not close (status unchanged)', () => {
+    const prev: Record<string, GoalStatus> = { demo: 'done' }
+    const finished = [run('demo', 'done')]
+    const just = finished.find(r => r.status === 'done' && prev[r.feat] !== undefined && prev[r.feat] !== r.status)
     expect(just).toBeUndefined()
   })
 })
@@ -178,6 +178,51 @@ describe('register — the command surface', () => {
     register(recordingOn as never, $ as never)
     expect(registrations.filter(r => r.startsWith('command.'))).toEqual([])
     expect(specs).toEqual([])
+  })
+
+  test('merged announces delivery but only done closes and celebrates', async () => {
+    const callbacks = new Map<string, (...args: any[]) => Promise<unknown>>()
+    const toasts: string[] = []
+    const closes: unknown[] = []
+    let status = 'pr-review'
+    const stateText = () => `- **Goal status:** ${status}\n- **Updated:** 2026-11-22 12:00 +08:00\n`
+    const recordingOn = ((pattern: string, handlerOrFilter: unknown, maybeHandler?: unknown) => {
+      const handler = typeof handlerOrFilter === 'function' ? handlerOrFilter : maybeHandler
+      if (typeof handler === 'function') callbacks.set(pattern, handler as (...args: any[]) => Promise<unknown>)
+      return () => undefined
+    }) as unknown as Parameters<typeof register>[0]
+    const $ = {
+      fs: {
+        list: async () => [{ name: 'demo.state.md', kind: 'file' as const }],
+        read: async () => stateText(),
+      },
+      ui: {
+        status: async () => undefined,
+        toast: (text: string) => toasts.push(text),
+        close: async (args: unknown) => { closes.push(args) },
+        invalidate: () => undefined,
+      },
+    }
+
+    register(recordingOn as never, $ as never)
+    const start = callbacks.get('session.start')
+    const complete = callbacks.get('turn.complete')
+    expect(start).toBeDefined()
+    expect(complete).toBeDefined()
+    const next = async () => undefined
+    await start!($, {}, next)
+
+    status = 'merged'
+    await complete!($, { agentId: undefined }, next)
+    expect(toasts).toContain('dev-flow: demo pr-review → merged (deliver)')
+    expect(closes).toEqual([])
+    expect(toasts.some(text => text.includes('finished — pane closed'))).toBe(false)
+
+    status = 'done'
+    await complete!($, { agentId: undefined }, next)
+    expect(toasts).toContain('dev-flow: demo merged → done (deliver)')
+    expect(closes).toEqual([{ id: 'flow' }])
+    expect(toasts).toContain('dev-flow: demo finished — pane closed.')
   })
 })
 

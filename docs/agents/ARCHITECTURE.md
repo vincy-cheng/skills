@@ -6,7 +6,7 @@ One plugin — `dev-flow` — a workflow orchestrator driving a feat or fix end-
 
 Single-plugin repo: the repo root **is** the plugin root (official plugin-structure spec; same shape as obra/superpowers). Components live at the top level; host manifests in per-harness dot-dirs:
 
-- `.claude-plugin/plugin.json` — Claude Code metadata (version `0.3.2`, fully self-contained — no peer dependencies).
+- `.claude-plugin/plugin.json` — Claude Code metadata; the manifest owns the packaged version (fully self-contained — no peer dependencies).
 - `.codex-plugin/plugin.json` — portable Codex plugin identity and metadata; its `"skills": "./skills/"` pointer packages the shared skills.
 - `.agents/plugins/marketplace.json` — repo-local Codex marketplace; its `"./"` source points at the repo root (the plugin root).
 - `commands/` — Claude slash commands (YAML `description` + body, `$ARGUMENTS`): `new-feature.md` (`/new-feature`, the orchestrator), `new-idea.md` (`/new-idea`), `bootstrap.md` (`/bootstrap`, one-command repo setup).
@@ -28,7 +28,7 @@ Each step reads the state file's **Goal status** on entry, refuses to run unless
 - `<feat-name>.state.md` — per-feature: Created, Updated (local + UTC offset), Status since (timing source for session-help), Base/Target branch, Goal status, Kind, Last verification, version-bound `## Verification evidence` (test and review reports with repository/head/base identity and verdict), `## PR check` (PR identity, matching head/base, result, reason, report), Risk tier, Focused verdict, optional `Codex implementer model`, a `## Roles` block (Implementer/Tester/Reviewer lanes — the step-5 combined ask writes them; sub-skill entry read-gates stop when missing), Tasks, References (verified repository, PR number and full URL).
 - `.state.md` — index (dot-prefixed, sorts to top): `Feat-name | Kind | Status | Issue | Updated | Branch`, newest first; top non-`done` row is the current run; `Issue` is `—` until step 4, then `#NN`.
 
-Resume: read the index, jump to the step matching Goal status. At `pr-review`, recover the verified PR identity before checks; only a successful all-state lookup proving no prior PR permits first-publication re-entry. Only `done` is finished; `merged` still has close-out pending, including task outcome recording.
+Resume: read the index, jump to the step matching Goal status. At `pr-review`, recover the verified PR identity before checks; first-publication re-entry also requires current Step 8 evidence. Stale verification rewinds through execute/test/review/Step 8; unreadable or relevant dirty evidence stays pending; a matching tuple missing only the docs judgment routes through the mirrored `doc-fix` supplement. Only `done` is finished; `merged` still has close-out pending, including task outcome recording and required user confirmation. The roadmap entry and next-run command wait until those close-out requirements are complete.
 
 ## Fully self-contained
 

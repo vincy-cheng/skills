@@ -69,6 +69,7 @@ checks = {
     "ARCHITECTURE state evidence": all(term in architecture for term in (
         "verification evidence", "pr check", "head sha", "base sha",
     )),
+    "ARCHITECTURE version stays manifest-owned": "version `0.3.2`" not in architecture and "manifest owns the packaged version" in architecture,
 }
 for label, present in checks.items():
     if not present:

@@ -38,6 +38,19 @@ else
   bad "hooks module missing:$MOD"
 fi
 
+hook_lifecycle_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+source = Path("hooks/register.tsx").read_text()
+if len(re.findall(r"lastKnown\s*=\s*Object\.fromEntries\(\[\.\.\.states\.active,\s*\.\.\.states\.finished\]", source)) < 2:
+    print("register:finished-statuses-not-retained-for-merged-to-done-toast")
+if not re.search(r"const justFinished = states\.finished\.find\(\s*run => run\.status === 'done' && prev\[run\.feat\] !== undefined && prev\[run\.feat\] !== run\.status", source):
+    print("register:farewell-is-not-limited-to-transition-into-done")
+PY
+)
+[ -z "$hook_lifecycle_errs" ] && ok "hooks reserve final farewell for done and retain merged transitions" || bad "hook lifecycle contract missing:$hook_lifecycle_errs"
+
 # the parser carries the gate-table status literals (single source within the module)
 if [ -f "hooks/state.ts" ]; then
   st_err=""

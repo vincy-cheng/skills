@@ -43,6 +43,16 @@ else:
     require("new-feature", r"Steps 4, 8, 10, and 11 are exceptions", "gate-missing-close-out-exception", gate)
     if re.search(r"\*\*Gate:\*\*.*→ set .done", step11):
         errors.append("new-feature:step-11-still-finishes-on-entry")
+    roadmap = step11.find("**Complete the roadmap last**")
+    acceptance = step11.find("**Required user confirmation**")
+    outcome = step11.find("**Record the task outcome**")
+    if roadmap < 0 or acceptance < 0 or outcome < 0 or roadmap < max(acceptance, outcome):
+        errors.append("new-feature:roadmap-completion-before-acceptance-and-outcome")
+    bootstrap = step11.find("next-run bootstrap command")
+    if roadmap >= 0 and bootstrap >= 0 and bootstrap < max(acceptance, outcome):
+        errors.append("new-feature:next-run-command-before-close-out-prerequisites")
+    if not re.search(r"interrupted.{0,120}merged.{0,120}resume|resume.{0,120}merged.{0,120}interrupted", step11, re.I | re.S):
+        errors.append("new-feature:close-out-resume-not-idempotent")
 
 # Step 5's Roles ask carries the pinned evidence tag (anti-loose anchor:
 # a bare "evidence" pattern would false-pass on the existing

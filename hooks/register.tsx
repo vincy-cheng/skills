@@ -134,7 +134,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
 
     const states = await readRunStates($)
-    lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
+    // Retain merged runs too: a later merged → done close-out is a real flip.
+    lastKnown = Object.fromEntries([...states.active, ...states.finished].map(run => [run.feat, run.status]))
     await $.ui.status(statusLine(states.current, new Date()))
 
     return next(e)
@@ -161,16 +162,16 @@ export const register: Register = on => {
           $.ui.toast(`dev-flow: ${run.feat} ${was} → ${run.status} (${PHASE_FOR_STATUS[run.status]})`)
         }
       }
-      lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
+      lastKnown = Object.fromEntries([...states.active, ...states.finished].map(run => [run.feat, run.status]))
 
       await $.ui.status(statusLine(states.current, new Date()))
 
-      // Farewell close: only on the flip into done/merged (the run was seen
-      // in an earlier status last turn), never on a steady-state read — a
+      // Final farewell close: only on the flip into done (the run was seen
+      // in an earlier status last turn), never on the intermediate merged state — a
       // session that starts on a finished run, or a pane the person
       // re-opened, persists untouched.
       const justFinished = states.finished.find(
-        run => prev[run.feat] !== undefined && prev[run.feat] !== run.status,
+        run => run.status === 'done' && prev[run.feat] !== undefined && prev[run.feat] !== run.status,
       )
       if (justFinished !== undefined && !farewelled) {
         await $.ui.close({ id: PANE })

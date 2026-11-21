@@ -133,6 +133,33 @@ PY
 )
 [ -z "$review_group_errs" ] && ok "main and focused reviewer groups preserve R5, risk, and re-review gates" || bad "reviewer-group consumer contract missing:$review_group_errs"
 
+# First-publication recovery is authorized only after current Step 8 evidence
+# is rechecked; stale evidence rewinds and unreadable evidence remains pending.
+first_publication_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+text = Path("skills/new-feature/SKILL.md").read_text()
+resume = re.search(r"^## Resume\s+(.*?)(?=^## Preflight)", text, re.M | re.S)
+body = resume.group(1) if resume else ""
+if not re.search(r"successful lookup with zero matches.{0,300}Before authorizing Step 9.{0,120}current Step 8 evidence", body, re.I | re.S):
+    print("resume:first-publication-does-not-require-current-step-8-evidence")
+if not re.search(r"stale.{0,140}(?:HEAD|head|base|verification).{0,180}(?:execute|verification rewind)", body, re.I | re.S):
+    print("resume:first-publication-stale-evidence-does-not-rewind")
+if not re.search(r"unreadable.{0,140}(?:pending|stay pending)|(?:pending|stay pending).{0,140}unreadable", body, re.I | re.S):
+    print("resume:first-publication-unreadable-evidence-not-pending")
+if not re.search(r"tuple.{0,180}match.{0,120}missing only.{0,100}documentation judgment.{0,180}supplement", body, re.I | re.S):
+    print("resume:first-publication-missing-doc-judgment-route-absent")
+step8 = re.search(r"^## Step 8\b(.*?)(?=^## Step 9\b)", text, re.M | re.S)
+step8_body = step8.group(1) if step8 else ""
+if not re.search(r"pr-review.{0,100}doc-fix.{0,180}(?:three|all three) mirrored writes", step8_body, re.I | re.S):
+    print("step8:first-publication-supplement-transition-not-mirrored")
+if not re.search(r"Step 9's normal.{0,100}doc-fix.{0,100}pr-review.{0,20}transition", step8_body, re.I | re.S):
+    print("step8:first-publication-supplement-return-bypasses-normal-gate")
+PY
+)
+[ -z "$first_publication_errs" ] && ok "first-publication re-entry requires current Step 8 evidence" || bad "first-publication recovery contract missing:$first_publication_errs"
+
 # Step 10 checks the remote PR and its required checks before the manual merge gate.
 step10_errs=$(python3 -B - <<'PY'
 import re
@@ -215,7 +242,7 @@ if not re.search(r"same PR version and same reason.{0,180}without a new change.{
     print("step10:no-progress-loop-does-not-stop")
 
 # A crash before initial publication must not become an existing-PR repair.
-if not re.search(r"confirmed no PR was ever created.{0,240}Step 9.{0,160}verified.{0,80}re-entry", resume_body, re.I | re.S):
+if not re.search(r"confirmed no PR was ever created.{0,180}first-publication re-entry at `pr-review`", resume_body, re.I | re.S):
     print("resume:no-first-publication-reentry")
 if not re.search(r"all states.{0,180}source branch.{0,100}target", resume_body, re.I | re.S):
     print("resume:no-all-state-duplicate-check")
