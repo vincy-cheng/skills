@@ -308,8 +308,13 @@ if not re.search(r"Relevant uncommitted changes block the checkpoint and any sup
     print("step8:relevant-dirty-tree-not-left-pending")
 if not re.search(r"explicit in-flow context.{0,180}Goal status.*`execute`", doc_fix, re.I | re.S):
     print("doc-fix:in-flow-entry-context-missing")
-if not re.search(r"When invoked without a state file", doc_fix):
+if not re.search(r"When invoked outside an active dev-flow run associated with this work", doc_fix):
     print("doc-fix:standalone-use-removed")
+doc_fix_lower = doc_fix.lower()
+if "when this documentation work belongs to an active dev-flow run" not in doc_fix_lower:
+    print("doc-fix:in-flow-gate-not-scoped-to-associated-active-run")
+if "historical `done` state or a state file for another feature neither authorizes in-flow mode nor blocks standalone mode" not in doc_fix_lower:
+    print("doc-fix:unrelated-or-historical-state-misroutes-standalone")
 if not re.search(r"final documentation consistency", review, re.I):
     print("review:final-documentation-review-missing")
 PY

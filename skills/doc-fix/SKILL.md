@@ -9,11 +9,11 @@ description: Use during dev-flow build when an implementation task reveals a kno
 
 Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
-Guided documentation repair for behavior or conventions changed by this run. Dev-flow invokes this skill during build only with explicit in-flow context. Standalone use remains available without a state file.
+Guided documentation repair for behavior or conventions changed by this run. Dev-flow invokes this skill during build only with explicit in-flow context. Standalone use remains available outside an active run associated with the work, even when the state directory contains historical or unrelated run files.
 
 ## In-flow build gate
 
-When a dev-flow state file exists, require an explicit in-flow context from `execute-tasks` containing the state-file path, current task and its authorization, affected documentation paths, and relevant diff. Verify **Goal status** is `execute`. Missing context or any other active-run status → stop and return to `/new-feature`; never fall back to standalone mode. Do not change Goal status, the index row, **Updated**, or **Status since**.
+When this documentation work belongs to an active dev-flow run, require explicit in-flow context from `execute-tasks` containing the associated state-file path, current task and its authorization, affected documentation paths, and relevant diff. Verify **Goal status** is `execute`. Missing context or any other status for that associated active run → stop and return to `/new-feature`; never fall back to standalone mode. State-file presence alone does not establish association: a historical `done` state or a state file for another feature neither authorizes in-flow mode nor blocks standalone mode. Do not change Goal status, the index row, **Updated**, or **Status since**.
 
 Scope the scan to the task's planned documentation and the current task diff/worktree. Show proposed edits and wait for the user's confirmation before applying them. Keep the changed docs in the current task's verification and commit. Return changed paths, checks to rerun, and unresolved drift to `execute-tasks`; do not commit in this mode.
 
@@ -44,9 +44,9 @@ If the target repo has no `docs/agents/` directory, do not silently add one in b
 - Drift reveals a deeper code issue → **STOP**; return the issue to `execute-tasks` and keep the run at `execute`.
 - No drift → no-op; hand back to the current caller.
 
-## Standalone mode (outside dev-flow)
+## Standalone mode (outside an active dev-flow run associated with this work)
 
-When invoked without a state file: ask for the base branch (or infer from `git merge-base`), diff against it, and run the same drift scan — "what did this branch change that existing docs still describe the old way?" Show proposed edits for confirmation before applying; commit confirmed edits as `docs:` on the same branch. No drift → say so plainly and commit nothing.
+When invoked outside an active dev-flow run associated with this work, ask for the base branch (or infer from `git merge-base`), diff against it, and run the same drift scan — "what did this branch change that existing docs still describe the old way?" Show proposed edits for confirmation before applying; commit confirmed edits as `docs:` on the same branch. Historical `done` states and state files for other features do not switch this invocation into in-flow mode or block standalone use. No drift → say so plainly and commit nothing.
 
 ## What not to do
 

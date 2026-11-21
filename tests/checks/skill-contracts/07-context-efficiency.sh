@@ -120,7 +120,7 @@ require("skills/execute-tasks/SKILL.md", r"smallest targeted.{0,120}(?:RED|GREEN
 require("skills/execute-tasks/SKILL.md", r"task-completion checks?", "task-completion-checks")
 require("skills/execute-tasks/SKILL.md", r"after-all-tasks.{0,500}full test.{0,200}lint", "after-all-full-suite")
 require("skills/execute-tasks/SKILL.md", r"known documentation.{0,180}in-flow context", "build-doc-fix-context")
-require("skills/doc-fix/SKILL.md", r"Goal status.{0,160}`execute`.{0,160}any other active-run status.{0,80}stop", "doc-fix-active-run-gate")
+require("skills/doc-fix/SKILL.md", r"Goal status.{0,160}`execute`.{0,160}any other status for that associated active run.{0,100}stop", "doc-fix-active-run-gate")
 
 # Step 6 remains the only independent full-suite gate.
 require("skills/test/SKILL.md", r"only independent full-suite gate", "independent-full-suite-gate")

@@ -279,7 +279,7 @@ for name, skill in expected.items():
         if len(header) < 3 or not re.search(r"^type: llm$", header[1], re.M):
             print(f"{name}:grader-not-discoverable-llm")
         else:
-            expected_focus = "last_message" if name in ("01-document", "05-context-recovery") else "trace"
+            expected_focus = "last_message" if name in ("01-document", "05-context-recovery", "07-legacy-resume") else "trace"
             if not re.search(rf"^focus: {expected_focus}$", header[1], re.M):
                 print(f"{name}:grader-focus-mismatch:{expected_focus}")
 case01_prompt = (suite / "cases/01-document/prompt.md").read_text()
