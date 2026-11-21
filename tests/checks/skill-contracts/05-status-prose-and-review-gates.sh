@@ -1,6 +1,57 @@
 # tests/checks/skill-contracts/05-status-prose-and-review-gates.sh — status, prose, and review-gate contract checks.
 # Sourced by tests/checks/03-skill-contracts.sh; cwd is repo root.
 
+# Step 2/3 handoff and Step 8 evidence decisions must remain outcome- and
+# identity-bound. These guards deliberately look for the branch contract, not
+# one exact sentence, so prose can stay readable.
+checkpoint_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+nf = Path("skills/new-feature/SKILL.md").read_text()
+plan = Path("skills/plan/SKILL.md").read_text()
+resume = re.search(r"^## Resume\b(.*?)(?=^## Step 1\b)", nf, re.M | re.S)
+step2 = re.search(r"^## Step 2\b(.*?)(?=^## Step 3\b)", nf, re.M | re.S)
+step3 = re.search(r"^## Step 3\b(.*?)(?=^## Step 4\b)", nf, re.M | re.S)
+step8 = re.search(r"^## Step 8\b(.*?)(?=^## Step 9\b)", nf, re.M | re.S)
+resume_text = resume.group(1) if resume else ""
+step2_text = step2.group(1) if step2 else ""
+step3_text = step3.group(1) if step3 else ""
+step8_text = step8.group(1) if step8 else ""
+
+if not re.search(r"`doc-fix`[^\n]{0,80}Step 8 evidence decision", resume_text, re.I):
+    print("resume:does-not-delegate-to-step8-decision")
+if re.search(r"`doc-fix`[^\n]{0,220}(?:supplement|stale|rewind)", resume_text, re.I):
+    print("resume:duplicates-step8-policy")
+if not re.search(r"Missing documentation judgment only.{0,500}use `dev-flow:review`'s explicit Step 8 documentation-evidence supplement", step8_text, re.I | re.S):
+    print("step8:missing-judgment-supplement-path-absent")
+if not re.search(r"(?:consistent|no-drift).{0,180}(?:advance|Step 9)|(?:advance|Step 9).{0,180}(?:consistent|no-drift)", step8_text, re.I | re.S):
+    print("step8:clean-result-not-explicitly-advances")
+if not re.search(r"drift.{0,220}(?:repair|rewind|execute)", step8_text, re.I | re.S):
+    print("step8:drift-does-not-take-repair-branch")
+if not re.search(r"stale.{0,220}(?:rewind|execute).{0,220}(?:test|review)", step8_text, re.I | re.S):
+    print("step8:stale-identity-does-not-rewind-to-full-verification")
+if not re.search(r"uncommitted.{0,160}(?:block|pending|stay).{0,160}(?:doc-fix|checkpoint)", step8_text, re.I | re.S):
+    print("step8:dirty-relevant-worktree-not-left-pending")
+if not re.search(r"unresolved.{0,180}(?:stay|block|cannot jump)|(?:stay|block|cannot jump).{0,180}unresolved", step8_text, re.I | re.S):
+    print("step8:unresolved-evidence-not-blocked")
+if not re.search(r"Step 2.{0,100}viability validation.{0,100}unchanged current spec", step3_text, re.I | re.S):
+    print("step3:does-not-reuse-current-step2-viability")
+if not re.search(r"spec changed or this is a resume at `spec`, rerun Step 2's viability validation while Goal status remains `spec`", step3_text, re.I):
+    print("step3:changed-or-resumed-material-not-revalidated")
+if not re.search(r"Pass the spec identity and bound viability evidence into the plan invocation", step3_text, re.I):
+    print("step3:current-validation-not-bound-to-plan-invocation")
+step1 = re.search(r"^## Step 1\b(.*?)(?=^## Step 2\b)", nf, re.M | re.S)
+if not step1 or not re.search(r"approved spec", step1.group(1), re.I) or not re.search(r"complete current.{0,100}(?:Plan review pass|pass)", step3_text, re.I | re.S):
+    print("define:approval-checkpoint-missing")
+if not re.search(r"orchestrated Step 2.{0,180}explicitly supplies.{0,100}spec identity.{0,100}viability evidence", plan, re.I | re.S):
+    print("plan:bound-define-viability-cannot-be-reused")
+if not re.search(r"Otherwise validate it here", plan, re.I):
+    print("plan:standalone-or-unbound-spec-skips-viability-validation")
+PY
+)
+[ -z "$checkpoint_errs" ] && ok "define handoff and Step 8 outcome/identity gates present" || bad "checkpoint contract missing:$checkpoint_errs"
+
 # gate26: Status-since timing protocol (issue #76) — the status transition is
 # three writes in one breath (Goal status + index + Status since), defined once
 # in new-feature's gate rule and template, and cited from every skill that
@@ -385,8 +436,8 @@ step2 = section(new_feature, "Step 2 — Spec")
 if not re.search(r"legacy.*explicit.*record|explicit.*legacy.*record", step2, re.I | re.S):
     print("new-feature:legacy-viability-choice-not-recorded")
 step3 = section(new_feature, "Step 3 — Plan")
-if not re.search(r"while.*`spec`.*only then.*`planning`", step3, re.I | re.S):
-    print("new-feature:step3-status-transition-before-viability-check")
+if not re.search(r"incoming `spec`.{0,300}spec changed or this is a resume at `spec`.{0,180}rerun Step 2's viability validation while Goal status remains `spec`.{0,500}set `planning`", step3, re.I | re.S):
+    print("new-feature:step3-does-not-preserve-gate-and-revalidation-order")
 if not re.search(r"legacy.*explicit.*record|explicit.*legacy.*record", plan, re.I | re.S):
     print("plan:legacy-viability-choice-not-recorded")
 

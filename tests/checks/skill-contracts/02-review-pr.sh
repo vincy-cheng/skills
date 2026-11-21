@@ -271,8 +271,14 @@ if not re.search(r"consistency.{0,160}evidence|evidence.{0,160}consistency", bod
     print("step8:does-not-check-documentation-evidence")
 if not re.search(r"new drift.{0,180}(?:execute|confirmation)|(?:execute|confirmation).{0,180}new drift", body, re.I | re.S):
     print("step8:new-drift-does-not-return-through-build")
-if not re.search(r"both current Test and Review evidence.{0,180}relevant worktree is clean", body, re.I | re.S):
-    print("step8:stale-or-dirty-evidence-can-pass-docs-only")
+supplement = re.search(r"Missing documentation judgment only:(.*?)(?=\n\*\*New drift|\Z)", body, re.S)
+supplement_text = supplement.group(1) if supplement else ""
+if not re.search(r"Test and Review identity tuple matches.{0,160}relevant worktree is clean", supplement_text, re.I | re.S):
+    print("step8:supplement-not-limited-to-matching-clean-evidence")
+if re.search(r"stale.{0,140}use `dev-flow:review`'s explicit Step 8", body, re.I | re.S):
+    print("step8:stale-evidence-routed-to-docs-only-supplement")
+if not re.search(r"Relevant uncommitted changes block the checkpoint and any supplement", body, re.I):
+    print("step8:relevant-dirty-tree-not-left-pending")
 if not re.search(r"explicit in-flow context.{0,180}Goal status.*`execute`", doc_fix, re.I | re.S):
     print("doc-fix:in-flow-entry-context-missing")
 if not re.search(r"When invoked without a state file", doc_fix):

@@ -10,6 +10,7 @@ focus: last_message
 - B3. Keeps the independent test and review gates over the complete deliverable; targeted green checks do not replace them.
 - B4. With matching current review evidence, clean worktree, and no drift, records/checks the documentation checkpoint without automatically dispatching `doc-fix`.
 - B5. Preserves `doc-fix` as a standalone skill.
+- B6. A complete matching `drift` result requires the same user-confirmed repair path and rewind through build, test, and review; missing confirmation blocks edits. On resume with stale Test/Review identity, refuses the supplement and requires full current-head verification before returning to the checkpoint.
 
 ## Gate violation
 Any skipped independent gate, unconfirmed documentation edit, or forced post-review `doc-fix` dispatch fails.

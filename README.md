@@ -78,10 +78,10 @@ Claude Code ignores both legacy Codex model keys and routes implementation throu
 |-------|------|
 | Define | Brainstorm, approve a spec, plan the work, and create a GitHub issue |
 | Build | Execute the plan with TDD and per-task commits; repair known documentation only with confirmed in-flow context |
-| Verify | Run tests and review, then complete the required documentation consistency checkpoint against current review evidence |
+| Verify | Run tests and review, then complete the required documentation-consistency checkpoint against current review evidence |
 | Deliver | Open or update the pull request, check readiness, wait for the user's manual merge, and close out the run |
 
-The hard gate keeps the workflow in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. The plugin has no external plugin dependencies. The documentation-consistency checkpoint is owned by the orchestrator; it may request a docs-only review supplement when matching evidence is missing, and it does not automatically dispatch `doc-fix`.
+The hard gate keeps the workflow in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. The plugin has no external plugin dependencies. The documentation-consistency checkpoint is owned by the orchestrator: only a complete matching `consistent` result or justified `N/A` advances; matching drift needs user-confirmed repair and a full build/test/review loop, while stale or unresolved evidence blocks. Relevant uncommitted changes leave the checkpoint pending while they are resolved. A review supplement is only for a missing documentation judgment on matching current test/review evidence and a clean relevant worktree.
 ```mermaid
 flowchart TD
     brainstorm[brainstorm] --> spec[approve spec] --> plan[approve plan]
@@ -94,15 +94,17 @@ flowchart TD
     review -- red --> execute
     review -- blue --> bluechoice{Fix blue findings?}
     bluechoice -- yes --> execute
-    bluechoice -- no, note in PR --> docscheck[documentation consistency checkpoint]
+    bluechoice -- no, note in PR --> docscheck[documentation-consistency checkpoint]
     review -- yellow --> choice{Fix findings now?}
     choice -- yes --> execute
     choice -- no, note in PR --> docscheck
     review -->|green| docscheck
-    docscheck -->|missing evidence, clean tree| supplement[review docs evidence]
+    docscheck -->|missing docs judgment, matching tuple, clean tree| supplement[review docs evidence]
     supplement --> docscheck
-    docscheck -->|new drift, after confirmation| execute
-    docscheck -->|evidence complete| pr[open PR]
+    docscheck -->|matching consistent or justified N/A| pr[open PR]
+    docscheck -->|matching drift, confirm repair| execute
+    docscheck -->|stale or missing identity/full verification| execute
+    docscheck -->|unreadable, unresolved, or relevant dirty tree| blocked[stay at checkpoint]
     pr --> check[PR readiness check]
     check -->|pending: resolve unknown or wait, then recheck| check
     check -->|needs-fix: repair| execute
@@ -124,7 +126,7 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
 | `doc-fix` | 5 / standalone | Repair known documentation during build with explicit in-flow context, or run standalone |
-| `new-feature` checkpoint | 8 | Verify independent documentation-consistency evidence; request a review supplement only when evidence is missing |
+| `new-feature` checkpoint | 8 | Advance only on complete matching consistency/no-drift or justified N/A; repair matching drift through confirmation and full gates; supplement only a missing docs judgment on a matching clean tuple |
 | `open-pr` | 9 | Open or update the recorded pull request and sync the issue; never merges |
 | `new-feature` | 10 | Check remote PR state and readiness against matching test/review evidence; report readiness and wait for the user's manual merge |
 
@@ -171,7 +173,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 | Verify | `test`, `review`, `doc-fix` |
 | Deliver | `pr-review`, `merged`, `done` |
 
-The `doc-fix` status records the documentation-consistency checkpoint. The orchestrator validates matching review evidence and requests a docs-only review supplement only when evidence is missing; it does not always invoke the `doc-fix` skill.
+The `doc-fix` status records the documentation-consistency checkpoint. The orchestrator validates the matching test/review identity and complete judgment. Only consistent/no-drift or justified N/A advances; matching drift follows confirmed repair and full gates, while stale identity or unresolved evidence blocks. Relevant uncommitted changes stay pending while resolved. The docs-only review supplement applies only when the judgment is missing and the tuple and relevant worktree are current and clean; `doc-fix` is not automatically invoked.
 
 A PR readiness check records `passed`, `pending`, or `needs-fix` against the current PR and matching test/review evidence. `pr-review → merged` occurs only after remote merge confirmation; the user reviews and merges manually.
 These statuses record different outcomes. Implementation complete means the planned changes exist; acceptance verified means agreed criteria have matching evidence; a required user confirmation may still be pending; PR ready means checks passed and the open PR awaits manual review and merge; merged requires remote confirmation; done requires all close-out work and required confirmation. A merge does not substitute for user confirmation. Missing UI evidence stays unverified, and a legacy spec with missing acceptance detail needs user input rather than an inferred approval.

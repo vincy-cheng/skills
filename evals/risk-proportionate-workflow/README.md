@@ -19,9 +19,9 @@ These are behavior cases, not a token benchmark. A narrated response cannot prov
 
 ## Paired comparison
 
-The fixed baseline source is commit `9d670b9ca8016c88f473084bee00d0ccfea1b9f2`. The candidate is captured from the committed Task 4 HEAD; its source hashes, dirty-path list, and exact loaded files are in the local comparison manifest. Both are exported read-only into the task's ignored local eval folder, and receive the exact same case files. No checkout or worktree replacement is used.
+The fixed baseline source is commit `9d670b9ca8016c88f473084bee00d0ccfea1b9f2`. Select and record the candidate revision before each comparison; its commit, source hashes, dirty-path list, and exact loaded files belong in the local comparison manifest. Export both source snapshots read-only into the ignored local eval folder and give them the exact same case files. Do not replace the checkout or working tree.
 
-Run one complete pair per case with the same **confirmed** Claude eval model and judge, tool grant, case text, and run count. The native implementation/reviewer roles used for the controlled follow-up are recorded separately. Do not use the alias default or CLI's default `haiku` judge as an implicit selection. Keep failed runs and traces; do not loosen graders after seeing a result.
+Run one complete pair per case with the same **confirmed** Claude eval model and judge, tool grant, case text, and run count. Record native implementation/reviewer roles used for controlled follow-ups separately. Do not use the alias default or CLI's default `haiku` judge as an implicit selection. Keep failed runs and traces; do not loosen graders after seeing a result. If the model or judge has not been confirmed for a run, do not launch it or substitute another.
 
 Use the inspected interactive `omnicc` wrapper, passing arguments as the shell's positional parameters so its quoted `"$@"` is preserved. Example shape after exact model/judge confirmation:
 
@@ -32,7 +32,7 @@ zsh -ic 'eval "$aliases[omnicc]"' -- plugin eval <plugin-path> \
   --allow-tools Read Skill --runs 1 --no-publish --output-dir <local-result-path>
 ```
 
-The wrapper help was verified without an evaluation run. As of this report, no Claude eval model/judge pair is confirmed, so paired behavioral evals have not been launched. Missing selection is BLOCKED; no model or judge substitution is authorized.
+The shell wrapper preserves quoted arguments when invoked interactively. Confirm the wrapper and exact model/judge before starting a pair; availability and run outcomes belong in the local evidence report, not in this suite's reusable instructions.
 
 ## Evidence limits
 
