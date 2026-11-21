@@ -51,6 +51,7 @@ if [ -f "hooks/state.ts" ]; then
   $G -q "export const PHASES = \['define', 'build', 'verify', 'deliver'\]" hooks/state.ts || phase_err="$phase_err missing-four-phases"
   $G -q "PHASE_FOR_STATUS: Record<GoalStatus, Phase>" hooks/state.ts || phase_err="$phase_err missing-status-phase-map"
   $G -q "doc-fix checkpoint (dev-flow:new-feature)" hooks/register.tsx || phase_err="$phase_err missing-orchestrator-checkpoint"
+  $G -q "if (status === 'doc-fix') return 'doc-fix checkpoint (dev-flow:new-feature)'" hooks/register.tsx || phase_err="$phase_err missing-pending-checkpoint-resume-route"
   if $G -Eq "step [0-9]+/11" hooks/register.tsx; then phase_err="$phase_err legacy-step-display"; fi
   if [ -z "$phase_err" ]; then ok "hooks map lifecycle statuses to four readable phases"; else bad "hooks phase presentation:$phase_err"; fi
 else

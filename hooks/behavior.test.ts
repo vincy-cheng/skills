@@ -146,6 +146,10 @@ describe('nextOf — the pane next-step line', () => {
     expect(nextOf('review')).toBe('doc-fix checkpoint (dev-flow:new-feature)')
   })
 
+  test('keeps a resumed documentation checkpoint under the orchestrator decision', () => {
+    expect(nextOf('doc-fix')).toBe('doc-fix checkpoint (dev-flow:new-feature)')
+  })
+
   test('terminal statuses render their wording', () => {
     expect(nextOf('done')).toBe('closed out')
     expect(nextOf('merged')).toBe('done (dev-flow:new-feature)')

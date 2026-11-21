@@ -49,8 +49,9 @@ const ENTERED_BY: Record<GoalStatus, string> = {
   done: 'new-feature',
 }
 
-/** The next gate after `status`, with documentation checkpoints owned by the orchestrator. */
+/** The next gate after `status`; pending documentation checkpoints resume at their orchestrator decision. */
 export function nextOf(status: GoalStatus): string {
+  if (status === 'doc-fix') return 'doc-fix checkpoint (dev-flow:new-feature)'
   const next = STEPS[stepOf(status) + 1]
   if (next === undefined) return 'closed out'
   if (next === 'doc-fix') return 'doc-fix checkpoint (dev-flow:new-feature)'

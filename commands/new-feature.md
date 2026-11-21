@@ -1,5 +1,5 @@
 ---
-description: Start a new feat or fix through the full workflow — plan (brainstorm → spec → plan → issue) → build (execute, TDD, known documentation) → verify (test → review → documentation consistency checkpoint) → ship (PR → manual merge → close-out). 11 steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. All step skills are dev-flow's own — no external plugin dependencies.
+description: Start a new feat or fix through the full workflow — define (brainstorm → spec → plan → issue) → build (execute, TDD, known documentation) → verify (test → review → documentation consistency checkpoint) → deliver (PR → manual merge → close-out). The orchestrator uses 11 internal gated steps. Pass the idea as arguments; pass nothing or "resume" to continue prior work. Maintains gitignored state files so work can resume. All step skills are dev-flow's own — no external plugin dependencies.
 user-invocable: false
 ---
 

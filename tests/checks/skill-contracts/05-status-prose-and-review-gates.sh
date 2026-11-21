@@ -20,6 +20,10 @@ step3_text = step3.group(1) if step3 else ""
 step8_text = step8.group(1) if step8 else ""
 step8_gate = re.search(r"^\*\*Gate:\*\*(.*)$", step8_text, re.M)
 step8_gate_text = step8_gate.group(1) if step8_gate else ""
+hard_gate = re.search(r"^## The hard gate\b(.*?)(?=^## Resume\b)", nf, re.M | re.S)
+hard_gate_text = hard_gate.group(1) if hard_gate else ""
+red_loop = re.search(r"^\*\*Red-loop rewind:\*\*(.*?)(?=^\*\*Sub-skill handoffs)", hard_gate_text, re.M | re.S)
+red_loop_text = red_loop.group(1) if red_loop else ""
 
 if not re.search(r"`doc-fix`[^\n]{0,80}Step 8 evidence decision", resume_text, re.I):
     print("resume:does-not-delegate-to-step8-decision")
@@ -35,15 +39,25 @@ if not re.search(r"Missing or stale identity.{0,220}rewinds to `execute`.{0,220}
     print("step8:stale-identity-does-not-rewind-to-full-verification")
 if not re.search(r"Relevant uncommitted changes block the checkpoint.{0,100}stay pending at `doc-fix`", step8_gate_text, re.I | re.S):
     print("step8:dirty-relevant-worktree-not-left-pending")
-if not re.search(r"unreadable, incomplete, or unresolved result stays at `doc-fix` and blocks Step 9", step8_gate_text, re.I):
+if not re.search(r"unreadable, incomplete, or unresolved result stays pending at `doc-fix` and blocks Step 9", step8_gate_text, re.I):
     print("step8:unresolved-evidence-not-blocked")
+if not re.search(r"Step 8 pending resume exception.{0,240}Goal status to `doc-fix`.{0,240}same Step 8 evidence decision.{0,120}no prior verdict", hard_gate_text, re.I | re.S):
+    print("hard-gate:pending-doc-fix-resume-rejected-by-universal-gate")
+if not re.search(r"First entry is `review`.{0,120}set `doc-fix`.{0,100}Pending resume exception", step8_gate_text, re.I | re.S) or not re.search(r"Step 8 has written `doc-fix` and is pending or was interrupted before its evidence decision completed.{0,160}accept incoming `doc-fix`.{0,160}without changing Goal status.{0,160}No prior verdict or recorded failure is required", step8_gate_text, re.I | re.S):
+    print("step8:normal-entry-and-same-status-resume-not-distinguished")
+if "| 8 doc-fix | `review` | `doc-fix` |" not in nf:
+    print("gate-table:normal-review-to-doc-fix-transition-changed")
+if re.search(r"steps 6 \(red\), 7 \(red\), and 8 \(STOP\)", red_loop_text):
+    print("red-loop:generic-step8-stop-still-rewinds-pending-checkpoints")
+if not re.search(r"Step 8 rewinds only for its explicit stale/missing identity or changed-verification outcome, or for a user-confirmed documentation repair", red_loop_text, re.I):
+    print("red-loop:explicit-step8-rewind-outcomes-not-scoped")
 def valid_step8_gate(text):
     return all((
         re.search(r"Only a complete `consistent` result or a justified `N/A` advances to Step 9", text, re.I),
         re.search(r"A complete `drift` result takes the confirmed repair path", text, re.I),
         re.search(r"Missing or stale identity.{0,220}rewinds to `execute`.{0,220}fresh test and review", text, re.I | re.S),
         re.search(r"Relevant uncommitted changes block the checkpoint.{0,100}stay pending at `doc-fix`", text, re.I | re.S),
-        re.search(r"unreadable, incomplete, or unresolved result stays at `doc-fix` and blocks Step 9", text, re.I),
+        re.search(r"unreadable, incomplete, or unresolved result stays pending at `doc-fix` and blocks Step 9", text, re.I),
     ))
 
 mutated_gate = step8_gate_text.replace("A complete `drift` result takes the confirmed repair path", "A complete `drift` result advances directly to Step 9")

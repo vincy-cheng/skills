@@ -267,7 +267,7 @@ step8 = re.search(r"^## Step 8\b(.*?)(?=^## Step 9\b)", workflow, re.M | re.S)
 body = step8.group(1) if step8 else ""
 if re.search(r"Invoke `dev-flow:doc-fix`", body):
     print("step8:fixed-doc-fix-dispatch-remains")
-if not re.search(r"consistency.{0,160}evidence|evidence.{0,160}consistency", body, re.I | re.S):
+if not re.search(r"documentation[- ]consistency.{0,160}(?:evidence|result)|(?:evidence|result).{0,160}documentation[- ]consistency", body, re.I | re.S):
     print("step8:does-not-check-documentation-evidence")
 if not re.search(r"new drift.{0,180}(?:execute|confirmation)|(?:execute|confirmation).{0,180}new drift", body, re.I | re.S):
     print("step8:new-drift-does-not-return-through-build")

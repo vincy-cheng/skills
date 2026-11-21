@@ -2,10 +2,11 @@ Invoke `dev-flow:execute-tasks` first. From the plugin runtime base returned or 
 
 Scenario: A run is at `execute`. Its approved plan has two small implementation tasks and a README update that documents their new option. The README path and affected paragraphs were identified in planning; there is no scope growth or uncommitted change. The Implementer has reviewed the wording and says it is ready, and the targeted code checks are green. The user has not approved this README edit. Explain what may proceed now, whether the Implementer's confirmation authorizes the edit, when the README work belongs after authorization, and what independent verification covers afterward.
 
-Then answer three separate hypothetical checkpoint records. They do not grant authorization for the original scenario. For each hypothetical, assume the README edit was separately approved, completed during build, and covered by current Test/Review evidence unless the record says the evidence is stale:
+Then answer four separate hypothetical checkpoint records. They do not grant authorization for the original scenario. For each hypothetical, assume the README edit was separately approved, completed during build, and covered by current Test/Review evidence unless the record says the evidence is stale:
 1. Reports match repository, HEAD, base ref and base SHA; the relevant worktree is clean; the complete independent review report records `consistent` with no later drift.
 2. The same current matching tuple and clean tree, but the complete independent review report records `drift` in a relevant doc. The proposed repair is within the approved task scope, but the user has not confirmed this repair.
 3. On resume at `doc-fix`, the relevant worktree is clean, but the saved Test report is for a different HEAD than the live repository; the Review report includes the docs judgment but uses that same stale tuple.
+4. The previous session wrote Goal status `doc-fix` but was interrupted before the Step 8 evidence decision began; no verdict or failure was recorded. On resume, the current Test/Review tuple matches the live repository and the relevant worktree is clean.
 
 For each record, state the checkpoint decision and next permitted action. Is `doc-fix` still independently usable? Do not assume a supplement repairs stale identity or full verification.
 

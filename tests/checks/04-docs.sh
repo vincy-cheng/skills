@@ -83,18 +83,28 @@ flow_docs_errs=$(python3 -B - <<'PY'
 from pathlib import Path
 
 expected = {
-    "README.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint"),
+    "README.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint", "pending or interrupted step 8 resumes at `doc-fix`"),
     "AGENTS.md": ("define / build / verify / deliver", "known documentation", "documentation-consistency checkpoint"),
-    "docs/agents/ARCHITECTURE.md": ("define (brainstorm", "build (execute TDD", "verify (test", "deliver (open/update PR", "documentation-consistency checkpoint"),
-    "docs/agents/DEVOPS.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint"),
+    "docs/agents/INDEX.md": ("packaged version numbers are owned by", "user-facing phases are define / build / verify / deliver", "internal 11-step gate table"),
+    "docs/agents/ARCHITECTURE.md": ("define (brainstorm", "build (execute TDD", "verify (test", "deliver (open/update PR", "documentation-consistency checkpoint", "pending or interrupted step 8 resumes at `doc-fix`"),
+    "docs/agents/DEVOPS.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint", "pending or interrupted step 8 resumes at `doc-fix`"),
     "skills/new-feature/SKILL.md": ("four user-facing phases", "Define : brainstorm", "Build  : execute", "Verify : test", "Deliver: PR readiness", "documentation-consistency checkpoint"),
-    "commands/new-feature.md": ("build (execute, TDD, known documentation)", "documentation consistency checkpoint"),
+    "commands/new-feature.md": ("define (brainstorm", "build (execute, TDD, known documentation)", "verify (test", "deliver (PR"),
 }
 for rel, markers in expected.items():
     text = Path(rel).read_text().lower()
     for marker in markers:
         if marker.lower() not in text:
             print(f"{rel}:missing-{marker}")
+command = Path("commands/new-feature.md").read_text()
+frontmatter = command.split("---", 2)
+description = frontmatter[1] if len(frontmatter) >= 3 else ""
+if not all(phase in description.lower() for phase in ("define", "build", "verify", "deliver")):
+    print("commands/new-feature.md:description-missing-four-phase-terms")
+if "11 internal gated steps" not in description.lower():
+    print("commands/new-feature.md:description-misframes-internal-steps")
+if "ship (" in description.lower() or "plan (brainstorm" in description.lower():
+    print("commands/new-feature.md:description-uses-retired-phase-labels")
 PY
 )
 [ -z "$flow_docs_errs" ] && ok "workflow docs describe build-time documentation and the consistency checkpoint" || bad "build documentation docs drift:$flow_docs_errs"

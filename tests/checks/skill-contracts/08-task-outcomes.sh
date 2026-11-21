@@ -40,7 +40,7 @@ else:
     require("new-feature", r"No memory update needed.{0,160}continue.{0,100}close-out", "no-memory-path-must-not-finish-early", step11)
     require("new-feature", r"After.{0,100}task outcome.{0,100}(?:recorded|saved).{0,180}Goal status.{0,100}done.{0,160}index row.{0,100}Status since", "step-11-no-final-synchronized-transition", step11)
     gate = section(skill_text, "The hard gate")
-    require("new-feature", r"Steps 4, 10, and 11 are exceptions", "gate-missing-close-out-exception", gate)
+    require("new-feature", r"Steps 4, 8, 10, and 11 are exceptions", "gate-missing-close-out-exception", gate)
     if re.search(r"\*\*Gate:\*\*.*→ set .done", step11):
         errors.append("new-feature:step-11-still-finishes-on-entry")
 
