@@ -51,10 +51,10 @@ const ENTERED_BY: Record<GoalStatus, string> = {
 
 /** The next gate after `status`; pending documentation checkpoints resume at their orchestrator decision. */
 export function nextOf(status: GoalStatus): string {
-  if (status === 'doc-fix') return 'doc-fix checkpoint (dev-flow:new-feature)'
+  if (status === 'doc-fix') return `doc-fix checkpoint (dev-flow:${ENTERED_BY[status]})`
   const next = STEPS[stepOf(status) + 1]
   if (next === undefined) return 'closed out'
-  if (next === 'doc-fix') return 'doc-fix checkpoint (dev-flow:new-feature)'
+  if (next === 'doc-fix') return `doc-fix checkpoint (dev-flow:${ENTERED_BY[next]})`
   const skill = ENTERED_BY[next]
   if (skill === '' || skill === undefined) return next
   return `${next} (dev-flow:${skill})`
@@ -121,15 +121,14 @@ function resumeRowName(feat: string): string {
  *  current run is excluded: its card carries the coverage. */
 export function resumableList(states: RunStates): { runs: Run[]; omitted: number } {
   const runs = [...states.active, ...states.finished.filter(run => run.status === 'merged')]
-  const withoutCurrent = states.current === null ? runs : runs.filter(run => run.feat !== states.current?.feat)
+  const current = states.current
+  const withoutCurrent = current === null ? runs : runs.filter(run => run.feat !== current.feat)
   return { runs: withoutCurrent.slice(0, RESUME_ROWS), omitted: Math.max(0, withoutCurrent.length - RESUME_ROWS) }
 }
 
 export const register: Register = on => {
   /** Last-known statuses — the flip cache (session-scoped, ambient; not a cross-session ledger). */
   let lastKnown: Record<string, GoalStatus> = {}
-  /** Whether the current run has already been farewell-closed (A1: transition-only). */
-  let farewelled = false
 
   on('session.start', async ($, e, next) => {
 
@@ -173,12 +172,9 @@ export const register: Register = on => {
       const justFinished = states.finished.find(
         run => run.status === 'done' && prev[run.feat] !== undefined && prev[run.feat] !== run.status,
       )
-      if (justFinished !== undefined && !farewelled) {
+      if (justFinished !== undefined) {
         await $.ui.close({ id: PANE })
         $.ui.toast(`dev-flow: ${justFinished.feat} finished — pane closed.`)
-        farewelled = true
-      } else {
-        farewelled = false
       }
 
       // The pane follows the state files: redraw with the fresh picture.
@@ -263,12 +259,12 @@ function CloseButton($: { ui: { close: (args: { id: string }) => Promise<void> }
   )
 }
 
-/** The [ Resume ] press: submit the prompt (asUser), close the pane on
- *  success; a rejection toasts the manual path and keeps the pane open. `$`
- *  is the parameter — the engine's real one or the test's stub shape alike. */
 /** The $-shape resumePress needs — the real engine's $ and the tests' fake satisfy it alike. */
 type Resume$ = { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } }
 
+/** The [ Resume ] press: submit the prompt (asUser), close the pane on
+ *  success; a rejection toasts the manual path and keeps the pane open. `$`
+ *  is the parameter — the engine's real one or the test's stub shape alike. */
 export async function resumePress(
   $: Resume$,
   run: Run,

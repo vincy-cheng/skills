@@ -145,13 +145,16 @@ describe('register — the command surface', () => {
     expect(specs).toEqual([])
   })
 
-  test('merged announces delivery; done closes once; steady and first-seen done stay quiet', async () => {
-    const makeHarness = (initialStatus: GoalStatus) => {
+  test('merged announces delivery; each done transition closes; steady and first-seen done stay quiet', async () => {
+    const makeHarness = (initialStatuses: Record<string, GoalStatus>) => {
       const callbacks = new Map<string, (...args: any[]) => Promise<unknown>>()
       const toasts: string[] = []
       const closes: unknown[] = []
-      let status = initialStatus
-      const stateText = () => `- **Goal status:** ${status}\n- **Updated:** 2026-11-22 12:00 +08:00\n`
+      const statuses = new Map(Object.entries(initialStatuses))
+      const stateText = (path: string) => {
+        const feat = path.split('/').pop()!.replace(/\.state\.md$/, '')
+        return `- **Goal status:** ${statuses.get(feat)}\n- **Updated:** 2026-11-22 12:00 +08:00\n`
+      }
       const recordingOn = ((pattern: string, handlerOrFilter: unknown, maybeHandler?: unknown) => {
         const handler = typeof handlerOrFilter === 'function' ? handlerOrFilter : maybeHandler
         if (typeof handler === 'function') callbacks.set(pattern, handler as (...args: any[]) => Promise<unknown>)
@@ -159,8 +162,8 @@ describe('register — the command surface', () => {
       }) as unknown as Parameters<typeof register>[0]
       const $ = {
         fs: {
-          list: async () => [{ name: 'demo.state.md', kind: 'file' as const }],
-          read: async () => stateText(),
+          list: async () => [...statuses.keys()].map(feat => ({ name: `${feat}.state.md`, kind: 'file' as const })),
+          read: async (path: string) => stateText(path),
         },
         ui: {
           status: async () => undefined,
@@ -171,10 +174,10 @@ describe('register — the command surface', () => {
       }
 
       register(recordingOn as never)
-      return { callbacks, toasts, closes, setStatus: (next: GoalStatus) => { status = next }, $ }
+      return { callbacks, toasts, closes, setStatus: (feat: string, next: GoalStatus) => { statuses.set(feat, next) }, $ }
     }
 
-    const harness = makeHarness('pr-review')
+    const harness = makeHarness({ demo: 'pr-review', second: 'execute' })
     const start = harness.callbacks.get('session.start')
     const complete = harness.callbacks.get('turn.complete')
     expect(start).toBeDefined()
@@ -182,29 +185,32 @@ describe('register — the command surface', () => {
     const next = async () => undefined
     await start!(harness.$, {}, next)
 
-    harness.setStatus('merged')
+    harness.setStatus('demo', 'merged')
     await complete!(harness.$, { agentId: undefined }, next)
     expect(harness.toasts).toContain('dev-flow: demo pr-review → merged (deliver)')
     expect(harness.closes).toEqual([])
     expect(harness.toasts.some(text => text.includes('finished — pane closed'))).toBe(false)
 
-    harness.setStatus('done')
+    harness.setStatus('demo', 'done')
+    harness.setStatus('second', 'pr-review')
     await complete!(harness.$, { agentId: undefined }, next)
     expect(harness.toasts).toContain('dev-flow: demo merged → done (deliver)')
     expect(harness.closes).toEqual([{ id: 'flow' }])
     expect(harness.toasts).toContain('dev-flow: demo finished — pane closed.')
 
-    const completedToasts = [...harness.toasts]
+    harness.setStatus('second', 'done')
     await complete!(harness.$, { agentId: undefined }, next)
-    expect(harness.toasts).toEqual(completedToasts)
-    expect(harness.closes).toEqual([{ id: 'flow' }])
+    expect(harness.toasts).toContain('dev-flow: second pr-review → done (deliver)')
+    expect(harness.toasts).toContain('dev-flow: second finished — pane closed.')
+    expect(harness.closes).toEqual([{ id: 'flow' }, { id: 'flow' }])
 
-    const alreadyDone = makeHarness('done')
+    const alreadyDone = makeHarness({ already: 'done' })
     const doneStart = alreadyDone.callbacks.get('session.start')
     const doneComplete = alreadyDone.callbacks.get('turn.complete')
     expect(doneStart).toBeDefined()
     expect(doneComplete).toBeDefined()
     await doneStart!(alreadyDone.$, {}, next)
+    await doneComplete!(alreadyDone.$, { agentId: undefined }, next)
     await doneComplete!(alreadyDone.$, { agentId: undefined }, next)
     expect(alreadyDone.toasts).toEqual([])
     expect(alreadyDone.closes).toEqual([])
