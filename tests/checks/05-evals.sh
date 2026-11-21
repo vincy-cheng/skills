@@ -100,6 +100,10 @@ Verification:
                 return "\n".join(json.dumps(event, separators=(",", ":")) for event in (init, use, {"type": "user", "message": {"role": "user", "content": [result]}}))
             if not pattern.search(trace()):
                 print("grader-rejects-successful-write")
+            verify_label = good_artifact.replace("Verification:\n", "Verify:\n")
+            no_verify_label = good_artifact.replace("Verification:\n", "")
+            if any(not pattern.search(trace(content=variant)) for variant in (verify_label, no_verify_label)):
+                print("grader-rejects-equivalent-verification-label-or-unlabeled-command")
             negatives = (
                 trace(claim_only=True),
                 trace(path=f"{cwd}/docs/plans/2026-11-22-extract-auth-middleware.md"),
