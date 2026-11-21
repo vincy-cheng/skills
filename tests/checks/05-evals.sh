@@ -282,6 +282,16 @@ for name, skill in expected.items():
             expected_focus = "last_message" if name in ("01-document", "05-context-recovery", "07-legacy-resume") else "trace"
             if not re.search(rf"^focus: {expected_focus}$", header[1], re.M):
                 print(f"{name}:grader-focus-mismatch:{expected_focus}")
+    if name == "07-legacy-resume":
+        checkpoint = case / "graders/checkpoint.md"
+        if not checkpoint.is_file():
+            print("07-legacy-resume:missing-checkpoint-grader")
+        else:
+            parts = checkpoint.read_text().split("---", 2)
+            if len(parts) < 3 or not all(re.search(rf"^{field}$", parts[1], re.M) for field in ("type: llm", "focus: last_message")):
+                print("07-legacy-resume:checkpoint-grader-header-invalid")
+            elif not all(marker in parts[2] for marker in ("A1 leaves", "A2 selects only", "Step 10", "Step 9 evidence gate")):
+                print("07-legacy-resume:checkpoint-grader-misses-decision-gates")
 case01_prompt = (suite / "cases/01-document/prompt.md").read_text()
 case01_grader = (suite / "cases/01-document/graders/grader.md").read_text()
 for marker in ("The user has not approved this README edit", "Then answer four separate hypothetical checkpoint records", "assume the README edit was separately approved, completed during build", "previous session wrote Goal status `doc-fix` but was interrupted before the Step 8 evidence decision began", "no verdict or failure was recorded"):
