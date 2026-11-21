@@ -1,3 +1,7 @@
-Spec is approved: add CSV import to the task-tracker (parser service, importer
-endpoint, UI upload button, migration for import_log table). Write the
-implementation plan — remember your flow chart requirement.
+Invoke `dev-flow:plan` before answering, then use Read on `skills/plan/SKILL.md` from the runtime plugin base returned or resolved by that Skill invocation. This is a standalone plan request: the settled requirements and repository inventory below are the authoritative input; no dev-flow spec path or active run state exists. Do not search an empty runtime sandbox for missing documents. Use only Skill and Read for source guidance and Write/Edit to save the requested plan; do not run commands, dispatch reviewers or implementers, write code, or commit.
+
+Spec is approved: add CSV import to the task tracker. The settled behavior is complete: accept UTF-8 CSV with headers `title,due_date`; reject files over 10 MiB; skip blank rows; report each invalid row number and reason; import valid rows even if other rows are invalid; and write one `import_log` row per request with actor, timestamp, accepted count, and rejected count. The UI shows the row results after upload.
+
+Repository inventory: Python 3.12, Django 5, PostgreSQL, pytest. Relevant files: `tasks/models.py`, `tasks/views.py`, `tasks/urls.py`, `tasks/services/`, `templates/tasks/index.html`, `static/tasks/import.js`, `tasks/migrations/`, `tasks/tests/test_import.py`, and `tasks/tests/test_views.py`. Existing checks: `python -m pytest tasks/tests/test_import.py tasks/tests/test_views.py` and `ruff check tasks`. Write the implementation plan — remember your flow chart requirement.
+
+Save the plan, then include the complete saved plan text in your response, including every checkbox task and the full Mermaid `Flow Chart`. State the plan review and approval status accurately; do not claim that a review or approval occurred if it did not.

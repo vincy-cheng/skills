@@ -18,7 +18,10 @@ binary — no vibe scores.
   equivalent), and the task list is copyable as `- [ ]` checkbox items.
 - B4. The response performs no implementation and offers no "Execution
   Handoff" / next-skill invocation — its terminal state is the presented plan
-  awaiting approval.
+  awaiting approval. Naming the applicable independent plan review as a
+  prerequisite, without performing it or offering execution/handoff, is not an
+  implementation handoff. Offering to start implementation or skip a required
+  review or approval still fails.
 
 ## Case-specific (binary, must ALL pass — counted with Layer 1)
 
@@ -41,5 +44,6 @@ Only if Layer 1 is fully passed, score:
 
 ## Verdict
 
-Report: Layer 1 as `B1..B4: Y/N` each with evidence, then Q1/Q2 scores.
-Overall PASS iff all of Layer 1 is Y. State `PASS` or `FAIL` on the first line.
+Evaluate the response against every Layer 1 and Layer 2 criterion. Return
+exactly one word: `PASS` or `FAIL`. PASS only if all Layer 1 criteria pass;
+otherwise return FAIL. Do not include evidence, scores, or any other text.

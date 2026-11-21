@@ -123,3 +123,114 @@ elif [ -z "$architecture_grader_errs" ]; then
 else
   bad "architecture source grader contract missing:$architecture_grader_errs"
 fi
+
+# Risk-proportionate workflow regression cases must remain complete and source-loaded.
+risk_workflow_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import re
+import json
+
+suite = Path("evals/risk-proportionate-workflow")
+expected = {
+    "01-document": "execute-tasks",
+    "02-bounded-fix": "new-feature",
+    "03-small-high-risk": "plan",
+    "04-scope-growth": "new-feature",
+    "05-context-recovery": "execute-tasks",
+    "06-recovery-stop": "execute-tasks",
+    "07-legacy-resume": "new-feature",
+    "08-expectation-gap": "review",
+}
+actual = {path.name for path in (suite / "cases").iterdir() if path.is_dir()}
+for missing in sorted(set(expected) - actual):
+    print(f"missing-case:{missing}")
+for extra in sorted(actual - set(expected)):
+    print(f"unexpected-case:{extra}")
+for name, skill in expected.items():
+    case = suite / "cases" / name
+    for relative in ("case.yaml", "prompt.md", "graders/grader.md"):
+        if not (case / relative).is_file():
+            print(f"{name}:missing:{relative}")
+    config = case / "case.yaml"
+    prompt = case / "prompt.md"
+    if config.is_file():
+        text = config.read_text()
+        for tool in ("Read", "Skill"):
+            if not re.search(rf"^    - {tool}$", text, re.M):
+                print(f"{name}:missing-source-tool:{tool}")
+    if prompt.is_file() and not re.search(rf"Invoke `dev-flow:{skill}`", prompt.read_text()):
+        print(f"{name}:missing-source-load:dev-flow:{skill}")
+    grader = case / "graders/grader.md"
+    if grader.is_file():
+        header = grader.read_text().split("---", 2)
+        if len(header) < 3 or not re.search(r"^type: llm$", header[1], re.M):
+            print(f"{name}:grader-not-discoverable-llm")
+        else:
+            expected_focus = "last_message" if name in ("01-document", "05-context-recovery") else "trace"
+            if not re.search(rf"^focus: {expected_focus}$", header[1], re.M):
+                print(f"{name}:grader-focus-mismatch:{expected_focus}")
+if not (suite / "README.md").is_file():
+    print("missing-suite-readme")
+
+# Cases 01 and 05 grade source reads deterministically from successful tool
+# results; the LLM grader scores behavior only.
+source_cases = {
+    "01-document": [
+        "Run the plan's tasks one by one, with TDD.",
+        "## Step 8",
+        "## Standalone mode (outside dev-flow)",
+    ],
+    "05-context-recovery": [
+        "NEEDS_CONTEXT",
+        "# Model routing — role-level lanes for dev-flow subagent dispatch",
+    ],
+}
+
+def result_event(call_id, content, is_error=False, type_first=False):
+    item = {"tool_use_id": call_id, "type": "tool_result", "content": content}
+    if type_first:
+        item = {"type": "tool_result", "tool_use_id": call_id, "content": content}
+    if is_error:
+        item["is_error"] = True
+    return json.dumps({"type": "user", "message": {"content": [item]}}, ensure_ascii=False)
+
+for name, markers in source_cases.items():
+    case = suite / "cases" / name
+    source_grader = case / "graders/source-reads.md"
+    if not source_grader.is_file():
+        print(f"{name}:missing-deterministic-source-grader")
+        continue
+    raw = source_grader.read_text()
+    parts = raw.split("---", 2)
+    if len(parts) < 3 or not all(term in parts[1] for term in ("type: regex", "target: trace")):
+        print(f"{name}:invalid-deterministic-source-grader-header")
+        continue
+    try:
+        pattern = re.compile(parts[2].strip())
+    except re.error as error:
+        print(f"{name}:invalid-source-grader-regex:{error}")
+        continue
+    if any(re.escape(marker).replace(r"\ ", " ").replace(r"\#", "#").replace(r"\-", "-") not in parts[2] for marker in markers):
+        print(f"{name}:source-grader-misses-required-marker")
+    positive = "\n".join(result_event(f"call-{i}", marker, type_first=(i % 2 == 1)) for i, marker in enumerate(markers))
+    error = "\n".join(result_event(f"call-{i}", marker, is_error=True, type_first=(i % 2 == 1)) for i, marker in enumerate(markers))
+    claim = "\n".join(f"I read the source and saw {marker}" for marker in markers)
+    missing = "\n".join(result_event(f"call-{i}", marker) for i, marker in enumerate(markers[:-1]))
+    if not pattern.search(positive):
+        print(f"{name}:grader-rejects-successful-tool-results-or-key-order")
+    reordered = "\n".join(result_event(f"reordered-{i}", marker, type_first=(i % 2 == 0)) for i, marker in enumerate(reversed(markers)))
+    if not pattern.search(reordered):
+        print(f"{name}:grader-rejects-reordered-tool-results")
+    if any(pattern.search(trace) for trace in (error, claim, missing)):
+        print(f"{name}:grader-accepts-error-claim-or-missing-source")
+
+PY
+)
+risk_workflow_exit=$?
+if [ "$risk_workflow_exit" -ne 0 ]; then
+  bad "risk-proportionate workflow case contract crashed:$risk_workflow_errs"
+elif [ -z "$risk_workflow_errs" ]; then
+  ok "risk-proportionate workflow has eight complete source-loaded cases"
+else
+  bad "risk-proportionate workflow case contract missing:$risk_workflow_errs"
+fi

@@ -4,3 +4,6 @@ description: Shared requires verified same-worker follow-up; a CLI re-run is not
 execution:
   max_turns: 30
   timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

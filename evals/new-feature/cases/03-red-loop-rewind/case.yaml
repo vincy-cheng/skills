@@ -4,3 +4,6 @@ description: Tester verdict red at step 6 — the orchestrator must re-set Goal 
 execution:
   max_turns: 30
   timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

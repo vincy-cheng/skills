@@ -321,6 +321,14 @@ if "self-check" not in review_pass.lower():
     print("plan:small-self-check-missing")
 if not re.search(r"ordinary.*independent|independent.*ordinary", review_pass, re.S):
     print("plan:ordinary-independent-review-missing")
+if not re.search(r"(?:missing|incomplete|blocked).{0,180}(?:required )?review.{0,180}draft|draft.{0,180}(?:missing|incomplete|blocked).{0,180}(?:required )?review", review_pass, re.I | re.S):
+    print("plan:incomplete-review-does-not-leave-draft")
+if not re.search(r"user approval.{0,180}(?:does not|cannot).{0,120}(?:clear|satisfy|complete)", review_pass, re.I | re.S):
+    print("plan:user-approval-cannot-clear-incomplete-review")
+if not re.search(r"complete applicable pass.{0,220}separate user approval", review_pass, re.I | re.S):
+    print("plan:handoff-does-not-require-complete-pass-and-separate-approval")
+if not re.search(r"standalone.{0,200}(?:stop|never).*implementation|never.{0,160}standalone.{0,160}implementation", standalone, re.I | re.S):
+    print("plan:standalone-auto-continuation-missing-stop")
 for marker in ("classification basis", "applicability", "self-check", "independent review", "verdict"):
     if marker not in review_pass.lower():
         print(f"plan:pass-recording-{marker.replace(' ', '-')}-missing")

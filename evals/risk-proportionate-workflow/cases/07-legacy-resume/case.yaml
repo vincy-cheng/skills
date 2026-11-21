@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 07-legacy-checkpoint-and-standalone-compatibility
+description: A legacy documentation checkpoint is recovered from current evidence while standalone doc-fix remains gated.
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools:
+    - Read
+    - Skill

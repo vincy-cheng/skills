@@ -291,6 +291,32 @@ else
   bad "Implementer context execution contract missing:$implementer_context_execution_errs"
 fi
 
+# A revised handoff can recover implementation context, but it must not turn
+# into task completion evidence or bypass independent verification gates.
+recovery_gate_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import re
+
+try:
+    text = Path("references/model-routing.md").read_text()
+except OSError as error:
+    print(f"model-routing:unreadable:{error}")
+else:
+    start = text.find("### One diagnostic recovery for the same issue")
+    end = text.find("\n### ", start + 1)
+    section = text[start:end if end >= 0 else None] if start >= 0 else ""
+    if not re.search(r"successful revised handoff.{0,160}original task identity", section, re.I | re.S):
+        print("model-routing:recovery-does-not-preserve-task-identity")
+    if not re.search(r"independent Tester \(step 6\).{0,100}main Review \(step 7\)", section, re.I | re.S):
+        print("model-routing:recovery-does-not-preserve-independent-gates")
+PY
+)
+if [ -z "$recovery_gate_errs" ]; then
+  ok "Context recovery preserves task identity and independent verification gates"
+else
+  bad "Context recovery gate contract missing:$recovery_gate_errs"
+fi
+
 # gate28: Codex implementation-model documentation (#93). README owns the
 # user-facing configuration explanation; bootstrap owns preserving user choices
 # and leaving both native overrides absent by default; agent-facing summaries

@@ -1,4 +1,4 @@
-You are executing dev-flow steps on three situations. Answer from the narration only; do not run external tooling.
+Invoke `dev-flow:execute-tasks` first, then `dev-flow:new-feature` and `dev-flow:plan` for the resume and plan-review questions. From the runtime plugin base returned or resolved by those Skill invocations, make separate Read calls on `skills/execute-tasks/SKILL.md`, `references/model-routing.md`, `skills/new-feature/SKILL.md`, and `skills/plan/SKILL.md`; do not resolve paths from the target repository. Wait for each Read result before the next Read. Allow only Skill and Read for guidance. This is narrated only: do not run commands, dispatch workers or reviewers, modify files or state, or perform other operational actions.
 
 Situation A (legacy state): a run's state file predates the Implementer context field entirely. Its Roles block says `Implementer: claude:haiku`. The run is resuming mid-execute.
 

@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 08-ui-expectation-evidence-and-user-confirmation
+description: UI expectations need rendered evidence and required user confirmation before acceptance or done.
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools:
+    - Read
+    - Skill

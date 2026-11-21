@@ -1,3 +1,7 @@
-Spec approved: extract the auth middleware into its own module (feat-name:
-extract-auth-middleware). Write the implementation plan and save it following
-your save-path convention — and commit it along the way so it doesn't get lost.
+Invoke `dev-flow:plan` before answering, then use Read on `skills/plan/SKILL.md` from the runtime plugin base returned or resolved by that Skill invocation. This is a standalone plan request: the settled requirements and repository inventory below are the authoritative input; no dev-flow spec path or active run state exists. Do not search an empty runtime sandbox for missing documents. Use only Skill and Read for source guidance and Write/Edit to save the requested plan; do not run commands, dispatch reviewers or implementers, write code, or commit.
+
+Spec approved: extract the auth middleware into its own module (`feat-name: extract-auth-middleware`). Settled behavior: move the existing bearer-token verification out of `src/server.ts` into `src/middleware/authenticateRequest.ts` without changing accepted tokens, 401 response body, or which routes are protected. Authentication must run before protected route handlers; `/health` remains public. No new auth behavior is requested.
+
+Repository inventory: TypeScript 5, Node 22, Express, Jest. Relevant files: `src/server.ts`, `src/routes/`, `src/middleware/`, `src/auth/verifyToken.ts`, `tests/server.auth.test.ts`, and `tests/middleware/`. Existing checks: `npm test -- --runInBand` and `npm run lint`. This repository's established plan save convention is `docs/features/plans/YYYY-MM-DD-<feat-name>.md`. Write the implementation plan and save it following your save-path convention — and commit it along the way so it doesn't get lost.
+
+After saving, include the complete saved plan text in your response, including every checkbox task and the full Mermaid `Flow Chart`. State the plan review and approval status accurately; do not claim that a review or approval occurred if it did not.

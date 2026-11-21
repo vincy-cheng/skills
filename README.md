@@ -183,7 +183,7 @@ These statuses record different outcomes. Implementation complete means the plan
 - Repo root = plugin root: `skills/`, `commands/`, `hooks/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
 - `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
-- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, `review`, and `context-efficiency`, run manually with `claude plugin eval`
+- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, `review`, `context-efficiency`, and the risk-proportionate workflow; run with `claude plugin eval` after confirming model and judge selections
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
 
