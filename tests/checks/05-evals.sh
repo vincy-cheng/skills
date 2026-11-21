@@ -54,12 +54,45 @@ else:
         else:
             cwd = "/fixture/cwd"
             target = f"{cwd}/docs/features/plans/2026-11-22-extract-auth-middleware.md"
-            plan_content = "# Plan\n## Overview\n## Global Constraints\n## Flow Chart\n## File Structure\n## Tasks"
+            ticks = chr(96) * 3
+            good_artifact = f"""# Plan: extract-auth-middleware
+
+## Overview
+
+Extract bearer-token verification into middleware without changing accepted tokens or protected routes.
+
+## Global Constraints
+
+- Preserve the 401 body and keep `/health` public.
+
+## Flow Chart
+
+{ticks}mermaid
+flowchart TD
+    A[Task 1] --> B[Task 2]
+{ticks}
+
+## File Structure
+
+{ticks}text
+src/middleware/authenticateRequest.ts
+src/server.ts
+{ticks}
+
+## Tasks
+
+- [ ] Extract and wire middleware with focused tests
+
+### Task 1 — Extract and wire middleware
+
+**Files:** `src/middleware/authenticateRequest.ts`, `src/server.ts`
+**Verification:** `npm test -- --runInBand` and `npm run lint`
+"""
             def trace(path=target, result_id="write-1", error=False, claim_only=False, content=None):
                 if claim_only:
                     return f"Saved successfully to {path}"
                 init = {"type": "system", "subtype": "init", "cwd": cwd}
-                use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "write-1", "name": "Write", "input": {"file_path": path, "content": plan_content if content is None else content}}]}}
+                use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "write-1", "name": "Write", "input": {"file_path": path, "content": good_artifact if content is None else content}}]}}
                 result = {"tool_use_id": result_id, "type": "tool_result", "content": f"File created successfully at: {path}"}
                 if error:
                     result = {"is_error": True, **result}
@@ -74,6 +107,10 @@ else:
                 trace(error=True),
                 trace(content=""),
                 trace(content="Unrelated successful write."),
+                trace(content=f"The draft mentions ## Overview, ## Global Constraints, ## Flow Chart, ## File Structure, and ## Tasks, with {ticks}mermaid flowchart TD, - [ ] Extract middleware, ### Task 1, **Files:** src/server.ts, **Verification:** npm test."),
+                trace(content="## Overview\n\n## Global Constraints\n\n## Flow Chart\n\n## File Structure\n\n## Tasks"),
+                trace(content=good_artifact.replace("flowchart TD\n    A[Task 1] --> B[Task 2]\n", "")),
+                trace(content=good_artifact.replace("- [ ] Extract and wire middleware with focused tests\n", "")),
             )
             if any(pattern.search(sample) for sample in negatives):
                 print("grader-accepts-claim-wrong-path-mismatched-result-or-error")
