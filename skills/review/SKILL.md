@@ -17,7 +17,7 @@ A pre-PR judgment review gate: does the branch do what the spec said, is anythin
 
 ## Gate (dev-flow, step 7)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `test`. Don't advance the status here — step 7 in the orchestrator sets `review`. Wrong status → stop, tell the user which step to run. Exceptions require explicit orchestrator context: Step 10 `pr-review` validation, or Step 8 documentation-evidence supplement at `doc-fix`; neither changes Goal status or permits ordinary review dispatch. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), ordinary Step 7 delegation from `new-feature` requires live **Goal status** `review`; Step 7 sets it before invoking this skill. Do not advance status here. Wrong status → stop, tell the user which step to run. Exceptions require explicit orchestrator context: Step 10 `pr-review` validation, or Step 8 documentation-evidence supplement at `doc-fix`; neither changes Goal status or permits ordinary review dispatch. No state file (standalone) → see *Standalone mode*.
 
 ## Post-PR validation (explicit Step 10 delegation only)
 

@@ -403,3 +403,51 @@ if "deep-scan" not in focused.lower() or not re.search(r"not.*redo|without.*redo
 PY
 )
 if [ -z "$size_errs" ]; then ok "plan size classification and conditional review pass are evidenced"; else bad "plan-size review contract broken:$size_errs"; fi
+
+# Step 6/7 orchestrators persist their destination status before invoking the
+# engines; ordinary engine entry gates must read that live status. Step 8/10
+# delegated modes remain explicit exceptions.
+verify_gate_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import re
+
+def section(text, heading, next_heading=None):
+    end = rf"(?=^## {re.escape(next_heading)}(?=\s|$))" if next_heading else r"\Z"
+    match = re.search(rf"^## {re.escape(heading)}(?=\s|$)(.*?){end}", text, re.M | re.S)
+    return match.group(1) if match else ""
+
+orchestrator = Path("skills/new-feature/SKILL.md").read_text()
+step6 = section(orchestrator, "Step 6 — Test", "Step 7 — Review")
+step7 = section(orchestrator, "Step 7 — Review", "Step 8 — Documentation consistency checkpoint")
+if not re.search(r"Gate:.*`execute`\s*→\s*set `test` before invoking `dev-flow:test`", step6):
+    print("new-feature:step6-incoming-or-destination-status-changed")
+if not re.search(r"set `test`.{0,300}before invoking `dev-flow:test`", step6, re.I | re.S):
+    print("new-feature:step6-does-not-persist-test-before-engine")
+if not re.search(r"Gate:.*`test`\s*→\s*set `review` before invoking `dev-flow:review`", step7):
+    print("new-feature:step7-incoming-or-destination-status-changed")
+if not re.search(r"set `review`.{0,900}before invoking `dev-flow:review`", step7, re.I | re.S):
+    print("new-feature:step7-does-not-persist-review-before-engine")
+
+test_skill = Path("skills/test/SKILL.md").read_text()
+test_gate = section(test_skill, "Gate (dev-flow, between step 5 and 7)", "Before starting")
+if not re.search(r"ordinary Step 6 delegation.{0,150}requires live \*\*Goal status\*\* `test`", test_gate, re.I | re.S):
+    print("test:ordinary-entry-does-not-require-live-test-status")
+if not re.search(r"Step 6.{0,100}sets it before (?:invoking|calling) this skill", test_gate, re.I | re.S):
+    print("test:orchestrator-delegation-not-explicit")
+if "Step 10" not in test_gate or "`pr-review`" not in test_gate:
+    print("test:step10-exception-lost")
+
+review_skill = Path("skills/review/SKILL.md").read_text()
+review_gate = section(review_skill, "Gate (dev-flow, step 7)", "Post-PR validation")
+if not re.search(r"ordinary Step 7 delegation.{0,150}requires live \*\*Goal status\*\* `review`", review_gate, re.I | re.S):
+    print("review:ordinary-entry-does-not-require-live-review-status")
+if not re.search(r"Step 7 sets it before invoking this skill", review_gate):
+    print("review:orchestrator-delegation-not-explicit")
+if "Step 10" not in review_gate or "`pr-review`" not in review_gate or "Step 8" not in review_gate or "`doc-fix`" not in review_gate:
+    print("review:step8-or-step10-exception-lost")
+step10 = section(orchestrator, "Step 10 — PR check and manual merge", "Step 11 — Close-out")
+if not re.search(r"ordinary step-7 `review` status gate", step10):
+    print("review:step10-cross-reference-stale")
+PY
+)
+[ -z "$verify_gate_errs" ] && ok "step 6/7 engine gates match persisted orchestrator statuses" || bad "step 6/7 handoff contract broken:$verify_gate_errs"

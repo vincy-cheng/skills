@@ -54,11 +54,12 @@ else:
         else:
             cwd = "/fixture/cwd"
             target = f"{cwd}/docs/features/plans/2026-11-22-extract-auth-middleware.md"
-            def trace(path=target, result_id="write-1", error=False, claim_only=False):
+            plan_content = "# Plan\n## Overview\n## Global Constraints\n## Flow Chart\n## File Structure\n## Tasks"
+            def trace(path=target, result_id="write-1", error=False, claim_only=False, content=None):
                 if claim_only:
                     return f"Saved successfully to {path}"
                 init = {"type": "system", "subtype": "init", "cwd": cwd}
-                use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "write-1", "name": "Write", "input": {"file_path": path, "content": "plan"}}]}}
+                use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "write-1", "name": "Write", "input": {"file_path": path, "content": plan_content if content is None else content}}]}}
                 result = {"tool_use_id": result_id, "type": "tool_result", "content": f"File created successfully at: {path}"}
                 if error:
                     result = {"is_error": True, **result}
@@ -71,6 +72,8 @@ else:
                 trace(path=f"{cwd}/docs/features/plans/2026-11-22-other-feature.md"),
                 trace(result_id="unrelated-result"),
                 trace(error=True),
+                trace(content=""),
+                trace(content="Unrelated successful write."),
             )
             if any(pattern.search(sample) for sample in negatives):
                 print("grader-accepts-claim-wrong-path-mismatched-result-or-error")
