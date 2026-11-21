@@ -26,7 +26,7 @@ The user-facing workflow has four phases: **define** (brainstorm, spec, plan, is
 
 - Conventional Commits (`feat(...)`, `fix(...)`, `docs:`, etc.).
 - **No AI attribution** anywhere in the commit message or trailers — the commit reads as if the human author wrote it. Use the `dev-flow:commit` skill.
-- Doc updates ship as separate `docs:` commits from code.
+- **In-flow known documentation** is verified and committed with its task. **Standalone doc updates** ship as separate `docs:` commits.
 
 ## The one hard rule for edits
 

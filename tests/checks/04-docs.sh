@@ -51,6 +51,25 @@ PY
 )
 if [ -z "$docs_errs" ]; then ok "dual-host setup documentation is linked and complete"; else bad "host setup docs incomplete:$docs_errs"; fi
 
+# Documentation ownership distinguishes in-flow build edits from standalone docs work.
+commit_docs_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+
+devops = Path("docs/agents/DEVOPS.md").read_text().lower()
+index = Path("docs/agents/INDEX.md").read_text().lower()
+checks = {
+    "DEVOPS in-flow docs share the task commit": "in-flow known documentation" in devops and "committed with its task" in devops,
+    "DEVOPS standalone docs use docs commits": "standalone doc updates" in devops and "separate `docs:` commits" in devops,
+    "INDEX distinguishes both doc commit paths": "in-flow build doc fixes stay in their task commit" in index and "standalone doc updates use separate `docs:` commits" in index,
+    "DEVOPS no blanket separate-docs rule": "doc updates ship as separate `docs:` commits from code" not in devops,
+}
+for label, present in checks.items():
+    if not present:
+        print(label.replace(" ", "-").lower())
+PY
+)
+[ -z "$commit_docs_errs" ] && ok "in-flow and standalone documentation commit ownership is consistent" || bad "documentation commit ownership drift:$commit_docs_errs"
+
 # Step 10 documentation must describe the readiness gate, version-bound
 # evidence, result states, and the human-owned merge boundary.
 pr_docs_errs=$(python3 -B - <<'PY'
