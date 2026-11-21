@@ -69,7 +69,7 @@ Extract bearer-token verification into middleware without changing accepted toke
 
 {ticks}mermaid
 flowchart TD
-    A[Task 1] --> B[Task 2]
+    T1["Task 1: Extract middleware"] --> T2["Task 2: Add tests"]
 {ticks}
 
 ## File Structure
@@ -85,8 +85,9 @@ src/server.ts
 
 ### Task 1 — Extract and wire middleware
 
-**Files:** `src/middleware/authenticateRequest.ts`, `src/server.ts`
-**Verification:** `npm test -- --runInBand` and `npm run lint`
+Files: `src/middleware/authenticateRequest.ts`, `src/server.ts`
+Verification:
+`npm test -- --runInBand` and `npm run lint`
 """
             def trace(path=target, result_id="write-1", error=False, claim_only=False, content=None):
                 if claim_only:
@@ -109,11 +110,19 @@ src/server.ts
                 trace(content="Unrelated successful write."),
                 trace(content=f"The draft mentions ## Overview, ## Global Constraints, ## Flow Chart, ## File Structure, and ## Tasks, with {ticks}mermaid flowchart TD, - [ ] Extract middleware, ### Task 1, **Files:** src/server.ts, **Verification:** npm test."),
                 trace(content="## Overview\n\n## Global Constraints\n\n## Flow Chart\n\n## File Structure\n\n## Tasks"),
-                trace(content=good_artifact.replace("flowchart TD\n    A[Task 1] --> B[Task 2]\n", "")),
+                trace(content=good_artifact.replace("flowchart TD\n    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]\n", "")),
+                trace(content=good_artifact.replace(f"{ticks}mermaid\nflowchart TD\n    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]\n{ticks}", "flowchart TD\n    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]")),
+                trace(content=good_artifact.replace(f"flowchart TD\n    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]\n{ticks}", f"flowchart TD\n{ticks}")),
+                trace(content=good_artifact.replace(f"    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]\n{ticks}", "    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]")),
                 trace(content=good_artifact.replace("- [ ] Extract and wire middleware with focused tests\n", "")),
             )
             if any(pattern.search(sample) for sample in negatives):
                 print("grader-accepts-claim-wrong-path-mismatched-result-or-error")
+            empty_chart = good_artifact.replace(f"{ticks}mermaid\nflowchart TD\n    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]\n{ticks}", f"{ticks}mermaid\nflowchart TD\n{ticks}")
+            missing_chart_fence = good_artifact.replace(f"{ticks}mermaid\nflowchart TD\n    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]\n{ticks}", "flowchart TD\n    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]")
+            unclosed_chart = good_artifact.replace(f"    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]\n{ticks}", "    T1[\"Task 1: Extract middleware\"] --> T2[\"Task 2: Add tests\"]")
+            if any(pattern.search(trace(content=bad)) for bad in (empty_chart, missing_chart_fence, unclosed_chart)):
+                print("grader-accepts-empty-node-less-or-unclosed-mermaid-chart")
 PY
 )
 plan_write_exit=$?
