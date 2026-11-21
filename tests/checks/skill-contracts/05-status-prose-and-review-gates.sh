@@ -18,6 +18,8 @@ resume_text = resume.group(1) if resume else ""
 step2_text = step2.group(1) if step2 else ""
 step3_text = step3.group(1) if step3 else ""
 step8_text = step8.group(1) if step8 else ""
+step8_gate = re.search(r"^\*\*Gate:\*\*(.*)$", step8_text, re.M)
+step8_gate_text = step8_gate.group(1) if step8_gate else ""
 
 if not re.search(r"`doc-fix`[^\n]{0,80}Step 8 evidence decision", resume_text, re.I):
     print("resume:does-not-delegate-to-step8-decision")
@@ -25,16 +27,28 @@ if re.search(r"`doc-fix`[^\n]{0,220}(?:supplement|stale|rewind)", resume_text, r
     print("resume:duplicates-step8-policy")
 if not re.search(r"Missing documentation judgment only.{0,500}use `dev-flow:review`'s explicit Step 8 documentation-evidence supplement", step8_text, re.I | re.S):
     print("step8:missing-judgment-supplement-path-absent")
-if not re.search(r"(?:consistent|no-drift).{0,180}(?:advance|Step 9)|(?:advance|Step 9).{0,180}(?:consistent|no-drift)", step8_text, re.I | re.S):
+if not re.search(r"Only a complete `consistent` result or a justified `N/A` advances to Step 9", step8_gate_text, re.I):
     print("step8:clean-result-not-explicitly-advances")
-if not re.search(r"drift.{0,220}(?:repair|rewind|execute)", step8_text, re.I | re.S):
+if not re.search(r"A complete `drift` result takes the confirmed repair path", step8_gate_text, re.I):
     print("step8:drift-does-not-take-repair-branch")
-if not re.search(r"stale.{0,220}(?:rewind|execute).{0,220}(?:test|review)", step8_text, re.I | re.S):
+if not re.search(r"Missing or stale identity.{0,220}rewinds to `execute`.{0,220}fresh test and review", step8_gate_text, re.I | re.S):
     print("step8:stale-identity-does-not-rewind-to-full-verification")
-if not re.search(r"uncommitted.{0,160}(?:block|pending|stay).{0,160}(?:doc-fix|checkpoint)", step8_text, re.I | re.S):
+if not re.search(r"Relevant uncommitted changes block the checkpoint.{0,100}stay pending at `doc-fix`", step8_gate_text, re.I | re.S):
     print("step8:dirty-relevant-worktree-not-left-pending")
-if not re.search(r"unresolved.{0,180}(?:stay|block|cannot jump)|(?:stay|block|cannot jump).{0,180}unresolved", step8_text, re.I | re.S):
+if not re.search(r"unreadable, incomplete, or unresolved result stays at `doc-fix` and blocks Step 9", step8_gate_text, re.I):
     print("step8:unresolved-evidence-not-blocked")
+def valid_step8_gate(text):
+    return all((
+        re.search(r"Only a complete `consistent` result or a justified `N/A` advances to Step 9", text, re.I),
+        re.search(r"A complete `drift` result takes the confirmed repair path", text, re.I),
+        re.search(r"Missing or stale identity.{0,220}rewinds to `execute`.{0,220}fresh test and review", text, re.I | re.S),
+        re.search(r"Relevant uncommitted changes block the checkpoint.{0,100}stay pending at `doc-fix`", text, re.I | re.S),
+        re.search(r"unreadable, incomplete, or unresolved result stays at `doc-fix` and blocks Step 9", text, re.I),
+    ))
+
+mutated_gate = step8_gate_text.replace("A complete `drift` result takes the confirmed repair path", "A complete `drift` result advances directly to Step 9")
+if valid_step8_gate(mutated_gate):
+    print("step8:decision-guard-accepts-direct-drift-advance-mutation")
 if not re.search(r"Step 2.{0,100}viability validation.{0,100}unchanged current spec", step3_text, re.I | re.S):
     print("step3:does-not-reuse-current-step2-viability")
 if not re.search(r"spec changed or this is a resume at `spec`, rerun Step 2's viability validation while Goal status remains `spec`", step3_text, re.I):
