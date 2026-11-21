@@ -25,6 +25,66 @@ for f in evals/*/cases/*/case.yaml; do
 done
 [ -z "$ev_errs" ] && ok "eval case.yaml schema sound" || bad "eval schema errors:$ev_errs"
 
+# Plan case 04 must prove a successful save in the runtime trace, not accept
+# narration, a wrong destination, or an unrelated Write result.
+plan_write_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import json
+import re
+
+case = Path("evals/plan/cases/04-save-path")
+prompt = (case / "prompt.md").read_text()
+grader_path = case / "graders/save-path.md"
+expected_literal = "docs/features/plans/YYYY-MM-DD-extract-auth-middleware.md"
+if expected_literal in prompt:
+    print("prompt-supplies-exact-destination")
+if not re.search(r"docs/features/plans/20\d{2}-\d{2}-\d{2}-[a-z-]+\.md", prompt):
+    print("prompt-missing-realistic-plan-inventory")
+if not grader_path.is_file():
+    print("missing-deterministic-save-grader")
+else:
+    parts = grader_path.read_text().split("---", 2)
+    if len(parts) < 3 or not all(term in parts[1] for term in ("type: regex", "target: trace")):
+        print("invalid-deterministic-save-grader-header")
+    else:
+        try:
+            pattern = re.compile(parts[2].strip())
+        except re.error as error:
+            print(f"invalid-save-grader-regex:{error}")
+        else:
+            cwd = "/fixture/cwd"
+            target = f"{cwd}/docs/features/plans/2026-11-22-extract-auth-middleware.md"
+            def trace(path=target, result_id="write-1", error=False, claim_only=False):
+                if claim_only:
+                    return f"Saved successfully to {path}"
+                init = {"type": "system", "subtype": "init", "cwd": cwd}
+                use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "write-1", "name": "Write", "input": {"file_path": path, "content": "plan"}}]}}
+                result = {"tool_use_id": result_id, "type": "tool_result", "content": f"File created successfully at: {path}"}
+                if error:
+                    result = {"is_error": True, **result}
+                return "\n".join(json.dumps(event, separators=(",", ":")) for event in (init, use, {"type": "user", "message": {"role": "user", "content": [result]}}))
+            if not pattern.search(trace()):
+                print("grader-rejects-successful-write")
+            negatives = (
+                trace(claim_only=True),
+                trace(path=f"{cwd}/docs/plans/2026-11-22-extract-auth-middleware.md"),
+                trace(path=f"{cwd}/docs/features/plans/2026-11-22-other-feature.md"),
+                trace(result_id="unrelated-result"),
+                trace(error=True),
+            )
+            if any(pattern.search(sample) for sample in negatives):
+                print("grader-accepts-claim-wrong-path-mismatched-result-or-error")
+PY
+)
+plan_write_exit=$?
+if [ "$plan_write_exit" -ne 0 ]; then
+  bad "plan save-path grader contract crashed (exit $plan_write_exit):$plan_write_errs"
+elif [ -z "$plan_write_errs" ]; then
+  ok "plan case 04 requires a successful convention-bound Write"
+else
+  bad "plan save-path grader contract missing:$plan_write_errs"
+fi
+
 # Source-dependent cases must load plugin guidance before answering narrated data.
 source_eval_errs=$(python3 -B - <<'PY'
 from pathlib import Path
@@ -186,13 +246,22 @@ source_cases = {
     ],
 }
 
-def result_event(call_id, content, is_error=False, type_first=False):
+def init_event(plugin_root):
+    return json.dumps({"type": "system", "subtype": "init", "plugins": [{"name": "dev-flow", "path": plugin_root, "source": "dev-flow@inline"}]}, separators=(",", ":"), ensure_ascii=False)
+
+def read_batch_event(calls):
+    content = [{"type": "tool_use", "id": call_id, "name": "Read", "input": {"file_path": path}} for call_id, path in calls]
+    return json.dumps({"type": "assistant", "message": {"content": content}}, separators=(",", ":"), ensure_ascii=False)
+
+def result_event(call_id, content, is_error=False, type_first=False, error_first=False):
     item = {"tool_use_id": call_id, "type": "tool_result", "content": content}
     if type_first:
         item = {"type": "tool_result", "tool_use_id": call_id, "content": content}
-    if is_error:
+    if is_error and error_first:
+        item = {"is_error": True, **item}
+    elif is_error:
         item["is_error"] = True
-    return json.dumps({"type": "user", "message": {"content": [item]}}, ensure_ascii=False)
+    return json.dumps({"type": "user", "message": {"role": "user", "content": [item]}}, separators=(",", ":"), ensure_ascii=False)
 
 for name, markers in source_cases.items():
     case = suite / "cases" / name
@@ -212,17 +281,45 @@ for name, markers in source_cases.items():
         continue
     if any(re.escape(marker).replace(r"\ ", " ").replace(r"\#", "#").replace(r"\-", "-") not in parts[2] for marker in markers):
         print(f"{name}:source-grader-misses-required-marker")
-    positive = "\n".join(result_event(f"call-{i}", marker, type_first=(i % 2 == 1)) for i, marker in enumerate(markers))
-    error = "\n".join(result_event(f"call-{i}", marker, is_error=True, type_first=(i % 2 == 1)) for i, marker in enumerate(markers))
+    required_paths = {
+        "01-document": [
+            "skills/execute-tasks/SKILL.md",
+            "skills/new-feature/SKILL.md",
+            "skills/doc-fix/SKILL.md",
+        ],
+        "05-context-recovery": [
+            "skills/execute-tasks/SKILL.md",
+            "references/model-routing.md",
+        ],
+    }[name]
+    root = "/fixture/plugin"
+    def calls(paths=None, result_ids=None, error=False, error_first=False, result_order=None):
+        paths = paths or required_paths
+        result_ids = result_ids or [f"call-{i}" for i in range(len(markers))]
+        events = [init_event(root), read_batch_event([(f"call-{i}", suffix if suffix.startswith("/") else f"{root}/{suffix}") for i, suffix in enumerate(paths)])]
+        for i in (result_order or list(range(len(paths)))):
+            if i >= len(paths):
+                continue
+            marker = markers[i]
+            events.append(result_event(result_ids[i], marker, is_error=error, type_first=(i % 2 == 1), error_first=error_first))
+        return "\n".join(events)
+    positive = calls()
+    error = calls(error=True, error_first=True)
+    wrong_path = calls(paths=["/tmp/unrelated.txt"] * len(markers))
+    mismatched = calls(result_ids=[f"wrong-{i}" for i in range(len(markers))])
     claim = "\n".join(f"I read the source and saw {marker}" for marker in markers)
-    missing = "\n".join(result_event(f"call-{i}", marker) for i, marker in enumerate(markers[:-1]))
+    missing = calls(paths=required_paths[:-1], result_ids=[f"call-{i}" for i in range(len(markers) - 1)])
     if not pattern.search(positive):
         print(f"{name}:grader-rejects-successful-tool-results-or-key-order")
-    reordered = "\n".join(result_event(f"reordered-{i}", marker, type_first=(i % 2 == 0)) for i, marker in enumerate(reversed(markers)))
+    reordered = calls(result_order=list(reversed(range(len(markers)))))
+    split_calls = [init_event(root), read_batch_event([(f"wrong-{i}", f"{root}/tmp/unrelated.txt") for i in range(len(markers))] + [(f"right-{i}", f"{root}/{suffix}") for i, suffix in enumerate(required_paths)])]
+    split_calls.extend(result_event(f"wrong-{i}", marker) for i, marker in enumerate(markers))
+    split_calls.extend(result_event(f"right-{i}", "unrelated successful source result") for i in range(len(markers)))
+    split_call_id = "\n".join(split_calls)
     if not pattern.search(reordered):
         print(f"{name}:grader-rejects-reordered-tool-results")
-    if any(pattern.search(trace) for trace in (error, claim, missing)):
-        print(f"{name}:grader-accepts-error-claim-or-missing-source")
+    if any(pattern.search(trace) for trace in (error, wrong_path, mismatched, claim, missing, split_call_id)):
+        print(f"{name}:grader-accepts-error-wrong-path-mismatched-id-claim-missing-source-or-crossed-read")
 
 PY
 )

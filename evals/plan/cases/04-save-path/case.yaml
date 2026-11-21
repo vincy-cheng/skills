@@ -1,6 +1,6 @@
 schema_version: "1.0"
 name: 04-save-path
-description: The plan is saved under docs/features/plans/ with the YYYY-MM-DD-<feat-name>.md convention — never docs/superpowers/ — and never committed
+description: The plan is saved as a dated repository plan — never docs/superpowers/ — and never committed
 execution:
   max_turns: 30
   timeout_seconds: 600
