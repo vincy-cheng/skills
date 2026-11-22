@@ -37,6 +37,14 @@ When in doubt between two paths, take the heavier one. **The ratchet is one-way:
 
 **In dev-flow, every path still writes the spec doc** (see Spec output below) so the next step has its artifact — the path scales how much dialogue precedes it. Standalone, a spike's terminal state is a reported recommendation and a bounded task's is the approved in-chat design; a user asking to keep spike output is a new request — classify it.
 
+**Review applicability notice.** When you classify the task, resume design work, or upgrade its classification, tell the user the current path, which design review applies, and why that path fits this task. Invite them to request deeper review. On upgrade, explicitly replace the earlier decision before continuing toward approval.
+
+- **Bounded:** an author self-check applies. Independent red-team review is not required.
+- **Architectural:** independent red-team review is required before design approval.
+- **Spike:** this is a feasibility investigation. The design approval red-team gate does not apply to the spike.
+
+Use the current design and evidence when reporting review progress. Label an author self-check as such. A planned or dispatched independent review is pending. Report a completed independent pass only after verifying the current material, reports, and outcome under the viability rules below. If the design changed, report that current evidence is still needed.
+
 ## Interview
 
 Anchor the dialogue before design work. Ask directly, one at a time, multiple-choice when possible:

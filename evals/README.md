@@ -7,6 +7,7 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | Suite | Skill | Cases | What it pins |
 |-------|-------|-------|--------------|
 | `brainstorm` | `dev-flow:brainstorm` | 4 | interview-first, idea-folder confirmation, iron law, spec path |
+| `red-team-applicability` | `dev-flow:brainstorm`, `dev-flow:new-feature` | 4 | review decision for bounded, architectural, resumed, and escalated work |
 | `plan` | `dev-flow:plan` | 5 | contract-complete, flow chart, no-handoff, no-spec refusal |
 | `tdd` | `dev-flow:tdd` | 4 | red-first, atomic steps, no skipping ahead, commit discipline |
 | `new-feature` | `dev-flow:new-feature` | 7 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask, git safeguards, publication/close-out recovery |
