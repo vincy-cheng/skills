@@ -1,3 +1,7 @@
-The design for a slug-caching feature is approved (spec: cache slug→id lookups
-in a Postgres table `slug_cache`, TTL 24h, invalidated on rename). Write the
-implementation plan for this feature.
+Invoke `dev-flow:plan` before answering, then use Read on `skills/plan/SKILL.md` from the runtime plugin base returned or resolved by that Skill invocation. This is a standalone plan request: the settled requirements and repository inventory below are the authoritative input; no dev-flow spec path or active run state exists. Do not search an empty runtime sandbox for missing documents. Use only Skill and Read for source guidance and Write/Edit to save the requested plan; do not run commands, dispatch reviewers or implementers, write code, or commit.
+
+The design for a slug-caching feature is approved: cache slug→id lookups in a Postgres `slug_cache` table, with a 24-hour TTL and invalidation on rename. The settled requirements are complete: normalize slugs to lowercase ASCII with hyphens, cache only successful lookups, refresh the TTL on a cache hit, and keep rename plus cache invalidation in one database transaction. If the cache is unavailable, query the existing Postgres-backed slug resolver and do not fail the request.
+
+Repository inventory: Python 3.12, FastAPI, SQLAlchemy 2, Alembic, pytest. Relevant files: `app/models/article.py`, `app/routes/articles.py`, `app/db/session.py`, `app/services/slugs.py`, `alembic/versions/`, `tests/services/test_slugs.py`, and `tests/routes/test_articles.py`. Existing checks: `uv run pytest tests/services/test_slugs.py tests/routes/test_articles.py` and `uv run ruff check app tests`. Write a contract-complete implementation plan for this feature.
+
+Save the plan, then include the complete saved plan text in your response, including every checkbox task and the full Mermaid `Flow Chart`. State the plan review and approval status accurately; do not claim that a review or approval occurred if it did not.

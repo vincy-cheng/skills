@@ -38,6 +38,19 @@ else
   bad "hooks module missing:$MOD"
 fi
 
+hook_lifecycle_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+source = Path("hooks/register.tsx").read_text()
+if len(re.findall(r"lastKnown\s*=\s*Object\.fromEntries\(\[\.\.\.states\.active,\s*\.\.\.states\.finished\]", source)) < 2:
+    print("register:finished-statuses-not-retained-for-merged-to-done-toast")
+if not re.search(r"const justFinished = states\.finished\.find\(\s*run => run\.status === 'done' && prev\[run\.feat\] !== undefined && prev\[run\.feat\] !== run\.status", source):
+    print("register:farewell-is-not-limited-to-transition-into-done")
+PY
+)
+[ -z "$hook_lifecycle_errs" ] && ok "hooks reserve final farewell for done and retain merged transitions" || bad "hook lifecycle contract missing:$hook_lifecycle_errs"
+
 # the parser carries the gate-table status literals (single source within the module)
 if [ -f "hooks/state.ts" ]; then
   st_err=""
@@ -47,6 +60,14 @@ if [ -f "hooks/state.ts" ]; then
   # the timing source is the state file's field, not a store ledger
   $G -q "Status since" hooks/state.ts || st_err="$st_err missing:status-since-parse"
   if [ -z "$st_err" ]; then ok "state parser carries all lifecycle statuses + Status since"; else bad "state parser:$st_err"; fi
+  phase_err=""
+  $G -q "export const PHASES = \['define', 'build', 'verify', 'deliver'\]" hooks/state.ts || phase_err="$phase_err missing-four-phases"
+  $G -q "PHASE_FOR_STATUS: Record<GoalStatus, Phase>" hooks/state.ts || phase_err="$phase_err missing-status-phase-map"
+  $G -Fq "'doc-fix': 'new-feature'" hooks/register.tsx || phase_err="$phase_err missing-doc-fix-entry-skill"
+  $G -Fq 'doc-fix checkpoint (dev-flow:${ENTERED_BY[status]})' hooks/register.tsx || phase_err="$phase_err missing-pending-checkpoint-resume-route"
+  $G -Fq 'doc-fix checkpoint (dev-flow:${ENTERED_BY[next]})' hooks/register.tsx || phase_err="$phase_err missing-orchestrator-checkpoint"
+  if $G -Eq "step [0-9]+/11" hooks/register.tsx; then phase_err="$phase_err legacy-step-display"; fi
+  if [ -z "$phase_err" ]; then ok "hooks map lifecycle statuses to four readable phases"; else bad "hooks phase presentation:$phase_err"; fi
 else
   bad "hooks/state.ts missing"
 fi

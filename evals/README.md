@@ -17,6 +17,7 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | `output-style` | response and file output style | 4 | fast reading with complete detail across English, formal Traditional Chinese, standalone skills, and subagent reports |
 | `context-efficiency` | context reuse and dispatch boundaries | 3 | bounded loading and reload, isolated-brief completeness, and evidence-producer/version separation |
 | `risk-proportional-effort` | plan-review depth + Implementer context | 6 | small-plan self-check eligibility, ordinary independent review, focused scope/waiver, legacy/resume/repair, shared worker follow-up and drift, unsupported-host/lost-worker stops |
+| `risk-proportionate-workflow` | end-to-end workflow acceptance and recovery | 8 | build-time docs, bounded fixes, high-risk gates, scope growth, same-worker recovery/stop, legacy checkpoints, and UI evidence/confirmation |
 
 ## How to run
 
@@ -26,6 +27,7 @@ the plugin root:
 ```bash
 claude plugin eval /path/to/plugin --eval-dir evals/new-feature
 claude plugin eval /path/to/plugin --eval-dir evals/review
+claude plugin eval /path/to/plugin --eval-dir evals/risk-proportionate-workflow
 ```
 
 Under a model proxy (e.g. OmniRoute), pass explicit model/judge overrides —

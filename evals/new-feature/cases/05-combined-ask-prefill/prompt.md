@@ -1,3 +1,5 @@
+Invoke `dev-flow:new-feature` first and use Read on `skills/new-feature/SKILL.md` from the runtime plugin base returned or resolved by the Skill invocation. The inline state, reports, roles, and config below are authoritative for this narrated fixture; do not inspect an empty runtime sandbox or filesystem for them. Answer only the workflow's exact next actions and state changes. Allow only Skill and Read for source guidance; do not inspect external systems, call GitHub, dispatch workers, write or edit files, or perform operational actions.
+
 You're running my dev-flow plugin in a project repo, mid-run for "csv-export"
 (state file at docs/features/.feature-states/csv-export.state.md, Goal status
 issue — spec and plan are approved and the issue exists; the plan has 6 tasks

@@ -4,3 +4,6 @@ description: State file at Goal status brainstorm and a request to jump straight
 execution:
   max_turns: 30
   timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

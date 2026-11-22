@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 06-same-issue-fails-stop-and-blocked-errors
+description: A failed revised handoff stops for the same issue; infrastructure blockers stop immediately.
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools:
+    - Read
+    - Skill

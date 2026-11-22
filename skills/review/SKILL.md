@@ -17,7 +17,7 @@ A pre-PR judgment review gate: does the branch do what the spec said, is anythin
 
 ## Gate (dev-flow, step 7)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `test`. Don't advance the status here — step 7 in the orchestrator sets `review`. Wrong status → stop, tell the user which step to run. The only exception is an explicit Step 10 `pr-review` validation delegation from `new-feature`; it does not change Goal status or permit ordinary review dispatch. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), ordinary Step 7 delegation from `new-feature` requires live **Goal status** `review`; Step 7 sets it before invoking this skill. Do not advance status here. Wrong status → stop, tell the user which step to run. Exceptions require explicit orchestrator context: Step 10 `pr-review` validation, or Step 8 documentation-evidence supplement at `doc-fix`; neither changes Goal status or permits ordinary review dispatch. No state file (standalone) → see *Standalone mode*.
 
 ## Post-PR validation (explicit Step 10 delegation only)
 
@@ -95,11 +95,12 @@ Example (blue): `# Review report — <feat-name>` / `🟦 BLUE — 2 trivial fin
 
 ### R1. Spec coverage
 
-For each spec requirement, is there a plan task and branch code implementing it? Gaps:
+For each agreed spec acceptance criterion, is there a plan task and branch code implementing it, with evidence that can establish the result? The spec is the requirements source; do not write a competing requirement set. Gaps:
 
 - Spec requirement with no task → under-planned; surface it.
 - Task with no matching code → missing work; red.
 - Code matching no spec requirement → scope creep; ask keep or cut.
+- Evidence that only mentions a term, or a claim unsupported by the required result, does not establish acceptance. If required UI evidence cannot be produced in the available environment, report it as unverified; do not claim UI acceptance.
 
 ### R2. Plan coverage
 
@@ -115,6 +116,8 @@ Read the diff with fresh eyes for:
 - **Naming/consistency** — a symbol named one thing in the plan/tests and another in the code.
 
 Not a deep architectural review — "is anything obviously wrong before a human looks." Unsure whether something is real? Flag it as a question, not a verdict.
+
+**Final documentation consistency evidence:** read the known and changed documentation paths in the plan and diff. Check them against the approved spec and plan, including examples, boundaries, and observed behavior. The report records the paths checked, repository/head/base identity, and either a clear no-drift result or concrete findings. If no project documentation is relevant, record `N/A` and why. A mention of docs without paths and a result is not evidence for Step 8. Reviewers do not add or relax acceptance criteria.
 
 ### R4. Maintainability & clean code
 
@@ -136,6 +139,12 @@ Return one of (verdict inline, detail in the report file):
 The orchestrator acts on the verdict per contract R5 above — it does not re-run the review and does not restate the handling inline. Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule. A focused review's report lives beside it at `review-report-focused.md`, same rules.
 
 On a high (not waived) tier, the act-on-verdict step also covers the focused group's aggregate once every member returns: record it in the state's existing **Focused verdict** field (replacing this round's `_(pending — run in this gate round)_`), then apply the same R5 handling — every member of both required groups must complete, and both aggregates must clear. Never reuse an earlier round's focused value.
+
+## Step 8 documentation-evidence supplement
+
+Run only when `new-feature` explicitly delegates Step 8 because the current Review evidence lacks the final documentation-consistency result. Require **Goal status** `doc-fix`; preserve it and all mirrors. This is a docs-only evidence supplement, not a new Step 7 review. First capture repository, HEAD, base ref, and base SHA; inspect the worktree. Any relevant uncommitted change, unreadable identity, or mismatch with either current Test or Review evidence → stop and return the blocker to `new-feature`; never claim a docs-only pass for unreviewed material.
+
+Read the approved spec, plan, current review report, and the relevant known/changed documentation paths. Resolve the current `main_review` group under the normal routing contract and dispatch every selected reviewer fresh with the exact frozen tuple and docs-only scope. Each report must give paths, conclusion (`consistent` or `drift`), evidence, findings, and explicit completion. Do not change acceptance criteria. Save member reports under `docs/features/.review/<feat-name>/batches/documentation_consistency/round-<N>/reviewer-<I>.md` and the aggregate to `docs/features/.review/<feat-name>/documentation-consistency-report.md`; archive prior aggregates before rerunning. Preserve the main and focused reports. Recheck the tuple and worktree after dispatch. A failed dispatch, missing report, changed material, or relevant dirty path leaves Step 8 incomplete. Return findings to the orchestrator; do not edit or advance status. If docs reveal a design/scope change, require user confirmation and the normal full review after the repair.
 
 ## Focused review (high risk tier only)
 

@@ -28,6 +28,25 @@ export const STEPS = [
 
 export type GoalStatus = (typeof STEPS)[number]
 
+export const PHASES = ['define', 'build', 'verify', 'deliver'] as const
+export type Phase = (typeof PHASES)[number]
+
+/** User-facing phase for each existing lifecycle status; lifecycle state stays unchanged. */
+export const PHASE_FOR_STATUS: Record<GoalStatus, Phase> = {
+  fresh: 'define',
+  brainstorm: 'define',
+  spec: 'define',
+  planning: 'define',
+  issue: 'define',
+  execute: 'build',
+  test: 'verify',
+  review: 'verify',
+  'doc-fix': 'verify',
+  'pr-review': 'deliver',
+  merged: 'deliver',
+  done: 'deliver',
+}
+
 /** A parsed run — every field optional-safe for pre-Status-since files. */
 export type Run = {
   feat: string

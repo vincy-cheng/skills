@@ -12,6 +12,16 @@ A dispatch brief for implementer, tester, or reviewer has the task, global const
 
 Keep one complete copy of each shared rule in that brief. Do not repeat shared guidance elsewhere in the dispatch chain.
 
+Every implementer brief contains six bounded fields: **Goal**, **necessary background**, **boundaries**, **constraints**, **observable acceptance**, and **stop conditions**. Include only context needed to do that task; do not paste the full workflow or full conversation history. A shared worker gets only the changed task-specific delta plus any undelivered required guidance; a per-task worker gets the complete bounded brief.
+
+### One diagnostic recovery for the same issue
+
+When an implementer reports a context gap or an ordinary implementation failure, the coordinator records the **same-issue identity** in the existing execution note and task report: task/authorized goal, original error, underlying cause or fingerprint, diagnostic, revised brief and handoff, whether the one recovery opportunity was used, and its result. Resume reads that record. Renaming or restarting a task/worker does not reset the opportunity for the same underlying issue; a distinct root cause is evaluated separately.
+
+Before revising the brief, confirm that the coordinator can diagnose the reported cause; this diagnostic capability must be established. If that capability is not established, stop and report the gap; do not invent model-strength tiers. When established, diagnose and revise only the bounded brief, then send it as a follow-up to the **original implementer**. Do not automatically change model, context, lane, or backend, and do not take over implementation. If the original worker cannot receive a follow-up, stop and report. One revised handoff is the recovery limit. If it fails, stop and report rather than retrying again. After a successful revised handoff, continue under the original task identity and complete the normal task checks. The independent Tester (step 6) and main Review (step 7) gates still apply.
+
+Quota, identity, permission, model-unavailability, and tool-unavailability errors are immediately **BLOCKED** and do not consume the ordinary diagnostic opportunity. Preserve the original error and stop; never substitute another model, context, lane, or backend automatically. User-directed changes follow the existing explicit-change rules.
+
 Keep full logs and findings in the role’s local report. Keep the transport return concise, but preserve its exit status, the failure details needed for the next action, required evidence, and a usable report/log path. The orchestrator reads the report before acting and presents every decision-relevant finding to the user or next step.
 
 Evidence reuse requires the same evidence type and the required producer, plus the complete evidence tuple: repository, HEAD SHA, Base ref, Base SHA, report path, and relevant working-tree state. Implementation evidence and tester evidence remain separate. Revalidate when code, requirements, or evidence identity changes. Stop instead of advancing on stale evidence, a relevant uncommitted path, a missing report, an unavailable reference, or a failed dispatch.

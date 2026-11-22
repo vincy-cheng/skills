@@ -1,5 +1,6 @@
 ---
 type: llm
+focus: last_message
 ---
 You are grading a single-turn response from an agent that may or may not have the
 `dev-flow:plan` skill loaded. Grade in two layers, in order. Be strict and
@@ -22,9 +23,8 @@ binary — no vibe scores.
 
 ## Case-specific (binary, must ALL pass — counted with Layer 1)
 
-- The plan must be written to the path
-  `docs/features/plans/YYYY-MM-DD-extract-auth-middleware.md` (or stated as
-  such). Any other save path — especially `docs/superpowers/` — fails.
+- The final plan must correspond to the successful Write result verified by the
+  deterministic save-path grader; a prose claim alone is insufficient.
 - The prompt's "commit it along the way" must be explicitly declined:
   plans are never committed. Complying, agreeing to commit, or staying
   silent on the point while committing fails.
@@ -44,5 +44,6 @@ Only if Layer 1 is fully passed, score:
 
 ## Verdict
 
-Report: Layer 1 as `B1..B4: Y/N` each with evidence, then Q1/Q2 scores.
-Overall PASS iff all of Layer 1 is Y. State `PASS` or `FAIL` on the first line.
+Evaluate the response against every Layer 1 and Layer 2 criterion. Return
+exactly one word: `PASS` or `FAIL`. PASS only if all Layer 1 criteria pass;
+otherwise return FAIL. Do not include evidence, scores, or any other text.

@@ -72,41 +72,47 @@ Claude Code ignores both legacy Codex model keys and routes implementation throu
 
 ## The `dev-flow` workflow
 
-`dev-flow` guides a feature or fix through 11 steps in four phases:
+`dev-flow` guides a feature or fix through four phases:
 
-| Phase | Steps | Work |
-|-------|-------|------|
-| Plan | 1–4 | Brainstorm, approve a spec, plan, create a GitHub issue |
-| Build | 5 | Execute the plan with TDD and per-task commits |
-| Verify | 6–8 | Test, review, and fix documentation drift |
-| Ship | 9–11 | Open or update a pull request, check readiness, wait for the user's manual merge, close out the run |
+| Phase | Work |
+|-------|------|
+| Define | Brainstorm, approve a spec, plan the work, and create a GitHub issue |
+| Build | Execute the plan with TDD and per-task commits; repair known documentation only with confirmed in-flow context |
+| Verify | Run tests and review, then complete the required documentation-consistency checkpoint against current review evidence |
+| Deliver | Open or update the pull request, check readiness, wait for the user's manual merge, and close out the run |
 
-The hard gate keeps steps in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. Every workflow step uses a `dev-flow` skill; the plugin has no external plugin dependencies. The workflow loads only current-step guidance, reuses unchanged guidance, and gives isolated workers bounded briefs.
-
+The hard gate keeps the workflow in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. The plugin has no external plugin dependencies. The documentation-consistency checkpoint is owned by the orchestrator: only a complete matching `consistent` result or justified `N/A` advances; matching drift needs user-confirmed repair and a full build/test/review loop, while stale or unresolved evidence blocks. Relevant uncommitted changes leave the checkpoint pending while they are resolved. A pending or interrupted Step 8 resumes at `doc-fix` and repeats the same evidence decision without status or mirror writes; only the explicit stale-evidence or confirmed-repair paths rewind. A review supplement is only for a missing documentation judgment on matching current test/review evidence and a clean relevant worktree.
 ```mermaid
 flowchart TD
-    brainstorm[1 brainstorm] --> spec[2 approve spec] --> plan[3 approve plan]
-    plan --> issue[4 create issue] --> execute[5 execute with TDD]
-    execute --> test[6 test gate]
+    brainstorm[brainstorm] --> spec[approve spec] --> plan[approve plan]
+    plan --> issue[create issue] --> execute[execute with TDD]
+    execute -->|known docs, explicit in-flow context| docfix[guided documentation repair]
+    execute -->|build complete| test[test gate]
+    docfix --> test
     test -- red --> execute
-    test -- green --> review[7 review gate]
+    test -- green --> review[review gate]
     review -- red --> execute
     review -- blue --> bluechoice{Fix blue findings?}
     bluechoice -- yes --> execute
-    bluechoice -- no, note in PR --> docfix
+    bluechoice -- no, note in PR --> docscheck[documentation-consistency checkpoint]
     review -- yellow --> choice{Fix findings now?}
     choice -- yes --> execute
-    choice -- no, note in PR --> docfix
-    docfix -- stop --> execute
-    docfix --> pr[9 open PR]
-    pr --> check[10 PR readiness check]
+    choice -- no, note in PR --> docscheck
+    review -->|green| docscheck
+    docscheck -->|missing docs judgment, matching tuple, clean tree| supplement[review docs evidence]
+    supplement --> docscheck
+    docscheck -->|matching consistent or justified N/A| pr[open PR]
+    docscheck -->|matching drift, confirm repair| execute
+    docscheck -->|stale or missing identity/full verification| execute
+    docscheck -->|unreadable, unresolved, or relevant dirty tree| blocked[stay at checkpoint]
+    pr --> check[PR readiness check]
     check -->|pending: resolve unknown or wait, then recheck| check
     check -->|needs-fix: repair| execute
     check -->|passed| manual[User reviews and merges manually]
-    manual -->|remote MERGED confirmed| closeout[11 close-out]
+    manual -->|remote MERGED confirmed| closeout[close-out]
 ```
 
-For requests spanning independent subsystems, step 1 can create an overview spec that records the sub-projects, order, dependencies, and deferred work. Each sub-project gets its own `/new-feature` run. Close-out updates the overview and prints the next run's command.
+For requests spanning independent subsystems, step 1 can create an overview spec that records the sub-projects, order, dependencies, and deferred work. Each sub-project gets its own `/new-feature` run. Close-out updates the overview and prints the next run's command only after required acceptance, task outcome recording, and other required close-out work are complete.
 
 ### Workflow skills
 
@@ -119,7 +125,8 @@ For requests spanning independent subsystems, step 1 can create an overview spec
 | `tdd` | — | Test-first engine used by `execute-tasks` |
 | `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
 | `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
-| `doc-fix` | 8 | Find and fix documentation drift caused by the run |
+| `doc-fix` | 5 / standalone | Repair known documentation during build with explicit in-flow context, or run standalone |
+| `new-feature` checkpoint | 8 | Advance only on complete matching consistency/no-drift or justified N/A; repair matching drift through confirmation and full gates; supplement only a missing docs judgment on a matching clean tuple |
 | `open-pr` | 9 | Open or update the recorded pull request and sync the issue; never merges |
 | `new-feature` | 10 | Check remote PR state and readiness against matching test/review evidence; report readiness and wait for the user's manual merge |
 
@@ -149,29 +156,27 @@ Before creating files, the command discusses and grills the idea, summarizes the
 
 The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces run state in your session, reading `docs/features/.feature-states/` live. Three behaviors:
 
-- **Status line (ambient):** `dev-flow: <feat> · step 6/11 · test · 45m` — the current run, its step, and how long the step has been running. Updated at session start and after every turn; cleared when no run is active. Duration comes from the state file's `Status since:` field; state files written before that field existed show no duration.
-- **Band pane opener (always drawn):** the **`[ Flow ]` button** on the band row above the prompt opens a compact card of the current run — step and status, an 11-step lifecycle list rendered vertically (one row per step: done ✓ / current ▸ / upcoming ·, full names at any pane width), tasks/issue/branch refs, and the next step with the skill that runs it. The press works mid-response too: the pane appears while Claude is still answering. In the classic terminal renderer mouse clicks don't register — run `/tui fullscreen`. **Resuming:** a Resume section lists the unfinished runs (active plus merged-with-close-out-pending; `done` never) — one `[ Resume ]` press submits the resume prompt and closes the pane; the run's own card carries its coverage, so it is not listed again. With nothing resumable the pane names the manual path: `/new-feature resume`. No active run → a hint to start one with `/new-feature <idea>`. When the run finishes (`done`/`merged`), the pane closes itself with a farewell toast; a pane you re-open after that stays open showing the final state.
-- **Step toast:** when a run's Goal status flips between turns — `dev-flow: <feat> execute → test (step 6/11)`.
+- **Status line (ambient):** `dev-flow: <feat> · verify · test · 45m` — the current run, its phase and status, and how long the status has been active. Updated at session start and after every turn; cleared when no run is active. Duration comes from the state file's `Status since:` field; state files written before that field existed show no duration.
+- **Band pane opener (always drawn):** the **`[ Flow ]` button** on the band row above the prompt opens a compact card of the current run — phase and status, a four-phase progress list rendered vertically (define, build, verify, deliver), tasks/issue/branch refs, and the next action. Documentation checkpoint recovery goes through the orchestrator. The press works mid-response too: the pane appears while Claude is still answering. In the classic terminal renderer mouse clicks don't register — run `/tui fullscreen`. **Resuming:** a Resume section lists the unfinished runs (active plus merged-with-close-out-pending; `done` never) — one `[ Resume ]` press submits the resume prompt and closes the pane; the run's own card carries its coverage, so it is not listed again. With nothing resumable the pane names the manual path: `/new-feature resume`. No active run → a hint to start one with `/new-feature <idea>`. `merged` remains resumable while close-out is pending; only the transition to `done` triggers the automatic final farewell.
+- **Step toast:** when a run's Goal status flips between turns — `dev-flow: <feat> execute → test (verify)`.
 
 **Closing the pane:** the pane carries its own **`[ Close ]` button** — the reliable path, and the one that works mid-response (the host's `Esc` interrupts a running response before it closes anything); the Resume section, when drawn, renders above it under a divider. `Esc` closes the pane when it holds focus, between turns; some hosts also offer the frame's close mark or `ctrl+x x`. The mod never opens a pane on its own. The band's `[-]` mark is the host engine's, not the plugin's: it collapses the whole band row — every mod's row in it, `[ Flow ]` included — and re-expanding brings the button back.
 
 **Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (right-side) pane needs **fullscreen rendering** — run `/tui fullscreen` to enable it (in the classic renderer the pane sits inline above the prompt, and mouse clicks on its buttons don't register). On other hosts the surface decides; the plugin has no placement setting.
 
-**The 11 steps**, for reference (the status line and pane show these):
+**Goal statuses by phase**, for reference. The interface presents the four phases; the state file keeps its existing status values:
 
-| Step | Status | Skill that advances it |
-|------|--------|------------------------|
-| 1 | brainstorm | `dev-flow:brainstorm` |
-| 2 | spec | (brainstorm's approval writes the spec) |
-| 3 | planning | `dev-flow:plan` |
-| 4 | issue | `dev-flow:create-github-issue` |
-| 5 | execute | `dev-flow:execute-tasks` |
-| 6 | test | `dev-flow:test` |
-| 7 | review | `dev-flow:review` |
-| 8 | doc-fix | `dev-flow:doc-fix` |
-| 9 | pr-review | `dev-flow:open-pr` |
-| 10 | pr-review → merged | Check readiness at `pr-review`; set `merged` only after remote merge confirmation |
-| 11 | merged → done | Keep `merged` during close-out; set `done` after task outcome recording and completion |
+| Phase | Goal statuses |
+|-------|---------------|
+| Define | `fresh`, `brainstorm`, `spec`, `planning`, `issue` |
+| Build | `execute` |
+| Verify | `test`, `review`, `doc-fix` |
+| Deliver | `pr-review`, `merged`, `done` |
+
+The `doc-fix` status records the documentation-consistency checkpoint. The orchestrator validates the matching test/review identity and complete judgment. Only consistent/no-drift or justified N/A advances; matching drift follows confirmed repair and full gates, while stale identity or unresolved evidence blocks. Relevant uncommitted changes stay pending while resolved. The docs-only review supplement applies only when the judgment is missing and the tuple and relevant worktree are current and clean; `doc-fix` is not automatically invoked.
+
+A PR readiness check records `passed`, `pending`, or `needs-fix` against the current PR and matching test/review evidence. `pr-review → merged` occurs only after remote merge confirmation; the user reviews and merges manually.
+These statuses record different outcomes. Implementation complete means the planned changes exist; acceptance verified means agreed criteria have matching evidence; a required user confirmation may still be pending; PR ready means checks passed and the open PR awaits manual review and merge; merged requires remote confirmation; done requires all close-out work and required confirmation. A merge does not substitute for user confirmation. Missing UI evidence stays unverified, and a legacy spec with missing acceptance detail needs user input rather than an inferred approval. The overview entry is marked done and the next-run command is printed only after required confirmation, task outcome, and other required close-out work are complete.
 
 **Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).
 
@@ -180,7 +185,7 @@ The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces r
 - Repo root = plugin root: `skills/`, `commands/`, `hooks/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
 - `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
 - `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
-- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, `review`, and `context-efficiency`, run manually with `claude plugin eval`
+- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, `review`, `context-efficiency`, and the risk-proportionate workflow; run with `claude plugin eval` after confirming model and judge selections
 - `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
 - `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
 

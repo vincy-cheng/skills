@@ -1,6 +1,6 @@
 import type { Register, RenderNode } from 'claude-code'
 
-import { readStates, stepOf, STEPS, type FsList, type FsRead, type GoalStatus, type Run, type RunStates } from './state'
+import { readStates, stepOf, STEPS, PHASES, PHASE_FOR_STATUS, type Phase, type FsList, type FsRead, type GoalStatus, type Run, type RunStates } from './state'
 
 type Fs = { list: FsList; read: FsRead }
 
@@ -14,7 +14,7 @@ function readRunStates($: { fs: Fs }) {
 
 /**
  * dev-flow session help: four person-facing behaviors:
- * - status line (ambient): `dev-flow: <feat> · step 6/11 · test · 45m`
+ * - status line (ambient): `dev-flow: <feat> · verify · test · 45m`
  * - band (always drawn): the [ Flow ] button — the pane's sole opener
  * - pane (opened by that button): a compact 14-row card of the current run
  * - step toast: fires when a run's Goal status flips between turns
@@ -29,9 +29,8 @@ function readRunStates($: { fs: Fs }) {
 const PANE = 'flow'
 
 /** The open-args the band's [ Flow ] button passes — the pane's sole opener
- *  (the /flow command is gone; no command registers). rows: 14 — header, 11
- *  strip rows, refs, button. Requests, not grants: a person-opened pane still
- *  seats at any size the surface picks. */
+ *  (the /flow command is gone; no command registers). Rows are a layout request,
+ *  not a grant; the person-opened pane still seats at any size the surface picks. */
 export const FLOW_PANE = { id: PANE, title: 'dev-flow', rows: 14, columns: 44, closeOnEscape: true } as const
 
 /** Status → the skill whose run *advances the run into* that status (the gate table's "Sets" column). */
@@ -44,16 +43,18 @@ const ENTERED_BY: Record<GoalStatus, string> = {
   execute: 'execute-tasks',
   test: 'test',
   review: 'review',
-  'doc-fix': 'doc-fix',
+  'doc-fix': 'new-feature',
   'pr-review': 'open-pr',
   merged: 'new-feature',
   done: 'new-feature',
 }
 
-/** The step after `status` and the skill that runs it, for the pane's next-step line. */
+/** The next gate after `status`; pending documentation checkpoints resume at their orchestrator decision. */
 export function nextOf(status: GoalStatus): string {
+  if (status === 'doc-fix') return `doc-fix checkpoint (dev-flow:${ENTERED_BY[status]})`
   const next = STEPS[stepOf(status) + 1]
   if (next === undefined) return 'closed out'
+  if (next === 'doc-fix') return `doc-fix checkpoint (dev-flow:${ENTERED_BY[next]})`
   const skill = ENTERED_BY[next]
   if (skill === '' || skill === undefined) return next
   return `${next} (dev-flow:${skill})`
@@ -77,7 +78,7 @@ export function statusLine(run: Run | null, now: Date): string | undefined {
   if (run === null) return undefined
   const parts = [
     `dev-flow: ${run.feat}`,
-    `step ${stepOf(run.status)}/11`,
+    PHASE_FOR_STATUS[run.status],
     run.status,
   ]
   const duration = humanizeSince(run.since, now)
@@ -91,7 +92,7 @@ export function toastsFor(runs: Run[], prev: Record<string, GoalStatus>): string
   for (const run of runs) {
     const was = prev[run.feat]
     if (was !== undefined && was !== run.status) {
-      toasts.push(`dev-flow: ${run.feat} ${was} → ${run.status} (step ${stepOf(run.status)}/11)`)
+      toasts.push(`dev-flow: ${run.feat} ${was} → ${run.status} (${PHASE_FOR_STATUS[run.status]})`)
     }
   }
   return toasts
@@ -109,11 +110,9 @@ export function resumePrompt(run: Run): string {
 /** How many rows the Resume section shows before the ellipsis line. */
 const RESUME_ROWS = 5
 
-/** A feat name for a resume row: truncated with an ellipsis past 28 chars —
- *  `step N/11 · status` follows on the row, and the pane's 44-column request
- *  must still fit both, plus the [ Resume ] button. */
+/** A feat name for a resume row: leave room for its phase/status and the button. */
 function resumeRowName(feat: string): string {
-  return feat.length > 28 ? `${feat.slice(0, 27)}…` : feat
+  return feat.length > 18 ? `${feat.slice(0, 17)}…` : feat
 }
 
 /** The Resume section's composition: resumable runs, capped, plus the omitted count.
@@ -122,20 +121,20 @@ function resumeRowName(feat: string): string {
  *  current run is excluded: its card carries the coverage. */
 export function resumableList(states: RunStates): { runs: Run[]; omitted: number } {
   const runs = [...states.active, ...states.finished.filter(run => run.status === 'merged')]
-  const withoutCurrent = states.current === null ? runs : runs.filter(run => run.feat !== states.current?.feat)
+  const current = states.current
+  const withoutCurrent = current === null ? runs : runs.filter(run => run.feat !== current.feat)
   return { runs: withoutCurrent.slice(0, RESUME_ROWS), omitted: Math.max(0, withoutCurrent.length - RESUME_ROWS) }
 }
 
 export const register: Register = on => {
   /** Last-known statuses — the flip cache (session-scoped, ambient; not a cross-session ledger). */
   let lastKnown: Record<string, GoalStatus> = {}
-  /** Whether the current run has already been farewell-closed (A1: transition-only). */
-  let farewelled = false
 
   on('session.start', async ($, e, next) => {
 
     const states = await readRunStates($)
-    lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
+    // Retain merged runs too: a later merged → done close-out is a real flip.
+    lastKnown = Object.fromEntries([...states.active, ...states.finished].map(run => [run.feat, run.status]))
     await $.ui.status(statusLine(states.current, new Date()))
 
     return next(e)
@@ -159,26 +158,23 @@ export const register: Register = on => {
       for (const run of states.finished) {
         const was = prev[run.feat]
         if (was !== undefined && was !== run.status) {
-          $.ui.toast(`dev-flow: ${run.feat} ${was} → ${run.status} (step ${stepOf(run.status)}/11)`)
+          $.ui.toast(`dev-flow: ${run.feat} ${was} → ${run.status} (${PHASE_FOR_STATUS[run.status]})`)
         }
       }
-      lastKnown = Object.fromEntries(states.active.map(run => [run.feat, run.status]))
+      lastKnown = Object.fromEntries([...states.active, ...states.finished].map(run => [run.feat, run.status]))
 
       await $.ui.status(statusLine(states.current, new Date()))
 
-      // Farewell close: only on the flip into done/merged (the run was seen
-      // in an earlier status last turn), never on a steady-state read — a
+      // Final farewell close: only on the flip into done (the run was seen
+      // in an earlier status last turn), never on the intermediate merged state — a
       // session that starts on a finished run, or a pane the person
       // re-opened, persists untouched.
       const justFinished = states.finished.find(
-        run => prev[run.feat] !== undefined && prev[run.feat] !== run.status,
+        run => run.status === 'done' && prev[run.feat] !== undefined && prev[run.feat] !== run.status,
       )
-      if (justFinished !== undefined && !farewelled) {
+      if (justFinished !== undefined) {
         await $.ui.close({ id: PANE })
         $.ui.toast(`dev-flow: ${justFinished.feat} finished — pane closed.`)
-        farewelled = true
-      } else {
-        farewelled = false
       }
 
       // The pane follows the state files: redraw with the fresh picture.
@@ -206,7 +202,7 @@ export const register: Register = on => {
     return below ? <Box flexDirection="column">{mine}{below as RenderNode}</Box> : mine
   })
 
-  // The pane: a compact 14-row card — header+step, 11 strip rows, refs+next, buttons.
+  // The pane: a compact card — run phase/status, four phase rows, refs+next, buttons.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const states = await readRunStates($)
     const { Box, Text, Button } = $.ui.resolve(e)
@@ -230,9 +226,9 @@ export const register: Register = on => {
       <Box flexDirection="column">
         <Text>
           <Text bold color="claude">{run.feat}</Text>
-          {'  '}step {stepOf(run.status)}/11 · {run.status}{duration !== undefined ? ` · ${duration}` : ''}
+          {'  '}{PHASE_FOR_STATUS[run.status]} · {run.status}{duration !== undefined ? ` · ${duration}` : ''}
         </Text>
-        {LifecycleStrip(Box, Text, stepOf(run.status))}
+        {LifecycleStrip(Box, Text, PHASE_FOR_STATUS[run.status])}
         <Box>
           <Button key="resume-current" label="Resume" onPress={() => void resumePress($, run)} />
         </Box>
@@ -263,12 +259,12 @@ function CloseButton($: { ui: { close: (args: { id: string }) => Promise<void> }
   )
 }
 
-/** The [ Resume ] press: submit the prompt (asUser), close the pane on
- *  success; a rejection toasts the manual path and keeps the pane open. `$`
- *  is the parameter — the engine's real one or the test's stub shape alike. */
 /** The $-shape resumePress needs — the real engine's $ and the tests' fake satisfy it alike. */
 type Resume$ = { prompt: { submit: (input: { text: string; asUser?: true }) => Promise<unknown> }; ui: { close: (args: { id: string }) => Promise<void>; toast: (text: string) => void } }
 
+/** The [ Resume ] press: submit the prompt (asUser), close the pane on
+ *  success; a rejection toasts the manual path and keeps the pane open. `$`
+ *  is the parameter — the engine's real one or the test's stub shape alike. */
 export async function resumePress(
   $: Resume$,
   run: Run,
@@ -299,7 +295,7 @@ function ResumeSection(
       {list.runs.map(run => (
         <Box key={`resume-row-${run.feat}`}>
           <Text color={run.status === 'merged' ? 'success' : 'subtle'}>
-            {resumeRowName(run.feat)} · step {stepOf(run.status)}/11 · {run.status}
+            {resumeRowName(run.feat)} · {PHASE_FOR_STATUS[run.status]} · {run.status}
           </Text>
           <Button key={`resume-${run.feat}`} label="Resume" onPress={() => void resumePress($, run)} />
         </Box>
@@ -309,26 +305,21 @@ function ResumeSection(
   )
 }
 
-/** The 11 lifecycle names after `fresh`, keyed by step number. */
-const STEP_NAME = STEPS.slice(1)
-
 /** A drawing element from $.ui.resolve(e), whatever the surface's table holds. */
 type El = (props: Record<string, unknown>) => RenderNode | null | undefined
 
 /**
  * The elements come from $.ui.resolve(e); pass them in, they are no globals.
- * Done steps: success. Current: bold accent. Future: subtle — never red; a
- * run's ahead steps are normal, not failures. One row per step so the full
- * names always fit any granted width — the horizontal strip truncated
- * mid-name against the pane's 44-column request.
+ * Completed phases are success, current is bold accent, and future phases are
+ * subtle. Vertical rows keep every phase readable at narrow widths.
  */
-function LifecycleStrip(Box: El, Text: El, step: number) {
+function LifecycleStrip(Box: El, Text: El, currentPhase: Phase) {
+  const current = PHASES.indexOf(currentPhase)
   return (
     <Box flexDirection="column">
-      {STEP_NAME.map((name: string, i: number) => {
-        const stepNo = i + 1
-        const isDone = stepNo < step
-        const isCurrent = stepNo === step
+      {PHASES.map((name, i) => {
+        const isDone = i < current
+        const isCurrent = i === current
         return (
           <Text
             key={name}

@@ -133,6 +133,33 @@ PY
 )
 [ -z "$review_group_errs" ] && ok "main and focused reviewer groups preserve R5, risk, and re-review gates" || bad "reviewer-group consumer contract missing:$review_group_errs"
 
+# First-publication recovery is authorized only after current Step 8 evidence
+# is rechecked; stale evidence rewinds and unreadable evidence remains pending.
+first_publication_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+text = Path("skills/new-feature/SKILL.md").read_text()
+resume = re.search(r"^## Resume\s+(.*?)(?=^## Preflight)", text, re.M | re.S)
+body = resume.group(1) if resume else ""
+if not re.search(r"successful lookup with zero matches.{0,300}Before authorizing Step 9.{0,120}current Step 8 evidence", body, re.I | re.S):
+    print("resume:first-publication-does-not-require-current-step-8-evidence")
+if not re.search(r"stale.{0,140}(?:HEAD|head|base|verification).{0,180}(?:execute|verification rewind)", body, re.I | re.S):
+    print("resume:first-publication-stale-evidence-does-not-rewind")
+if not re.search(r"unreadable.{0,140}(?:pending|stay pending)|(?:pending|stay pending).{0,140}unreadable", body, re.I | re.S):
+    print("resume:first-publication-unreadable-evidence-not-pending")
+if not re.search(r"tuple.{0,180}match.{0,120}missing only.{0,100}documentation judgment.{0,180}supplement", body, re.I | re.S):
+    print("resume:first-publication-missing-doc-judgment-route-absent")
+step8 = re.search(r"^## Step 8\b(.*?)(?=^## Step 9\b)", text, re.M | re.S)
+step8_body = step8.group(1) if step8 else ""
+if not re.search(r"pr-review.{0,100}doc-fix.{0,180}(?:three|all three) mirrored writes", step8_body, re.I | re.S):
+    print("step8:first-publication-supplement-transition-not-mirrored")
+if not re.search(r"Step 9's normal.{0,100}doc-fix.{0,100}pr-review.{0,20}transition", step8_body, re.I | re.S):
+    print("step8:first-publication-supplement-return-bypasses-normal-gate")
+PY
+)
+[ -z "$first_publication_errs" ] && ok "first-publication re-entry requires current Step 8 evidence" || bad "first-publication recovery contract missing:$first_publication_errs"
+
 # Step 10 checks the remote PR and its required checks before the manual merge gate.
 step10_errs=$(python3 -B - <<'PY'
 import re
@@ -201,10 +228,10 @@ if not re.search(r"existing recorded PR.{0,180}update that same PR.{0,180}do not
     print("step9:existing-pr-may-be-duplicated")
 if not re.search(r"orchestrator's verified `pr-review` entry context", open_pr, re.I) or not re.search(r"orchestrator alone writes `pr-review`", open_pr, re.I):
     print("open-pr:orchestrator-status-context-not-defined")
-if not re.search(r"invoked directly with `doc-fix`.{0,180}return to `/new-feature`.{0,180}do not publish", open_pr, re.I | re.S):
-    print("open-pr:direct-call-can-publish-before-status-transition")
-if not re.search(r"doc-fix.{0,160}(?:commit|new head).{0,220}(?:evidence|test).{0,220}Step 10", doc_fix, re.I | re.S):
-    print("doc-fix:commit-does-not-invalidate-evidence")
+if not re.search(r"verified `pr-review` entry context.{0,180}Step 8 documentation-consistency evidence.{0,180}do not publish", open_pr, re.I | re.S):
+    print("open-pr:publication-can-bypass-documentation-evidence")
+if not re.search(r"In-flow edits remain part of the task's changes and verification.{0,180}test and review run afterward", doc_fix, re.I | re.S):
+    print("doc-fix:in-flow-edits-do-not-enter-test-and-review")
 if not re.search(r"execute.{0,100}re-entry", execute, re.I):
     print("execute:repair-reentry-not-supported")
 if not re.search(r"unpushed local head remains recorded but cannot pass the remote PR", new_feature, re.I | re.S):
@@ -215,7 +242,7 @@ if not re.search(r"same PR version and same reason.{0,180}without a new change.{
     print("step10:no-progress-loop-does-not-stop")
 
 # A crash before initial publication must not become an existing-PR repair.
-if not re.search(r"confirmed no PR was ever created.{0,240}Step 9.{0,160}verified.{0,80}re-entry", resume_body, re.I | re.S):
+if not re.search(r"confirmed no PR was ever created.{0,180}first-publication re-entry at `pr-review`", resume_body, re.I | re.S):
     print("resume:no-first-publication-reentry")
 if not re.search(r"all states.{0,180}source branch.{0,100}target", resume_body, re.I | re.S):
     print("resume:no-all-state-duplicate-check")
@@ -235,6 +262,64 @@ if not re.search(r"legacy.{0,240}remote.{0,240}verify.{0,240}References", step10
 PY
 )
 if [ -z "$repair_loop_errs" ]; then ok "Post-PR repair loops retain PR identity and version evidence"; else bad "Post-PR repair-loop contract missing:$repair_loop_errs"; fi
+
+# Reviews and PR publication use the approved criteria and evidence; they do
+# not invent criteria or turn missing UI evidence into a success claim.
+acceptance_evidence_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+
+review = Path("skills/review/SKILL.md").read_text()
+test = Path("skills/test/SKILL.md").read_text()
+open_pr = Path("skills/open-pr/SKILL.md").read_text()
+if "do not write a competing requirement set" not in review:
+    print("review:creates-independent-requirements")
+if "mark that criterion unverified" not in test:
+    print("test:missing-unverified-environment-outcome")
+if "ask the user to confirm any scope change" not in open_pr or "relax an existing one" not in open_pr:
+    print("open-pr:scope-change-can-be-silent")
+PY
+)
+[ -z "$acceptance_evidence_errs" ] && ok "review and PR evidence remain bound to agreed criteria" || bad "acceptance evidence contract missing:$acceptance_evidence_errs"
+
+# The retained doc-fix checkpoint verifies evidence; it does not dispatch the
+# standalone skill or bypass review and confirmation after newly found drift.
+doc_checkpoint_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+workflow = Path("skills/new-feature/SKILL.md").read_text()
+doc_fix = Path("skills/doc-fix/SKILL.md").read_text()
+review = Path("skills/review/SKILL.md").read_text()
+step8 = re.search(r"^## Step 8\b(.*?)(?=^## Step 9\b)", workflow, re.M | re.S)
+body = step8.group(1) if step8 else ""
+if re.search(r"Invoke `dev-flow:doc-fix`", body):
+    print("step8:fixed-doc-fix-dispatch-remains")
+if not re.search(r"documentation[- ]consistency.{0,160}(?:evidence|result)|(?:evidence|result).{0,160}documentation[- ]consistency", body, re.I | re.S):
+    print("step8:does-not-check-documentation-evidence")
+if not re.search(r"new drift.{0,180}(?:execute|confirmation)|(?:execute|confirmation).{0,180}new drift", body, re.I | re.S):
+    print("step8:new-drift-does-not-return-through-build")
+supplement = re.search(r"Missing documentation judgment only:(.*?)(?=\n\*\*New drift|\Z)", body, re.S)
+supplement_text = supplement.group(1) if supplement else ""
+if not re.search(r"Test and Review identity tuple matches.{0,160}relevant worktree is clean", supplement_text, re.I | re.S):
+    print("step8:supplement-not-limited-to-matching-clean-evidence")
+if re.search(r"stale.{0,140}use `dev-flow:review`'s explicit Step 8", body, re.I | re.S):
+    print("step8:stale-evidence-routed-to-docs-only-supplement")
+if not re.search(r"Relevant uncommitted changes block the checkpoint and any supplement", body, re.I):
+    print("step8:relevant-dirty-tree-not-left-pending")
+if not re.search(r"explicit in-flow context.{0,180}Goal status.*`execute`", doc_fix, re.I | re.S):
+    print("doc-fix:in-flow-entry-context-missing")
+if not re.search(r"When invoked outside an active dev-flow run associated with this work", doc_fix):
+    print("doc-fix:standalone-use-removed")
+doc_fix_lower = doc_fix.lower()
+if "when this documentation work belongs to an active dev-flow run" not in doc_fix_lower:
+    print("doc-fix:in-flow-gate-not-scoped-to-associated-active-run")
+if "historical `done` state or a state file for another feature neither authorizes in-flow mode nor blocks standalone mode" not in doc_fix_lower:
+    print("doc-fix:unrelated-or-historical-state-misroutes-standalone")
+if not re.search(r"final documentation consistency", review, re.I):
+    print("review:final-documentation-review-missing")
+PY
+)
+[ -z "$doc_checkpoint_errs" ] && ok "doc-fix checkpoint validates build and review evidence without redispatch" || bad "doc-fix checkpoint contract missing:$doc_checkpoint_errs"
 
 # R4 must load both checklists in-process and in isolated reviewer briefs.
 architecture_errs=$(python3 -B - <<'PYARCH'
