@@ -26,6 +26,14 @@ Keep full logs and findings in the role’s local report. Keep the transport ret
 
 Evidence reuse requires the same evidence type and the required producer, plus the complete evidence tuple: repository, HEAD SHA, Base ref, Base SHA, report path, and relevant working-tree state. Implementation evidence and tester evidence remain separate. Revalidate when code, requirements, or evidence identity changes. Stop instead of advancing on stale evidence, a relevant uncommitted path, a missing report, an unavailable reference, or a failed dispatch.
 
+## While delegated work runs
+
+Use the host's completion notification or a blocking wait for pending workers. Prefer one wait for the pending set when the host supports it. If a timeout is required, use the longest practical host-supported interval for the expected work. A timeout alone does not establish progress or failure. On an unchanged timeout, continue the blocking wait without rereading the worktree, sending a status request, or dispatching a replacement. Check the worktree and reports when a worker finishes, requests help, or reaches a task checkpoint.
+
+For Codex `wait_agent`, allow at most five consecutive waits without material progress across the pending workers. A completion, request for help, or task checkpoint resets the count. After five unchanged waits, rely on completion notifications if the host can resume the coordinator. Otherwise record the pending worker handles in the existing run note, leave the current gate pending, and resume from those handles when the run continues. Do not bypass the cap with another polling tool or restart the workers to reset it.
+
+Within a task, use focused checks during edits and run the required broader checks at the task's verification checkpoint. Reuse an existing result only for the same producer, evidence identity, and relevant working-tree state. Run required independent test and review gates at their normal steps.
+
 ## Lanes
 
 A lane value pins where a role's work executes. Four values:

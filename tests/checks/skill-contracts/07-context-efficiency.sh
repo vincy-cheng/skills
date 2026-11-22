@@ -75,6 +75,8 @@ def require(path, pattern, label, flags=re.I | re.S | re.M):
 # One isolated-brief boundary, not a second boundary copied into each chain.
 require("references/model-routing.md", r"^## Isolated brief boundary", "boundary-heading", )
 routing = Path("references/model-routing.md").read_text()
+require("references/model-routing.md", r"^## While delegated work runs\b.*?completion notification or a blocking wait.*?unchanged timeout.*?without rereading the worktree, sending a status request, or dispatching a replacement.*?focused checks during edits.*?independent test and review gates", "bounded-delegated-work")
+require("references/model-routing.md", r"at most five consecutive waits without material progress.*?After five unchanged waits.*?completion notifications.*?leave the current gate pending.*?Do not bypass the cap", "codex-wait-cap")
 for marker in (
     r"task\b", r"constraints?", r"relevant paths", r"exact interfaces from earlier tasks",
     r"output-style contents", r"report contract",
