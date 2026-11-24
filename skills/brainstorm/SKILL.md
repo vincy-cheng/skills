@@ -37,6 +37,8 @@ When in doubt between two paths, take the heavier one. **The ratchet is one-way:
 
 **In dev-flow, every path still writes the spec doc** (see Spec output below) so the next step has its artifact — the path scales how much dialogue precedes it. Standalone, a spike's terminal state is a reported recommendation and a bounded task's is the approved in-chat design; a user asking to keep spike output is a new request — classify it.
 
+In dev-flow, write the path and reason to **Design classification** in the run state on first classification and on every upgrade. On resume, read the record before classifying. Preserve the highest recorded path and confirm the prior path with the user if a legacy run lacks sufficient evidence.
+
 **Review applicability notice.** When you classify the task, resume design work, upgrade its classification, or report design review progress before approval, tell the user the current path, which design review applies, and why that path fits this task. Include an explicit invitation to request deeper review in every notice, including when review is pending or the prior reports are stale. On upgrade, explicitly replace the earlier decision before continuing toward approval.
 
 - **Bounded:** an author self-check applies. Independent red-team review is not required.

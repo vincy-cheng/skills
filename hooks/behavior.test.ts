@@ -173,7 +173,7 @@ describe('register — the command surface', () => {
         },
       }
 
-      register(recordingOn as never)
+      register(recordingOn, {})
       return { callbacks, toasts, closes, setStatus: (feat: string, next: GoalStatus) => { statuses.set(feat, next) }, $ }
     }
 

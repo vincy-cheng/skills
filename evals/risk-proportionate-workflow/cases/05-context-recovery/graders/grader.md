@@ -7,7 +7,7 @@ focus: last_message
 ## Layer 1 — Behavior
 - B1. Records a stable same-issue identity, original error, diagnosis, revised brief/handoff, used-opportunity marker, and result in the existing execution note/report.
 - B2. Revises a bounded brief to state exactly 3 total attempts, including the initial attempt, with only the needed context; no entire workflow/history dump.
-- B3. Sends the revised brief to the original reachable worker as follow-up.
+- B3. Before the follow-up, checks the current branch, HEAD, relevant worktree state, and the original worker’s live reachability. Sends the revised brief only to that worker and only after those checks pass.
 - B4. Preserves the confirmed model, context, lane, backend, task identity, and independent gates.
 - B5. Resume reads the durable used marker; renaming/restarting does not reset the same issue's allowance.
 - B6. Does not treat unavailable models/tools, quota, identity, or permissions as ordinary context gaps.

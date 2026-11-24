@@ -103,11 +103,11 @@ flow_docs_errs=$(python3 -B - <<'PY'
 from pathlib import Path
 
 expected = {
-    "README.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint", "pending or interrupted step 8 resumes at `doc-fix`"),
+    "README.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint", "while the run is at `doc-fix`, resume revalidates Step 8 evidence"),
     "AGENTS.md": ("define / build / verify / deliver", "known documentation", "documentation-consistency checkpoint"),
     "docs/agents/INDEX.md": ("packaged version numbers are owned by", "user-facing phases are define / build / verify / deliver", "internal 11-step gate table"),
-    "docs/agents/ARCHITECTURE.md": ("define (brainstorm", "build (execute TDD", "verify (test", "deliver (open/update PR", "documentation-consistency checkpoint", "pending or interrupted step 8 resumes at `doc-fix`"),
-    "docs/agents/DEVOPS.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint", "pending or interrupted step 8 resumes at `doc-fix`"),
+    "docs/agents/ARCHITECTURE.md": ("define (brainstorm", "build (execute TDD", "verify (test", "deliver (open/update PR", "documentation-consistency checkpoint", "while the run is at `doc-fix`, resume revalidates Step 8 evidence"),
+    "docs/agents/DEVOPS.md": ("four phases", "define", "build", "verify", "deliver", "documentation-consistency checkpoint", "while the run is at `doc-fix`, resume revalidates Step 8 evidence"),
     "skills/new-feature/SKILL.md": ("four user-facing phases", "Define : brainstorm", "Build  : execute", "Verify : test", "Deliver: PR readiness", "documentation-consistency checkpoint"),
     "commands/new-feature.md": ("define (brainstorm", "build (execute, TDD, known documentation)", "verify (test", "deliver (PR"),
 }

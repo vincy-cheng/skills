@@ -248,7 +248,9 @@ test('the phase strip renders all four named phases in full', async ($, on) => {
 })
 
 test('the four-phase pane remains readable at a narrow width', async ($, on) => {
-  on('fs.list', () => ({ value: [{ name: 'demo.state.md', kind: 'file' }] }))
+  on('fs.list', () => ({
+    value: [{ name: 'demo.state.md', kind: 'file', size: ACTIVE_STATE.length, mtimeMs: 0, isLink: false }],
+  }))
   on('fs.read', ($, e) => ({ value: e.path.endsWith('demo.state.md') ? ACTIVE_STATE : '' }))
   const ui = await $.ui.mount({
     plugin: 'dev-flow',
