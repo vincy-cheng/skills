@@ -71,13 +71,16 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 
 ## Prose quality (plan text)
 
-Plans are read by humans at every checkpoint. Write them under the brainstorm skill's prose-quality rules (one term per concept, frozen modals — shall, must, will, may never swap force — sentences ≲ 20 words, no vague quantifiers, active voice); those rules live once in `skills/brainstorm/SKILL.md` *Spec output*. Plan-specific addition:
+Plans are read by humans at every checkpoint. Write them under the brainstorm skill's prose-quality rules (one term per concept, frozen modals — shall, must, will, may never swap force — sentences ≲ 20 words, no vague quantifiers, active voice); those rules live once in `skills/brainstorm/SKILL.md` *Spec output*.
 
-- Task lines stay verbatim-copyable — style rewrites never touch them, nor the `Risk:` lines.
+- Separate Markdown blocks with one blank line. Put each task label (`RED`, `GREEN`, `Verify`, `Acceptance`) on its own line, with a blank line before its content.
+- Use numbered lists for ordered actions and bullets for independent checks or acceptance conditions. Put one action or condition in each item.
+- Keep background and rationale in short paragraphs of one or two sentences.
+- Keep task checklist lines verbatim-copyable. Preserve the `Risk:` lines and `**Files:**` blocks during style edits.
 
 ## Self-review
 
-Before presenting the plan, check it with fresh eyes and fix inline: every task has a `Risk:` line (a task missing one is a fail-closed defect, not a default-low — fix it before the plan is presented); no placeholders ("TBD", "TODO"); the Flow Chart's nodes match the `### Task N` headings and their files match the `**Files:**` blocks; the task list is clean `- [ ]` lines, copyable verbatim.
+Before presenting the plan, check it with fresh eyes and fix inline: every task has a `Risk:` line (a task missing one is a fail-closed defect, not a default-low — fix it before the plan is presented); no placeholders ("TBD", "TODO"); the Flow Chart's nodes match the `### Task N` headings and their files match the `**Files:**` blocks; the task list is clean `- [ ]` lines, copyable verbatim. Check the Markdown layout against the prose-quality rules above.
 
 ## Plan review pass
 
