@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
   "description": "Drives features and fixes through four phases: define, build, verify, and deliver. The workflow includes a required documentation-consistency checkpoint before pull request delivery, resumes from gitignored state files, and keeps each gate in order. Fully self-contained, with in-house skills and no external plugin dependencies.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "author": {
     "name": "Vincy-Cheng"
   },

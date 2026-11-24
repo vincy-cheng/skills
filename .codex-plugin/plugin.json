@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dev-flow",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Drives features and fixes through four phases: define, build, verify, and deliver. The workflow includes a required documentation-consistency checkpoint before pull request delivery, resumes from gitignored state, and keeps each gate in order. Includes brainstorm, plan, TDD, execution, test, review, documentation, PR, issue, and close-out skills plus the /new-feature, /new-idea, and /bootstrap commands. Fully self-contained — no external plugin dependencies.",
   "author": {
     "name": "Vincy-Cheng"
