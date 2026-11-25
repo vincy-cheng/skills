@@ -5,6 +5,8 @@ description: Use to run a fresh-subagent test gate on a feat or fix branch — f
 
 # Test
 
+Test evidence must demonstrate the agreed acceptance criteria, including examples and boundaries. Report the command or observation and its result. A passing suite or narrative mention of UI behavior does not prove UI acceptance when required environment or evidence is unavailable; mark that criterion unverified and return the gap for user confirmation.
+
 ## Output style
 
 Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
@@ -13,7 +15,7 @@ A pre-review test gate: is the suite green and are the tests honest? Step 6 is t
 
 ## Gate (dev-flow, between step 5 and 7)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), ordinary step-6 mode requires **Goal status** `execute`; don't advance the status here — step 6 in the orchestrator sets `test`. The sole exception is the Step 10 validation subflow: when explicitly delegated from `pr-review`, require status `pr-review`, preserve it, and return to Step 10 after reporting. This mode runs or reuses only the missing/stale test evidence needed for the exact PR version; it uses the same Tester lane, fresh tester gate, report contract, and verdict as step 6. A green result supplements the evidence and never advances Goal status. Actual findings return to the orchestrator for the execute rewind; wrong status or unclear delegation → stop. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), ordinary Step 6 delegation from `new-feature` requires live **Goal status** `test`; Step 6 sets it before invoking this skill. Do not advance status here. The sole exception is the Step 10 validation subflow: when explicitly delegated from `pr-review`, require status `pr-review`, preserve it, and return to Step 10 after reporting. This mode runs or reuses only the missing/stale test evidence needed for the exact PR version; it uses the same Tester lane, fresh tester gate, report contract, and verdict as step 6. A green result supplements the evidence and never advances Goal status. Actual findings return to the orchestrator for the execute rewind; wrong status or unclear delegation → stop. No state file (standalone) → see *Standalone mode*.
 
 ## Before starting
 
@@ -73,7 +75,7 @@ The report is color-coded, same conventions as the review report:
 
 The two checks:
 
-1. **Test + lint gate (hard).** Run the full test suite and lint. Any failure or lint warning → **stop**, report, return `red`. No test/lint command exists in the repo → say so in the report and proceed to the honesty scan (a docs-only repo passes this check by noting the absence).
+1. **Test + lint gate (hard).** Run the full test suite and lint. Include relevant checks for known documentation completed during build, and list the changed documentation paths and matching checks in the report. Any failure or lint warning → **stop**, report, return `red`. No test/lint command exists in the repo → say so in the report and proceed to the honesty scan (a docs-only repo passes this check by noting the absence).
 2. **Test honesty scan.** Read the diff's new/changed tests for:
    - **Asserts nothing** — a test with no meaningful assertion.
    - **Mocks the thing under test** — the test mocks the very function it claims to verify.

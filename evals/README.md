@@ -7,16 +7,18 @@ LLM graders (see any `cases/*/graders/grader.md` for the shape).
 | Suite | Skill | Cases | What it pins |
 |-------|-------|-------|--------------|
 | `brainstorm` | `dev-flow:brainstorm` | 4 | interview-first, idea-folder confirmation, iron law, spec path |
+| `red-team-applicability` | `dev-flow:brainstorm`, `dev-flow:new-feature` | 4 | review decision for bounded, architectural, resumed, and escalated work |
 | `plan` | `dev-flow:plan` | 5 | contract-complete, flow chart, no-handoff, no-spec refusal |
 | `tdd` | `dev-flow:tdd` | 4 | red-first, atomic steps, no skipping ahead, commit discipline |
 | `new-feature` | `dev-flow:new-feature` | 7 | hard gate: entry status, refusal on mismatch, red-loop rewind, sub-skill no-handoff, combined Roles ask, git safeguards, publication/close-out recovery |
-| `review` | `dev-flow:review` | 4 | R5 verdict contract: green/blue/yellow/red + follow-on action |
+| `review` | `dev-flow:review` | 8 | R5 verdict contract + architecture boundaries, justified exceptions, simple designs, conditional applicability and evidence-based trade-offs |
 | `test` | `dev-flow:test` | 1 | unavailable cli lane → BLOCKED stop-and-ask, never a silent downgrade |
 | `model-routing` | Codex and Claude per-step reviewer routing | 13 | both-host step overrides and legacy fallback, strict validation, batch verdicts, isolated reports, resume/rework, and required adversarial-review evidence |
 | `standardize-prose` | `standardize-prose` | 1 | guided cleanup: proposal-before-apply, violation detection, never-touch regions preserved (modals, code, Risk/checkbox lines) |
 | `output-style` | response and file output style | 4 | fast reading with complete detail across English, formal Traditional Chinese, standalone skills, and subagent reports |
 | `context-efficiency` | context reuse and dispatch boundaries | 3 | bounded loading and reload, isolated-brief completeness, and evidence-producer/version separation |
 | `risk-proportional-effort` | plan-review depth + Implementer context | 6 | small-plan self-check eligibility, ordinary independent review, focused scope/waiver, legacy/resume/repair, shared worker follow-up and drift, unsupported-host/lost-worker stops |
+| `risk-proportionate-workflow` | end-to-end workflow acceptance and recovery | 8 | build-time docs, bounded fixes, high-risk gates, scope growth, same-worker recovery/stop, legacy checkpoints, and UI evidence/confirmation |
 
 ## How to run
 
@@ -26,6 +28,7 @@ the plugin root:
 ```bash
 claude plugin eval /path/to/plugin --eval-dir evals/new-feature
 claude plugin eval /path/to/plugin --eval-dir evals/review
+claude plugin eval /path/to/plugin --eval-dir evals/risk-proportionate-workflow
 ```
 
 Under a model proxy (e.g. OmniRoute), pass explicit model/judge overrides —
@@ -59,6 +62,19 @@ even when the rest of the artifact is complete. File-existence and read-before-
 write graders check the required artifact and ordering separately. The isolated-
 brief case has a deterministic regex grader for the supplied output-style text;
 LLM votes cannot override a missing required sentence.
+
+The four architecture review cases also use `source-reads.md`, a deterministic
+regex grader over the complete trace. It requires successful tool results with
+the opening and closing content of each R4 reference. The LLM behavior grader
+cannot override a failed source-read check. Each reference is read in a separate
+complete Read call. These checks depend on the current tool-result format; a
+format change must update the grader and its negative controls together.
+
+When auditing these cases, add `--keep-temp` and preserve each run's full
+`trace.jsonl` beside its result. The LLM's `focus: trace` input can elide tool
+messages; a final claim of successful reading is not evidence. A pre-change
+snapshot without `architecture.md` must fail the source-read grader even if its
+behavioral judgment is otherwise correct.
 
 ## Known quirks
 

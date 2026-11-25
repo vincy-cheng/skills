@@ -1,6 +1,6 @@
 ---
 name: doc-fix
-description: Use to fix doc drift caused by the current run before opening its PR — dev-flow step 8. Scans this plugin's docs and the target repo's docs for text the run's changes just invalidated (behavior described the old way, a new convention not documented), shows the proposed edits for user confirmation, then commits them as docs: commits riding in the PR. If the target repo has no docs/agents/ tree, generates one via document-structure (skip if declined). Also runs standalone on any branch ("fix the doc drift", "update the docs for this branch") with the same drift-scan against the branch's diff. No drift → honest no-op pass. Not a general doc audit — only drift this run caused.
+description: Use during dev-flow build when an implementation task reveals a known documentation edit, with explicit in-flow context and user confirmation; or standalone to fix doc drift on a branch. In-flow edits stay in the task commit. Standalone edits keep the guided docs commit. Not a general doc audit — only drift this run caused.
 ---
 
 # Doc-fix
@@ -9,45 +9,50 @@ description: Use to fix doc drift caused by the current run before opening its P
 
 Before writing responses or human-readable files, load [`references/output-style.md`](../../references/output-style.md), resolving the link from this skill file’s host-provided base directory (two levels up to the plugin root), not the working directory. Pass its actual contents to every subagent you dispatch, including isolated reviewers. User requirements and specific output contracts take precedence.
 
-Pre-PR doc gate: the work is done and reviewed; before the PR opens, close the loop on docs the run itself may have invalidated. Find doc drift caused by *this* run — not a general audit.
+Guided documentation repair for behavior or conventions changed by this run. Dev-flow invokes this skill during build only with explicit in-flow context. Standalone use remains available outside an active run associated with the work, even when the state directory contains historical or unrelated run files.
 
-## Gate (dev-flow, step 8)
+## In-flow build gate
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `review` before starting, and set it to `doc-fix` before scanning — with the `Status since:` timestamp (third write of the status-transition protocol). Don't advance further — the step-9 orchestrator checks this `doc-fix` entry, then sets `pr-review`. If the status isn't `review`, stop — a step was skipped — and tell the user which step to run. No state file (standalone) → see *Standalone mode* below.
+When this documentation work belongs to an active dev-flow run, require explicit in-flow context from `execute-tasks` containing the associated state-file path, current task and its authorization, affected documentation paths, and relevant diff. Verify **Goal status** is `execute`. Missing context or any other status for that associated active run → stop and return to `/new-feature`; never fall back to standalone mode. State-file presence alone does not establish association: a historical `done` state or a state file for another feature neither authorizes in-flow mode nor blocks standalone mode. Do not change Goal status, the index row, **Updated**, or **Status since**.
+
+Scope the scan to the task's planned documentation and the current task diff/worktree. Show proposed edits and wait for the user's confirmation before applying them. Keep the changed docs in the current task's verification and commit. Return changed paths, checks to rerun, and unresolved drift to `execute-tasks`; do not commit in this mode.
 
 ## What to scan, in order of drift likelihood
 
 1. **This plugin's docs** — `AGENTS.md`/`CLAUDE.md`, `README.md`, and any `skills/*/SKILL.md` touched by the work. Did the run change behavior a doc still describes the old way? Did a new convention emerge (e.g. a new state-file column this run added)?
 2. **The target repo's docs** — `AGENTS.md`/`README`/arch docs in the repo the feature landed in. Did the change add a new module, command, or convention the docs should mention?
 
-The scan scope is the **run's diff** (`git diff <base>...HEAD`), not the whole repo — drift caused by *this* run. If a piece of drift predates the run, note it to the user but don't fix it here; that's the `dev-flow:whats-new`/`document-structure` territory.
+In-flow scan scope is the task's planned docs plus its diff and relevant working-tree changes. Standalone scope is the run's diff (`git diff <base>...HEAD`), not the whole repo. In both modes, fix only drift caused by this run. If drift predates the run, note it but leave it to `dev-flow:whats-new` or `document-structure`.
 
 ## Missing docs/agents/ tree
 
-If the target repo has no `docs/agents/` directory at all, don't treat that as "no drift" — generate the tree once via `dev-flow:document-structure` (index + core maps; deep-detail files optional). The tree ships in this run's PR as `docs:` commits, so the repo's agent-facing docs exist from the first PR onward. Still guided: show the proposed files before writing, and skip the generation if the user declines (then it's an honest no-op for them to run standalone later). If a tree already exists, do not regenerate it — treat it as drift territory only.
+If the target repo has no `docs/agents/` directory, do not silently add one in build. Generate it only when the current task authorizes it and the user confirms the proposed files; otherwise report the gap and ask whether to expand scope. Standalone mode may use `dev-flow:document-structure` with the same guided confirmation. If a tree already exists, do not regenerate it — treat relevant files as drift territory only.
 
 ## Rules
 
 - **Show the user the proposed doc edits before applying** — guided, not fire-and-forget.
-- **Commit doc updates as `docs:`-type commits** — a run's own drift ships in the same PR as the code, not after merge.
+- **In-flow build mode** applies only after the task's doc edits are confirmed and does not commit; `execute-tasks` verifies and commits the docs with that task.
+- **Standalone mode** commits confirmed doc updates as `docs:`-type commits on the same branch.
 - **Never commit `docs/features/`** (spec, plan, state, index) — still gitignored.
-- **No drift found** → quick no-op pass; say so plainly and hand back to advance. Don't invent edits.
-- A confirmed doc-fix commit changes `HEAD` and makes earlier test/review evidence stale for Step 10. Step 10 reruns tests and the applicable incremental review against the new commit; successful evidence supplementation returns directly to Step 10 without repeating this gate.
+- **No drift found** → say so plainly. In-flow mode returns to `execute-tasks`; standalone mode ends with no commit. Don't invent edits.
+- In-flow edits remain part of the task's changes and verification. The task commit becomes the build artifact; test and review run afterward against it.
 
 ## Verdict
 
-- Drift found and fixable → show the proposed edits; on confirmation, apply and commit as `docs:`; hand back to advance to step 9.
-- Drift reveals a deeper code issue → **STOP**; don't open a PR with known-bad docs (mirrors review's red). Surface to the user; return to step 5 if the drift comes from a real code issue.
-- No drift → no-op pass, advance.
+- In-flow build mode: drift found and fixable → show the proposed edits; on confirmation, apply and hand back to `execute-tasks` for task verification and commit.
+- Standalone mode: drift found and fixable → show the proposed edits; on confirmation, apply and commit as `docs:`.
+- Drift reveals a deeper code issue → **STOP**; return the issue to `execute-tasks` and keep the run at `execute`.
+- No drift → no-op; hand back to the current caller.
 
-## Standalone mode (outside dev-flow)
+## Standalone mode (outside an active dev-flow run associated with this work)
 
-When invoked without a state file: ask for the base branch (or infer from `git merge-base`), diff against it, and run the same drift scan — "what did this branch change that existing docs still describe the old way?" Show proposed edits for confirmation before applying; commit them as `docs:` on the same branch. No drift → say so plainly and commit nothing.
+When invoked outside an active dev-flow run associated with this work, ask for the base branch (or infer from `git merge-base`), diff against it, and run the same drift scan — "what did this branch change that existing docs still describe the old way?" Show proposed edits for confirmation before applying; commit confirmed edits as `docs:` on the same branch. Historical `done` states and state files for other features do not switch this invocation into in-flow mode or block standalone use. No drift → say so plainly and commit nothing.
 
 ## What not to do
 
 - **Don't fix drift you didn't cause** — pre-existing stale docs go to `whats-new`/`document-structure`, not this run's PR.
 - **Don't edit docs without showing the user first** — guided, always.
 - **Don't commit `docs/features/`** — the commit guard applies to `docs:` commits too.
+- **Don't use an in-flow call as standalone** — an active run requires the explicit `execute-tasks` context and `execute` status.
 - **Don't turn it into a general audit** — this run's diff is the scope. A full sweep belongs to `document-structure`.
 - **Don't open the PR** — that's step 9. Hand back with a verdict.

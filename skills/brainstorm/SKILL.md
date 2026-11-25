@@ -37,6 +37,16 @@ When in doubt between two paths, take the heavier one. **The ratchet is one-way:
 
 **In dev-flow, every path still writes the spec doc** (see Spec output below) so the next step has its artifact — the path scales how much dialogue precedes it. Standalone, a spike's terminal state is a reported recommendation and a bounded task's is the approved in-chat design; a user asking to keep spike output is a new request — classify it.
 
+In dev-flow, write the path and reason to **Design classification** in the run state on first classification and on every upgrade. On resume, read the record before classifying. Preserve the highest recorded path and confirm the prior path with the user if a legacy run lacks sufficient evidence.
+
+**Review applicability notice.** When you classify the task, resume design work, upgrade its classification, or report design review progress before approval, tell the user the current path, which design review applies, and why that path fits this task. Include an explicit invitation to request deeper review in every notice, including when review is pending or the prior reports are stale. On upgrade, explicitly replace the earlier decision before continuing toward approval.
+
+- **Bounded:** an author self-check applies. Independent red-team review is not required.
+- **Architectural:** independent red-team review is required before design approval.
+- **Spike:** this is a feasibility investigation. The design approval red-team gate does not apply to the spike.
+
+Use the current design and evidence when reporting review progress. Label an author self-check as such. A planned or dispatched independent review is pending. Report a completed independent pass only after verifying the current material, reports, and outcome under the viability rules below. If the design changed, report that current evidence is still needed. A verified review pass still requires the user to approve the design.
+
 ## Interview
 
 Anchor the dialogue before design work. Ask directly, one at a time, multiple-choice when possible:
@@ -126,6 +136,8 @@ For architectural red-team batches, use the `red_team` step key and the shared *
 - **Claude Code:** resolve `red_team` first; when absent, read `roles.reviewer` **silently** (config-only — no state-file line, no ask; unset → `session`). `session`/`claude:<name>` use the resolution rule; `cli:<tool>/<model>` uses the thin-driver flow (`--sandbox read-only`). Malformed or unavailable selected lanes → BLOCKED stop-and-ask, never a silent downgrade. A blocked red-team is surfaced to the user, not skipped.
 
 ## Spec output
+
+Each spec defines the agreed outcome with concrete acceptance criteria. For each criterion, include an example or observable result, relevant boundaries, the evidence that can establish it, and any unresolved decision. Preserve user-approved wording and scope. A missing acceptance detail in a legacy spec is an open question: ask the user to complete the record; do not guess that the user approved it or weaken an existing condition. Evidence must match the criterion. If the environment cannot supply required UI evidence, report that limitation and leave the criterion unverified.
 
 Write the validated design to:
 

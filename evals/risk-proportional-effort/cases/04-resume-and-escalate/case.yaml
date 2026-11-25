@@ -4,3 +4,6 @@ description: Legacy state keeps per-task; saved choices survive resume; repair e
 execution:
   max_turns: 30
   timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

@@ -75,6 +75,8 @@ def require(path, pattern, label, flags=re.I | re.S | re.M):
 # One isolated-brief boundary, not a second boundary copied into each chain.
 require("references/model-routing.md", r"^## Isolated brief boundary", "boundary-heading", )
 routing = Path("references/model-routing.md").read_text()
+require("references/model-routing.md", r"^## While delegated work runs\b.*?completion notification or a blocking wait.*?unchanged timeout.*?without rereading the worktree, sending a status request, or dispatching a replacement.*?focused checks during edits.*?independent test and review gates", "bounded-delegated-work")
+require("references/model-routing.md", r"at most five consecutive waits without material progress.*?After five unchanged waits.*?completion notifications.*?leave the current gate pending.*?Do not bypass the cap", "codex-wait-cap")
 for marker in (
     r"task\b", r"constraints?", r"relevant paths", r"exact interfaces from earlier tasks",
     r"output-style contents", r"report contract",
@@ -84,6 +86,16 @@ for marker in (
         errors.append(f"model-routing:{marker}-missing")
 if not re.search(r"one complete copy.{0,160}brief", routing, re.I | re.S):
     errors.append("model-routing:one-copy-per-brief")
+for marker, label in (
+    (r"Goal.{0,160}(?:necessary )?background.{0,160}boundaries.{0,160}constraints.{0,160}(?:observable )?acceptance.{0,160}stop conditions", "complete-bounded-brief"),
+    (r"context gap.{0,200}(?:coordinator|orchestrator).{0,200}(?:revised|diagnos).{0,200}brief", "coordinator-revises-brief"),
+    (r"same[- ]issue identity.{0,240}(?:original error|diagnosis).{0,240}(?:revised handoff|recovery).{0,240}(?:used|opportunity)", "durable-recovery-record"),
+    (r"renam.{0,120}restart.{0,120}(?:does not|never).{0,120}reset", "resume-does-not-reset"),
+    (r"one revised handoff.{0,120}recovery limit.{0,120}fails.{0,120}stop", "stop-after-revised-failure"),
+    (r"without.{0,120}(?:full )?(?:workflow|conversation) history|do not paste the full workflow or full conversation history", "no-context-dump"),
+):
+    if not re.search(marker, routing, re.I | re.S):
+        errors.append(f"model-routing:{label}")
 if not re.search(r"[Dd]o not repeat.{0,160}shared guidance|shared guidance.{0,160}once|no duplicate shared guidance", routing, re.I | re.S):
     errors.append("model-routing:deduplicate-shared-guidance")
 if not re.search(r"exit status.{0,500}failure details.{0,500}required evidence.{0,500}(?:usable|full logs)", routing, re.I | re.S):
@@ -109,6 +121,8 @@ if not re.search(r"[Rr]epository.{0,240}HEAD SHA.{0,240}Base ref.{0,240}Base SHA
 require("skills/execute-tasks/SKILL.md", r"smallest targeted.{0,120}(?:RED|GREEN|check|test)", "targeted-implementation-checks")
 require("skills/execute-tasks/SKILL.md", r"task-completion checks?", "task-completion-checks")
 require("skills/execute-tasks/SKILL.md", r"after-all-tasks.{0,500}full test.{0,200}lint", "after-all-full-suite")
+require("skills/execute-tasks/SKILL.md", r"known documentation.{0,180}in-flow context", "build-doc-fix-context")
+require("skills/doc-fix/SKILL.md", r"Goal status.{0,160}`execute`.{0,160}any other status for that associated active run.{0,100}stop", "doc-fix-active-run-gate")
 
 # Step 6 remains the only independent full-suite gate.
 require("skills/test/SKILL.md", r"only independent full-suite gate", "independent-full-suite-gate")

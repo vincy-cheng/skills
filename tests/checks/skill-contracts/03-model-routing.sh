@@ -233,6 +233,16 @@ if not re.search(r"(switch|change).{0,160}(model|mode|lane)", body, re.I):
     print("routing:no-no-switch-rule")
 if not re.search(r"change.{0,280}explicit", body, re.I):
     print("routing:no-explicit-change-rule")
+for marker, label in (
+    (r"same[- ]issue identity", "same-issue-identity"),
+    (r"one (?:diagnostic )?recovery opportunity", "single-recovery-limit"),
+    (r"original implementer", "same-implementer-followup"),
+    (r"coordinator.{0,120}capability.{0,120}(?:confirmed|established)|capability.{0,120}established", "confirmed-diagnostic-capability"),
+    (r"quota.{0,120}identity.{0,120}permissions?.{0,120}BLOCKED", "immediate-blocked-errors"),
+    (r"never (?:silently )?switch.{0,120}(?:model|context|lane|backend)", "no-replacement-routing"),
+):
+    if not re.search(marker, text, re.I | re.S):
+        print(f"routing:no-bounded-recovery-{label}")
 PY
 )
 codex_implementer_contract_errs_rc=$? 2>/dev/null || true

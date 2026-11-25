@@ -12,9 +12,27 @@ A dispatch brief for implementer, tester, or reviewer has the task, global const
 
 Keep one complete copy of each shared rule in that brief. Do not repeat shared guidance elsewhere in the dispatch chain.
 
+Every implementer brief contains six bounded fields: **Goal**, **necessary background**, **boundaries**, **constraints**, **observable acceptance**, and **stop conditions**. Include only context needed to do that task; do not paste the full workflow or full conversation history. A shared worker gets only the changed task-specific delta plus any undelivered required guidance; a per-task worker gets the complete bounded brief.
+
+### One diagnostic recovery for the same issue
+
+When an implementer reports a context gap or an ordinary implementation failure, the coordinator records the **same-issue identity** in the existing execution note and task report: task/authorized goal, original error, underlying cause or fingerprint, diagnostic, revised brief and handoff, whether the one recovery opportunity was used, and its result. Resume reads that record. Renaming or restarting a task/worker does not reset the opportunity for the same underlying issue; a distinct root cause is evaluated separately.
+
+Before revising the brief, confirm that the coordinator can diagnose the reported cause; this diagnostic capability must be established. If that capability is not established, stop and report the gap; do not invent model-strength tiers. When established, diagnose and revise only the bounded brief, then send it as a follow-up to the **original implementer**. Do not automatically change model, context, lane, or backend, and do not take over implementation. If the original worker cannot receive a follow-up, stop and report. One revised handoff is the recovery limit. If it fails, stop and report rather than retrying again. After a successful revised handoff, continue under the original task identity and complete the normal task checks. The independent Tester (step 6) and main Review (step 7) gates still apply.
+
+Quota, identity, permission, model-unavailability, and tool-unavailability errors are immediately **BLOCKED** and do not consume the ordinary diagnostic opportunity. Preserve the original error and stop; never substitute another model, context, lane, or backend automatically. User-directed changes follow the existing explicit-change rules.
+
 Keep full logs and findings in the role’s local report. Keep the transport return concise, but preserve its exit status, the failure details needed for the next action, required evidence, and a usable report/log path. The orchestrator reads the report before acting and presents every decision-relevant finding to the user or next step.
 
 Evidence reuse requires the same evidence type and the required producer, plus the complete evidence tuple: repository, HEAD SHA, Base ref, Base SHA, report path, and relevant working-tree state. Implementation evidence and tester evidence remain separate. Revalidate when code, requirements, or evidence identity changes. Stop instead of advancing on stale evidence, a relevant uncommitted path, a missing report, an unavailable reference, or a failed dispatch.
+
+## While delegated work runs
+
+Use the host's completion notification or a blocking wait for pending workers. Prefer one wait for the pending set when the host supports it. If a timeout is required, use the longest practical host-supported interval for the expected work. A timeout alone does not establish progress or failure. On an unchanged timeout, continue the blocking wait without rereading the worktree, sending a status request, or dispatching a replacement. Check the worktree and reports when a worker finishes, requests help, or reaches a task checkpoint.
+
+For Codex `wait_agent`, allow at most five consecutive waits without material progress across the pending workers. A completion, request for help, or task checkpoint resets the count. After five unchanged waits, rely on completion notifications if the host can resume the coordinator. Otherwise record the pending worker handles in the existing run note and leave the current gate pending. For review batches, also record the round, frozen input identity, routes, and any queued members. Resume from the saved handles under **Review batches**. Do not bypass the cap with another polling tool or restart the workers to reset it.
+
+Within a task, use focused checks during edits and run the required broader checks at the task's verification checkpoint. Reuse an existing result only for the same producer, evidence identity, and relevant working-tree state. Run required independent test and review gates at their normal steps.
 
 ## Lanes
 
@@ -34,7 +52,7 @@ A lane value pins where a role's work executes. Four values:
 The dispatching skill resolves `<name>` against the session's model list, in this order:
 
 1. **Model-param family name** (`sonnet`, `opus`, `haiku`, `fable` families) → dispatch with the Agent tool's `model` param.
-2. **Gateway/agent-type name** (anything else the picker shows, e.g. OmniRoute names) → dispatch via `subagent_type`. The agent-type list is session-scoped: confirm the type exists before dispatch. A named type that 404s → fall back to `general-purpose` **and report the fallback to the user** — never a silent lane switch.
+2. **Gateway/agent-type name** (anything else the picker shows, e.g. OmniRoute names) → dispatch via `subagent_type`. The agent-type list is session-scoped: confirm the type exists before dispatch. A named type that 404s follows the role-specific 404 rule in **Error contract**.
 3. **Unresolvable** (the name matches nothing in the session's list) → fail-closed: BLOCKED stop-and-ask per `## Error contract`.
 
 ## Config schema
@@ -111,7 +129,7 @@ For CLI reviewer lanes, the external reviewer stays in the read-only sandbox and
 
 Use `docs/features/.review/<feat>/batches/<step>/round-<N>/reviewer-<I>.md` for individual reports, with one-based numeric indices and no model names in paths. Standalone mode uses the review skill's existing feature naming convention. Existing single-reviewer destinations remain compatible. Red-team and plan-review aggregates go in their existing pass sections. Main and focused review keep their existing aggregate report destinations and archives. Record each route, index, verdict, findings, reviewed material identity, round, and any adjudication exception.
 
-Every member must return a current valid report. A failed or incomplete batch blocks; preserve valid partial findings for diagnosis without claiming clearance. A dispatch error is never a fallback vote. Resume an incomplete step with a fresh complete batch and current routing. Do not reuse approvals across rounds or changed materials, and persist batch identity in local reports without adding lifecycle statuses.
+Every member must return a current valid report. A failed or incomplete batch cannot clear the gate. Preserve valid partial findings without claiming clearance. A dispatch error is never a fallback vote. On resume, first recover any saved pending batch, including one paused at the wait cap. Verify its frozen inputs and selected routes still match, collect reports and completions from the saved handles, and dispatch only members that were still queued. If there is no recoverable batch, or it failed or became stale, use a fresh complete batch and current routing once the blocker is resolved. Do not reuse approvals across rounds or changed materials, and persist batch identity in local reports without adding lifecycle statuses.
 
 Apply each step's existing verdict rules: a red-team FUNDAMENTAL finding blocks; plan review requires every reviewer to pass; R5 aggregates red before yellow, blue, then green. Deduplicate displayed findings while preserving author attribution, original verdicts, and dissent. An explicit user adjudication records the user's reason as a visible exception. It does not claim unanimous approval and cannot waive unrelated blockers or dispatch failures.
 
@@ -198,7 +216,7 @@ All lanes, all roles:
 - **Lane unavailable, malformed config entry, auth failure, missing Bash, missing/stale report, unresolvable `claude:<name>`** → **stop-and-ask**: report what failed and what was attempted, wait for the user's instruction. Malformed ≠ unset — a malformed entry is never treated as the default.
 - **No silent downgrade anywhere.** Falling back to another lane or to the session default without asking is a contract violation, not resilience.
 - **Quota exhaustion mid-run** → BLOCKED with resume-later semantics.
-- **404 on a named agent type** (claude lane, resolution step 2) → `general-purpose` fallback **with a user-visible report** — the one sanctioned fallback, because the dispatch axis is preserved.
+- **404 on a named agent type** (claude lane, resolution step 2) → **BLOCKED** for an implementer or a review-batch member. Preserve the original error. The legacy `general-purpose` fallback remains available only for a single verifier dispatch outside a review batch, with a user-visible report.
 
 ## Scope
 

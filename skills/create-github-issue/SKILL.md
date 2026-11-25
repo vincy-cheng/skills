@@ -25,7 +25,7 @@ A reader (human or agent) should understand the *what*, *boundaries*, *done-stat
 
 ## Workflow
 
-1. **Pull context from steps 1–3.** Mine `docs/features/specs/` for Summary/Scope/Expected behavior, and `docs/features/plans/` for the Tasks section. Translate, don't re-derive — that's the point of doing steps 1–3 first. If the docs don't exist (e.g. a small bug filed straight from a conversation), gather intent and ask — briefly, in one turn — if anything material is missing (component, wrong vs. expected, relevant files). Don't pad with guesses. Mine the substance **into the issue body** — it must be self-contained since `docs/features/` is gitignored and invisible on GitHub. Never link those docs as references.
+1. **Pull context from steps 1–3.** Mine `docs/features/specs/` for Summary/Scope/Expected behavior, and `docs/features/plans/` for the Tasks section, including known documentation files and their verification. Translate, don't re-derive — that's the point of doing steps 1–3 first. Do not defer approved documentation work to post-review cleanup. If the docs don't exist (e.g. a small bug filed straight from a conversation), gather intent and ask — briefly, in one turn — if anything material is missing (component, wrong vs. expected, relevant files). Don't pad with guesses. Mine the substance **into the issue body** — it must be self-contained since `docs/features/` is gitignored and invisible on GitHub. Never link those docs as references.
 2. **Draft the body** with the template below. Fill every required section; add suggested sections when they add signal.
 3. **Show the draft** (title + body) and ask for confirmation. The user picks labels here.
 4. **Publish** with `gh issue create` (heredoc). Capture the URL and issue number.

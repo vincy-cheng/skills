@@ -1,12 +1,12 @@
 import { expect, test } from 'claude-code/testing'
 
-import { STEPS, type Run, type GoalStatus } from './state'
+import type { Run, GoalStatus } from './state'
 import { resumePress } from './register'
 
 /**
  * The dev-flow pane's two drawing paths:
  * - empty state (no state dir / no active run): names the start path, closes
- * - run card (an active run): header+step, vertical lifecycle strip, refs, next
+ * - run card (an active run): header+phase, vertical phase strip, refs, next
  *
  * Both carry the pane's own `[ Close ]` button — closing never waits on
  * Esc's interrupt priority (the host owns Esc while Claude responds).
@@ -58,16 +58,9 @@ const TWO_RUN_STATE_FILES = {
   'other.state.md': ACTIVE_STATE,
 }
 
-/** The 11 lifecycle names after `fresh` — imported, not re-listed here. */
-const STEPS_IN_ORDER = STEPS.slice(1) as readonly string[]
-
 /** A minimal run for seam-level tests. */
 function makeRun(feat: string, status: GoalStatus): Run {
   return { feat, status, since: undefined, updated: '', tasksDone: 0, tasksTotal: 0, issue: '', pr: '', branch: '' }
-}
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 test('pane draws a Close button on every input surface', async $ => {
@@ -137,7 +130,7 @@ test('the current run has its own Resume action without duplicating the Resume s
     })
 
     // The card covers the current run, with its own action and no duplicate section row.
-    expect(await ui.find({ type: 'Text', text: /step 1\/11 · brainstorm/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /define · brainstorm/ })).toBeDefined()
     expect(await ui.find({ key: 'resume-current' })).toBeDefined()
     expect(await ui.find({ key: 'resume-demo' })).toBeUndefined()
     expect(await ui.find({ type: 'Text', text: /── Resume/ })).toBeUndefined()
@@ -193,7 +186,7 @@ test('a second unfinished run draws a Resume row; done runs never appear', async
     // Color semantics follow the strip: merged (close-out pending) reads
     // success. (An active row reads subtle — same branch, not asserted here
     // because the only active run in this fixture is the current, excluded.)
-    const color = await ui.find({ type: 'Text', text: /^demo · step 10\/11 · merged/ })
+    const color = await ui.find({ type: 'Text', text: /^demo · deliver · merged/ })
     expect((color as unknown as { props?: { color?: string } })?.props?.color).toBe('success')
 
     await ui.unmount()
@@ -218,14 +211,14 @@ test('the run card draws the run, its step, and closes', async ($, on) => {
     })
 
     expect(await ui.find({ type: 'Text', text: /demo/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /step 1\/11 · brainstorm/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /define · brainstorm/ })).toBeDefined()
     expect(await ui.find({ key: 'close' })).toBeDefined()
 
     await ui.unmount()
   }
 })
 
-test('the lifecycle strip renders every step name in full, un-truncated', async ($, on) => {
+test('the phase strip renders all four named phases in full', async ($, on) => {
   on('fs.list', () => ({
     value: [{ name: 'demo.state.md', kind: 'file' }],
   }))
@@ -242,19 +235,37 @@ test('the lifecycle strip renders every step name in full, un-truncated', async 
       requestId: 'flow',
     })
 
-    // Every full step name renders as its own glyph-prefixed row; each row is
-    // its own Text — the old strip joined them with ' → ' onto one wide line
-    // the surface truncated mid-name. No joiner may leak into any row.
-    for (const name of STEPS_IN_ORDER) {
-      const row = await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${escapeRegExp(name)}$`) })
+    for (const name of ['define', 'build', 'verify', 'deliver']) {
+      const row = await ui.find({ type: 'Text', text: new RegExp(`[✓▸·] ${name}$`) })
       expect(row).toBeDefined()
       const rowText: unknown = row?.props?.text !== undefined ? row.props.text : row?.text
       expect(rowText).toBeDefined()
-      expect(String(rowText)).not.toContain(' → ')
     }
+    expect(await ui.find({ type: 'Text', text: /step \d+\/11/ })).toBeUndefined()
 
     await ui.unmount()
   }
+})
+
+test('the four-phase pane remains readable at a narrow width', async ($, on) => {
+  on('fs.list', () => ({
+    value: [{ name: 'demo.state.md', kind: 'file', size: ACTIVE_STATE.length, mtimeMs: 0, isLink: false }],
+  }))
+  on('fs.read', ($, e) => ({ value: e.path.endsWith('demo.state.md') ? ACTIVE_STATE : '' }))
+  const ui = await $.ui.mount({
+    plugin: 'dev-flow',
+    surface: 'terminal',
+    component: 'Pane',
+    props: { ...PANE_PROPS, bodyColumns: 24 },
+    requestId: 'flow',
+  })
+  expect(await ui.find({ type: 'Text', text: /define · brainstorm/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /[▸✓·] define$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /[▸✓·] build$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /[▸✓·] verify$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /[▸✓·] deliver$/ })).toBeDefined()
+  expect(await ui.find({ key: 'close' })).toBeDefined()
+  await ui.unmount()
 })
 
 test('pressing the current run action uses resumePress and closes the pane', async ($, on) => {

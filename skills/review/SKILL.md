@@ -17,7 +17,7 @@ A pre-PR judgment review gate: does the branch do what the spec said, is anythin
 
 ## Gate (dev-flow, step 7)
 
-If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), verify **Goal status** is `test`. Don't advance the status here — step 7 in the orchestrator sets `review`. Wrong status → stop, tell the user which step to run. The only exception is an explicit Step 10 `pr-review` validation delegation from `new-feature`; it does not change Goal status or permit ordinary review dispatch. No state file (standalone) → see *Standalone mode*.
+If running inside dev-flow (state file at `docs/features/.feature-states/<feat-name>.state.md` exists), ordinary Step 7 delegation from `new-feature` requires live **Goal status** `review`; Step 7 sets it before invoking this skill. Do not advance status here. Wrong status → stop, tell the user which step to run. Exceptions require explicit orchestrator context: Step 10 `pr-review` validation, or Step 8 documentation-evidence supplement at `doc-fix`; neither changes Goal status or permits ordinary review dispatch. No state file (standalone) → see *Standalone mode*.
 
 ## Post-PR validation (explicit Step 10 delegation only)
 
@@ -56,12 +56,12 @@ Dev-flow mode: check the Reviewer line per `## Before starting` — never ask. S
 
 Resolve `main_review` independently through **Per-step reviewer groups** in [`references/model-routing.md`](../../references/model-routing.md). A configured main group overrides the prior route; only when that step is absent, use its existing host and step source: **Codex** `codex_reviewer_model` then session default, per **Codex reviewer model**; **Claude Code** the Roles block's Reviewer lane (standalone: preserve the ask, default `session`). Validate all selected routes before dispatch.
 
-Dispatch every main-group member in a fresh isolated context, concurrently within host limits, with identical frozen review materials and a unique numeric report destination. Queue remaining members without reducing the group. Each member follows the same brief and contracts below; reviewers do not see peer findings before returning. Use the routing reference's isolated-worker brief boundary. A failed dispatch, missing or invalid report, or changed frozen input blocks the whole round. Keep the existing aggregate destination and archive rules for single-reviewer runs; multi-reviewer reports feed that same aggregate destination. When a fix changes reviewed material, rewind through execute and test, then rerun every selected reviewer for each affected review stage against the final changed diff; prior approvals never carry across the fix.
+Apply the **Review batches** recovery rule before dispatching on resume. For a new batch, dispatch every main-group member in a fresh isolated context, concurrently within host limits, with identical frozen review materials and a unique numeric report destination. Queue remaining members without reducing the group. Each member follows the same brief and contracts below; reviewers do not see peer findings before returning. Use the routing reference's isolated-worker brief boundary. A failed dispatch, missing or invalid report, or changed frozen input blocks the whole round. Keep the existing aggregate destination and archive rules for single-reviewer runs; multi-reviewer reports feed that same aggregate destination. When a fix changes reviewed material, rewind through execute and test, then rerun every selected reviewer for each affected review stage against the final changed diff; prior approvals never carry across the fix.
 
 1. **Framing** — "You are a pre-PR reviewer. You have never seen this code before. Review the diff against the spec and plan and return a verdict; do not fix anything."
 2. **Base branch + diff command** — `git diff <base>...HEAD` (plus `git log <base>..HEAD --oneline` for commit shape). Read the actual diff, not just commit messages.
 3. **Spec and plan paths** — under `docs/features/`; the subagent reads them itself.
-4. **The methodology** (R1–R4) — give the subagent the **absolute path** to this skill's `references/clean-code.md` (resolved from the skill's base directory — not repo-relative: in a target repo the file lives in the plugin directory), with the instruction to read it first as the review's checklist; the subagent reads it itself. Paste **R1–R2's and R3's section bodies** (spec coverage / plan coverage / obvious-issue scan) into the dispatch — the reference file carries only the R4 clean-code checklist, not the full methodology — and paste the **verdict contract** (R5) too.
+4. **The methodology** (R1–R4) — give the subagent the **absolute paths** to both `references/clean-code.md` and `references/architecture.md`, resolved from this skill's host-provided base directory, not the target repository. Require it to read both before R4. These references carry R4 only. Paste **R1–R2's and R3's section bodies** (spec coverage / plan coverage / obvious-issue scan) and the **verdict contract** (R5) into the dispatch too.
 5. **Report contract** — full findings go to each member's unique report destination under `docs/features/.review/<feat-name>/batches/main_review/round-<N>/reviewer-<I>.md` for a multi-member group (gitignored); a single reviewer keeps the existing `review-report.md` path and output contract. The return holds the verdict (`green`/`blue`/`yellow`/`red`), a one-line summary, and counts (e.g. "2 yellow findings"). Detail stays in the report. The orchestrator validates every member report and frozen input, then writes the aggregate to `docs/features/.review/<feat-name>/review-report.md`; preserve individual verdicts, author attribution, and dissent while deduplicating displayed findings.
 
 **Re-review: archive, never overwrite.** If `review-report.md` exists from a prior round, rename it to `review-report-<n>.md` (`-1`, `-2`, …) before dispatching. `review-report.md` is always the latest; each round keeps its record.
@@ -95,11 +95,12 @@ Example (blue): `# Review report — <feat-name>` / `🟦 BLUE — 2 trivial fin
 
 ### R1. Spec coverage
 
-For each spec requirement, is there a plan task and branch code implementing it? Gaps:
+For each agreed spec acceptance criterion, is there a plan task and branch code implementing it, with evidence that can establish the result? The spec is the requirements source; do not write a competing requirement set. Gaps:
 
 - Spec requirement with no task → under-planned; surface it.
 - Task with no matching code → missing work; red.
 - Code matching no spec requirement → scope creep; ask keep or cut.
+- Evidence that only mentions a term, or a claim unsupported by the required result, does not establish acceptance. If required UI evidence cannot be produced in the available environment, report it as unverified; do not claim UI acceptance.
 
 ### R2. Plan coverage
 
@@ -116,9 +117,11 @@ Read the diff with fresh eyes for:
 
 Not a deep architectural review — "is anything obviously wrong before a human looks." Unsure whether something is real? Flag it as a question, not a verdict.
 
+**Final documentation consistency evidence:** read the known and changed documentation paths in the plan and diff. Check them against the approved spec and plan, including examples, boundaries, and observed behavior. The report records the paths checked, repository/head/base identity, and either a clear no-drift result or concrete findings. If no project documentation is relevant, record `N/A` and why. A mention of docs without paths and a result is not evidence for Step 8. Reviewers do not add or relax acceptance criteria.
+
 ### R4. Maintainability & clean code
 
-Read the changed code in place (open the files, not just the diff hunks) — full checklist in `references/clean-code.md`.
+Read the changed code in place (open the files, not just the diff hunks). Before R4, read both `references/clean-code.md` and `references/architecture.md` from this skill’s base directory. Apply architecture checks to affected boundaries using project intent and concrete trade-offs; follow each checklist’s applicability rules.
 
 ### R5. Verdict
 
@@ -136,6 +139,12 @@ Return one of (verdict inline, detail in the report file):
 The orchestrator acts on the verdict per contract R5 above — it does not re-run the review and does not restate the handling inline. Keep the report at `docs/features/.review/<feat-name>/review-report.md` — the run's review record (gitignored, like the spec and plan). Never delete or overwrite; the next round archives it per the re-review rule. A focused review's report lives beside it at `review-report-focused.md`, same rules.
 
 On a high (not waived) tier, the act-on-verdict step also covers the focused group's aggregate once every member returns: record it in the state's existing **Focused verdict** field (replacing this round's `_(pending — run in this gate round)_`), then apply the same R5 handling — every member of both required groups must complete, and both aggregates must clear. Never reuse an earlier round's focused value.
+
+## Step 8 documentation-evidence supplement
+
+Run only when `new-feature` explicitly delegates Step 8 because the current Review evidence lacks the final documentation-consistency result. Require **Goal status** `doc-fix`; preserve it and all mirrors. This is a docs-only evidence supplement, not a new Step 7 review. First capture repository, HEAD, base ref, and base SHA; inspect the worktree. Any relevant uncommitted change, unreadable identity, or mismatch with either current Test or Review evidence → stop and return the blocker to `new-feature`; never claim a docs-only pass for unreviewed material.
+
+Read the approved spec, plan, current review report, and the relevant known/changed documentation paths. Resolve the current `main_review` group under the normal routing contract and apply the **Review batches** resume rules. Each fresh dispatch uses the exact frozen tuple and docs-only scope. Each report must give paths, a conclusion (`consistent`, `drift`, or justified `N/A` when no documentation applies), evidence, findings, and explicit completion. Do not change acceptance criteria. Save member reports under `docs/features/.review/<feat-name>/batches/documentation_consistency/round-<N>/reviewer-<I>.md` and the aggregate to `docs/features/.review/<feat-name>/documentation-consistency-report.md`; archive prior aggregates before rerunning. Preserve the main and focused reports. Recheck the tuple and worktree after dispatch. A failed dispatch, missing report, changed material, or relevant dirty path leaves Step 8 incomplete. Aggregate only complete current reports. Substantiated drift takes the repair path. If members disagree on applicability or an unresolved drift finding remains, keep the result pending until resolved. A unanimous justified `N/A` or unanimous `consistent` clears the supplement. Return findings to the orchestrator; do not edit or advance status. If docs reveal a design/scope change, require user confirmation and the normal full review after the repair.
 
 ## Focused review (high risk tier only)
 

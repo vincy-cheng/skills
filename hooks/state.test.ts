@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { parseState, readStates, stepOf, STEPS, type FsList, type FsRead } from './state'
+import { parseState, readStates, stepOf, STEPS, PHASE_FOR_STATUS, type FsList, type FsRead } from './state'
 
 /** A minimal state file with every field the parser knows. */
 const FULL = [
@@ -152,5 +152,27 @@ describe('stepOf — explicit status→step table (A3: statuses are not 1:1 with
     for (const status of STEPS) {
       expect(stepOf(status)).toBe(expected[status])
     }
+  })
+})
+
+describe('PHASE_FOR_STATUS — explicit status→phase map', () => {
+  test('maps every existing status to one of the four user-facing phases', () => {
+    const expected = {
+      fresh: 'define',
+      brainstorm: 'define',
+      spec: 'define',
+      planning: 'define',
+      issue: 'define',
+      execute: 'build',
+      test: 'verify',
+      review: 'verify',
+      'doc-fix': 'verify',
+      'pr-review': 'deliver',
+      merged: 'deliver',
+      done: 'deliver',
+    } as const
+
+    expect(Object.keys(expected)).toEqual([...STEPS])
+    expect(PHASE_FOR_STATUS).toEqual(expected)
   })
 })

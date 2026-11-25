@@ -50,7 +50,7 @@ describe('statusLine — the ambient text', () => {
       pr: '',
       branch: '',
     }
-    expect(statusLine(run, NOW)).toBe('dev-flow: demo · step 6/11 · test · 45m')
+    expect(statusLine(run, NOW)).toBe('dev-flow: demo · verify · test · 45m')
   })
 
   test('omits duration when since is absent', () => {
@@ -65,7 +65,7 @@ describe('statusLine — the ambient text', () => {
       pr: '',
       branch: '',
     }
-    expect(statusLine(run, NOW)).toBe('dev-flow: demo · step 6/11 · test')
+    expect(statusLine(run, NOW)).toBe('dev-flow: demo · verify · test')
   })
 })
 
@@ -86,7 +86,7 @@ describe('toastsFor — status diff, main-loop only', () => {
     const prev = { demo: 'execute' as GoalStatus }
     const now = [run('demo', 'test')]
     const toasts = toastsFor(now, prev)
-    expect(toasts).toEqual(['dev-flow: demo execute → test (step 6/11)'])
+    expect(toasts).toEqual(['dev-flow: demo execute → test (verify)'])
   })
 
   test('no toast when the status is unchanged', () => {
@@ -102,44 +102,17 @@ describe('toastsFor — status diff, main-loop only', () => {
   })
 })
 
-describe('farewell transition — Y1/Y2 regression: transition-only close', () => {
-  const run = (feat: string, status: GoalStatus) => ({
-    feat,
-    status,
-    since: undefined,
-    updated: '',
-    tasksDone: 0,
-    tasksTotal: 0,
-    issue: '',
-    pr: '',
-    branch: '',
-  })
-
-  test('a merged run seen in an earlier status farewell-closes (prev ≠ current)', () => {
-    const prev: Record<string, GoalStatus> = { demo: 'pr-review' }
-    const finished = [run('demo', 'merged')]
-    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
-    expect(just).toBeDefined()
-  })
-
-  test('a session that starts on a finished run does not close (no earlier status)', () => {
-    const prev: Record<string, GoalStatus> = {}
-    const finished = [run('demo', 'merged')]
-    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
-    expect(just).toBeUndefined()
-  })
-
-  test('a steady-state finished run does not close (status unchanged)', () => {
-    const prev: Record<string, GoalStatus> = { demo: 'merged' }
-    const finished = [run('demo', 'merged')]
-    const just = finished.find(r => prev[r.feat] !== undefined && prev[r.feat] !== r.status)
-    expect(just).toBeUndefined()
-  })
-})
-
 describe('nextOf — the pane next-step line', () => {
   test('names the next status and its skill', () => {
     expect(nextOf('execute')).toBe('test (dev-flow:test)')
+  })
+
+  test('routes the documentation checkpoint back through the orchestrator', () => {
+    expect(nextOf('review')).toBe('doc-fix checkpoint (dev-flow:new-feature)')
+  })
+
+  test('keeps a resumed documentation checkpoint under the orchestrator decision', () => {
+    expect(nextOf('doc-fix')).toBe('doc-fix checkpoint (dev-flow:new-feature)')
   })
 
   test('terminal statuses render their wording', () => {
@@ -170,6 +143,77 @@ describe('register — the command surface', () => {
     register(recordingOn as never, $ as never)
     expect(registrations.filter(r => r.startsWith('command.'))).toEqual([])
     expect(specs).toEqual([])
+  })
+
+  test('merged announces delivery; each done transition closes; steady and first-seen done stay quiet', async () => {
+    const makeHarness = (initialStatuses: Record<string, GoalStatus>) => {
+      const callbacks = new Map<string, (...args: any[]) => Promise<unknown>>()
+      const toasts: string[] = []
+      const closes: unknown[] = []
+      const statuses = new Map(Object.entries(initialStatuses))
+      const stateText = (path: string) => {
+        const feat = path.split('/').pop()!.replace(/\.state\.md$/, '')
+        return `- **Goal status:** ${statuses.get(feat)}\n- **Updated:** 2026-11-22 12:00 +08:00\n`
+      }
+      const recordingOn = ((pattern: string, handlerOrFilter: unknown, maybeHandler?: unknown) => {
+        const handler = typeof handlerOrFilter === 'function' ? handlerOrFilter : maybeHandler
+        if (typeof handler === 'function') callbacks.set(pattern, handler as (...args: any[]) => Promise<unknown>)
+        return () => undefined
+      }) as unknown as Parameters<typeof register>[0]
+      const $ = {
+        fs: {
+          list: async () => [...statuses.keys()].map(feat => ({ name: `${feat}.state.md`, kind: 'file' as const })),
+          read: async (path: string) => stateText(path),
+        },
+        ui: {
+          status: async () => undefined,
+          toast: (text: string) => toasts.push(text),
+          close: async (args: unknown) => { closes.push(args) },
+          invalidate: () => undefined,
+        },
+      }
+
+      register(recordingOn, {})
+      return { callbacks, toasts, closes, setStatus: (feat: string, next: GoalStatus) => { statuses.set(feat, next) }, $ }
+    }
+
+    const harness = makeHarness({ demo: 'pr-review', second: 'execute' })
+    const start = harness.callbacks.get('session.start')
+    const complete = harness.callbacks.get('turn.complete')
+    expect(start).toBeDefined()
+    expect(complete).toBeDefined()
+    const next = async () => undefined
+    await start!(harness.$, {}, next)
+
+    harness.setStatus('demo', 'merged')
+    await complete!(harness.$, { agentId: undefined }, next)
+    expect(harness.toasts).toContain('dev-flow: demo pr-review → merged (deliver)')
+    expect(harness.closes).toEqual([])
+    expect(harness.toasts.some(text => text.includes('finished — pane closed'))).toBe(false)
+
+    harness.setStatus('demo', 'done')
+    harness.setStatus('second', 'pr-review')
+    await complete!(harness.$, { agentId: undefined }, next)
+    expect(harness.toasts).toContain('dev-flow: demo merged → done (deliver)')
+    expect(harness.closes).toEqual([{ id: 'flow' }])
+    expect(harness.toasts).toContain('dev-flow: demo finished — pane closed.')
+
+    harness.setStatus('second', 'done')
+    await complete!(harness.$, { agentId: undefined }, next)
+    expect(harness.toasts).toContain('dev-flow: second pr-review → done (deliver)')
+    expect(harness.toasts).toContain('dev-flow: second finished — pane closed.')
+    expect(harness.closes).toEqual([{ id: 'flow' }, { id: 'flow' }])
+
+    const alreadyDone = makeHarness({ already: 'done' })
+    const doneStart = alreadyDone.callbacks.get('session.start')
+    const doneComplete = alreadyDone.callbacks.get('turn.complete')
+    expect(doneStart).toBeDefined()
+    expect(doneComplete).toBeDefined()
+    await doneStart!(alreadyDone.$, {}, next)
+    await doneComplete!(alreadyDone.$, { agentId: undefined }, next)
+    await doneComplete!(alreadyDone.$, { agentId: undefined }, next)
+    expect(alreadyDone.toasts).toEqual([])
+    expect(alreadyDone.closes).toEqual([])
   })
 })
 

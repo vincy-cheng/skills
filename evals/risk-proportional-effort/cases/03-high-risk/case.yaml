@@ -4,3 +4,6 @@ description: A high-risk tier demands a focused scoped review; the user may waiv
 execution:
   max_turns: 30
   timeout_seconds: 600
+  allowed_tools:
+    - Read
+    - Skill

@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 02-bounded-fix-final-deliverable
+description: A small bounded fix still carries its full acceptance through implementation, documentation, test, and review.
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools:
+    - Read
+    - Skill

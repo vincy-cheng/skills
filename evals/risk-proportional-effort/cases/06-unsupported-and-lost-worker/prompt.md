@@ -1,4 +1,4 @@
-You are executing dev-flow steps on four situations. Answer from the narration only; do not run external tooling.
+Invoke `dev-flow:execute-tasks` first. From the runtime plugin base returned or resolved by that Skill invocation, make separate Read calls on `skills/execute-tasks/SKILL.md` and `references/model-routing.md`; do not resolve paths from the target repository. Wait for each Read result before the next Read. Allow only Skill and Read for guidance. This is narrated only: do not run commands, dispatch or recreate workers, modify files or state, or perform other operational actions.
 
 Situation A: the user confirms `Implementer context: shared` on the `cli:codex/<model>` lane. The lane re-runs the CLI tool per task with the same model; the CLI has no conversation continuation between runs.
 

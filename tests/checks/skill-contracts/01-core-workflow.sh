@@ -222,3 +222,43 @@ else:
 PY
 )
 if [ -z "$gate24_errs" ]; then ok "risk-tiered review structurally present (plan Risk line + step-7 recheck + focused reviewer)"; else bad "risk-tier concept missing:$gate24_errs"; fi
+
+# Specs own the agreed acceptance contract; plans trace requirements and evidence.
+spec_plan_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+spec = Path("skills/brainstorm/SKILL.md").read_text()
+plan = Path("skills/plan/SKILL.md").read_text()
+for marker in ("acceptance criteria", "example", "boundaries", "evidence", "unresolved"):
+    if marker not in spec:
+        print(f"brainstorm:spec-contract-missing-{marker}")
+if not re.search(r"Trace agreed acceptance.{0,240}source requirement.{0,180}evidence", plan, re.I | re.S):
+    print("plan:tasks-do-not-trace-requirement-and-evidence")
+if "reviewer-authored requirement set" not in plan:
+    print("plan:reviewer-requirements-not-bounded-to-spec")
+PY
+)
+[ -z "$spec_plan_errs" ] && ok "spec acceptance criteria and plan traceability are explicit" || bad "spec/plan acceptance contract missing:$spec_plan_errs"
+
+# Documentation work belongs to build; later checkpoints verify evidence without
+# erasing the existing review, issue, PR, or three-write status contract.
+build_docs_errs=$(python3 -B - <<'PY'
+import re
+from pathlib import Path
+
+workflow = Path("skills/new-feature/SKILL.md").read_text()
+execute = Path("skills/execute-tasks/SKILL.md").read_text()
+steps = re.search(r"^## Step 5\b(.*?)(?=^## Step 6\b)", workflow, re.M | re.S)
+body = steps.group(1) if steps else ""
+if "known documentation" not in body or not re.search(r"dev-flow:doc-fix.{0,180}explicit in-flow context", body, re.I | re.S):
+    print("step5:known-documents-not-fixed-in-flow")
+if not re.search(r"proposal-and-confirmation rule.{0,180}Apply edits only after confirmation", body, re.I | re.S):
+    print("step5:document-edit-confirmation-contract-missing")
+if not re.search(r"## Known documentation in build.{0,500}commit them with the task", execute, re.I | re.S):
+    print("execute:known-docs-not-part-of-build-completion")
+if not re.search(r"three writes", workflow) or not re.search(r"manual merge", workflow, re.I):
+    print("workflow:status-or-manual-merge-contract-lost")
+PY
+)
+[ -z "$build_docs_errs" ] && ok "known documentation work is included in build without changing status or merge gates" || bad "build documentation contract missing:$build_docs_errs"

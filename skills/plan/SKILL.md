@@ -67,16 +67,20 @@ Keep it honest: every task node matches a `### Task N` heading; every file under
 - **Verbatim-copyable** — the task list is what the state file's Tasks block copies; write them as clean `- [ ]` lines.
 - **Issue material** — each task carries an acceptance fragment the issue can lift directly.
 - **Verification per task** — name the command that proves the task done (the repo's suite, a grep, a lint run).
+- **Trace agreed acceptance** — link each task to the source requirement and preserve its boundary. Name the verification method and expected evidence. Do not create a reviewer-authored requirement set; reviewers assess the spec's criteria. If a legacy spec lacks acceptance detail, ask the user to fill the gap and record the answer without guessing approval.
 
 ## Prose quality (plan text)
 
-Plans are read by humans at every checkpoint. Write them under the brainstorm skill's prose-quality rules (one term per concept, frozen modals — shall, must, will, may never swap force — sentences ≲ 20 words, no vague quantifiers, active voice); those rules live once in `skills/brainstorm/SKILL.md` *Spec output*. Plan-specific addition:
+Plans are read by humans at every checkpoint. Write them under the brainstorm skill's prose-quality rules (one term per concept, frozen modals — shall, must, will, may never swap force — sentences ≲ 20 words, no vague quantifiers, active voice); those rules live once in `skills/brainstorm/SKILL.md` *Spec output*.
 
-- Task lines stay verbatim-copyable — style rewrites never touch them, nor the `Risk:` lines.
+- Separate Markdown blocks with one blank line. Put each task label (`RED`, `GREEN`, `Verify`, `Acceptance`) on its own line, with a blank line before its content.
+- Use numbered lists for ordered actions and bullets for independent checks or acceptance conditions. Put one action or condition in each item.
+- Keep background and rationale in short paragraphs of one or two sentences.
+- Keep task checklist lines verbatim-copyable. Preserve the `Risk:` lines and `**Files:**` blocks during style edits.
 
 ## Self-review
 
-Before presenting the plan, check it with fresh eyes and fix inline: every task has a `Risk:` line (a task missing one is a fail-closed defect, not a default-low — fix it before the plan is presented); no placeholders ("TBD", "TODO"); the Flow Chart's nodes match the `### Task N` headings and their files match the `**Files:**` blocks; the task list is clean `- [ ]` lines, copyable verbatim.
+Before presenting the plan, check it with fresh eyes and fix inline: every task has a `Risk:` line (a task missing one is a fail-closed defect, not a default-low — fix it before the plan is presented); no placeholders ("TBD", "TODO"); the Flow Chart's nodes match the `### Task N` headings and their files match the `**Files:**` blocks; the task list is clean `- [ ]` lines, copyable verbatim. Check the Markdown layout against the prose-quality rules above.
 
 ## Plan review pass
 
@@ -98,11 +102,13 @@ For independent review, resolve the `plan_review` group using **Per-step reviewe
 
 **Recording.** `## Plan review pass` records the size classification and classification basis, applicability, self-check or independent route, exact reviewed-material identity, and for each reviewer: route, report evidence, explicit completion, coverage/order verdict, adversarial verdict, findings, and handling. Record the final aggregate and round. A heading, claimed dispatch, empty response, missing report, stale material, or one member's pass is incomplete evidence. Preserve explicit eligible trivial-plan self-checks honestly; they are not independent reviews. Before approval, verify the complete evidence matches the current spec and plan. Existing passes remain valid only for the rule and material they explicitly document; a legacy plan with missing evidence requires the issue-gate's explicit legacy choice or a completed review. A plan without a complete applicable pass is **not approvable**.
 
-When a dev-flow spec is supplied or referenced, verify its `## Viability pass` before generating the plan. Architectural work requires completed current `red_team` evidence per the brainstorm contract; a heading or claimed dispatch alone does not count. A spec confirmed to predate this requirement may proceed only with the user's explicit legacy choice recorded in that section; absence alone never counts as the choice or as review completion. Bounded self-checks and spike behavior keep their existing treatment. If evidence is missing or stale, stop and return to the spec step for repair.
+**Blocked pass and approval boundary.** A required review that is missing, incomplete, stale, `BLOCKED`, or `needs-rework` leaves the plan as a draft; report the specific prerequisite. User approval of an incomplete pass does not clear or satisfy the missing review. Preserve the narrow legacy exception already defined here: a pre-existing plan with missing evidence may proceed only through the issue-gate's explicitly recorded legacy choice or a completed review. A user may adjudicate an individual reviewer finding with a recorded reason, but the finding remains visible and adjudication does not turn an incomplete group into a pass. In-flow handoff to issue creation requires both a complete applicable pass and separate user approval; this skill does not advance the workflow.
+
+When a dev-flow spec is supplied or referenced, verify its `## Viability pass` before generating the plan. In an orchestrated Step 2→3 handoff, the plan engine may consume Step 2's completed validation only when the handoff explicitly supplies the spec identity and bound viability evidence and the current spec is unchanged. Otherwise validate it here. Architectural work requires completed current `red_team` evidence per the brainstorm contract; a heading or claimed dispatch alone does not count. A spec confirmed to predate this requirement may proceed only with the user's explicit legacy choice recorded in that section; absence alone never counts as the choice or as review completion. Bounded self-checks and spike behavior keep their existing treatment. If evidence is missing or stale, stop and return to the spec step for repair.
 
 ## Standalone mode
 
-In any repo, without dev-flow: standalone work uses the same sections, contract, size classification, and review-depth rule. With insufficient classification evidence, it keeps the independent plan review. The consumers are whoever executes next (a human, an agent session, a team). Save the plan wherever the repo's convention puts planning docs; if none, use `docs/plans/`.
+In any repo, without dev-flow: standalone work uses the same sections, contract, size classification, and review-depth rule. With insufficient classification evidence, it keeps the independent plan review. The consumers are whoever executes next (a human, an agent session, a team). Save the plan wherever the repo's convention puts planning docs; if none, use `docs/plans/`. Standalone mode ends by presenting the plan and its pass for explicit user approval, then stopping; approval does not automatically start implementation.
 
 ## dev-flow integration
 

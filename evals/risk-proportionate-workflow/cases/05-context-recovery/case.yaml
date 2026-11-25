@@ -1,0 +1,9 @@
+schema_version: "1.0"
+name: 05-context-gap-one-diagnostic-same-worker
+description: A confirmed coordinator diagnoses a context gap and sends one bounded revision to the original worker.
+execution:
+  max_turns: 40
+  timeout_seconds: 900
+  allowed_tools:
+    - Read
+    - Skill

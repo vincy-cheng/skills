@@ -1,0 +1,5 @@
+---
+type: regex
+target: trace
+---
+^(?=[\s\S]*?"plugins":\[\{"name":"dev-flow","path":"([^"]+)")(?=[\s\S]*?"type":"tool_use","id":"([A-Za-z0-9_-]+)","name":"Read","input":\{"file_path":"\1/skills/execute-tasks/SKILL\.md"\}[\s\S]{0,100000}?"type":"user","message":\{"role":"user","content":\[\{(?=[^\n]*"tool_use_id":"\2")(?=[^\n]*"type":"tool_result")(?=[^\n]*Run the plan's tasks one by one, with TDD\.)(?![^\n]*"is_error"\s*:\s*true))(?=[\s\S]*?"type":"tool_use","id":"([A-Za-z0-9_-]+)","name":"Read","input":\{"file_path":"\1/skills/new-feature/SKILL\.md"\}[\s\S]{0,100000}?"type":"user","message":\{"role":"user","content":\[\{(?=[^\n]*"tool_use_id":"\3")(?=[^\n]*"type":"tool_result")(?=[^\n]*## Step 8)(?![^\n]*"is_error"\s*:\s*true))(?=[\s\S]*?"type":"tool_use","id":"([A-Za-z0-9_-]+)","name":"Read","input":\{"file_path":"\1/skills/doc-fix/SKILL\.md"\}[\s\S]{0,100000}?"type":"user","message":\{"role":"user","content":\[\{(?=[^\n]*"tool_use_id":"\4")(?=[^\n]*"type":"tool_result")(?=[^\n]*## Standalone mode \(outside dev-flow\))(?![^\n]*"is_error"\s*:\s*true))
