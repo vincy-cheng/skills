@@ -1,6 +1,6 @@
 # Skills
 
-AI coding-agent plugins published from this repository. The `dev-flow` plugin supports Claude Code and Codex through host-specific metadata and workflow entry points, with shared standalone skills.
+`dev-flow` guides features and fixes from design through pull request review in Claude Code and Codex.
 
 ## Install and start
 
@@ -19,8 +19,6 @@ claude plugin install https://github.com/vincy-cheng/skills.git
 
 Start a feature or fix with `/new-feature <your idea>`. Run `/new-feature` without a new brief to resume the latest active run. The workflow uses the `gh` CLI to create GitHub issues and pull requests.
 
-The plugin also provides `/new-idea` for documenting an idea before building it.
-
 ### Codex
 
 Add the marketplace from GitHub:
@@ -31,17 +29,28 @@ codex plugin marketplace add vincy-cheng/skills
 
 In Codex, open the **Plugins Directory**, select **Vincy Skills (Codex)**, and install `dev-flow`. Restart the Codex desktop app after installation. Invoke `$dev-flow:new-feature` with a brief to start, or without a new brief to resume the latest active run.
 
-For a local checkout, add the marketplace from the repository root:
+For local development, see [local Codex installation and updates](docs/agents/DEVOPS.md).
 
-```sh
-codex plugin marketplace add .
-```
+## How the workflow runs
 
-After updating a local checkout, refresh it with `codex plugin marketplace upgrade vincy-skills` and restart Codex.
+| Phase | Work |
+|-------|------|
+| Define | Discuss the design, approve a spec and plan, then create a GitHub issue |
+| Build | Implement with TDD and per-task commits, including confirmed repairs to affected docs |
+| Verify | Run tests and review, then pass the documentation-consistency checkpoint |
+| Deliver | Open or update the PR, run the PR readiness check, and wait for your manual merge before close-out |
+
+Gitignored specs, plans, and run state live under `docs/features/`. The saved state lets you resume at the current step across all four phases. While the run is at `doc-fix`, resume revalidates Step 8 evidence. The transition `pr-review → merged` requires remote merge confirmation.
+
+See the [architecture guide](docs/agents/ARCHITECTURE.md#the-pipeline) for status and recovery rules and the [workflow skill](skills/new-feature/SKILL.md) for all 11 steps.
+
+## Optional configuration
+
+Use the target repo's `.dev-flow/config.json` to override reviewer groups or set native Codex models. Bootstrap preserves existing `codex_reviewers` and `reviewers` settings. See [repo setup](skills/bootstrap/SKILL.md).
 
 ### Per-step reviewer groups
 
-Both hosts can select a reviewer list per review step in the target repo's gitignored `.dev-flow/config.json`. `codex_reviewers` contains exact native Codex model names; `reviewers` contains Claude Code lane values. The supported keys are `red_team`, `plan_review`, `main_review`, and `focused_review`. A list starts one independent reviewer per entry. The example configures two red-team reviewers, one plan reviewer, and two focused reviewers; the main-review group inherits the existing reviewer selection because it is omitted:
+Configure `codex_reviewers` for Codex or `reviewers` for Claude Code. Every reviewer in a configured group must clear the step's verdict rules. Steps without a group, such as `main_review` in this example, use the existing reviewer selection.
 
 ```json
 {
@@ -60,134 +69,20 @@ Both hosts can select a reviewer list per review step in the target repo's gitig
 }
 ```
 
-Configure only the active host's map. Codex uses `codex_reviewers` and ignores `reviewers`; Claude Code uses `reviewers` and ignores `codex_reviewers`. A configured list overrides that step's existing selection. An omitted step inherits its existing route: Codex uses `codex_reviewer_model`, then the session default; Claude Code keeps its state/config/standalone precedence. A valid override can be used even when an unused legacy default is unavailable. Bootstrap preserves existing `codex_reviewers` and `reviewers` maps and other config keys, and does not add either optional map to a new default config.
+On Codex, `inline` uses the session model and `session` uses a native subagent. The confirmed implementation model is saved for resume. An unavailable model blocks dispatch. Claude Code uses `roles.implementer`. CLI routes are unchanged by the native settings.
 
-Every member must finish and clear the step's verdict rules; a majority cannot waive a blocker. After edits, rerun the whole affected group on the revised materials. Reviewers run independently in parallel up to host slots, with the remaining entries queued; the full configured count remains in force. Focused review still runs only after main-review clearance and its existing high-risk trigger. Plan reviewers combine coverage and adversarial review in one pass. Architectural designs require recorded completed red-team evidence before approval; bounded designs retain their self-check, and existing explicit trivial-plan self-check exceptions remain. Multiple reviewers increase dispatch and rework cost. See [model routing](references/model-routing.md#per-step-reviewer-groups) for validation, batch evidence, verdicts, and resume rules.
+See [model routing](references/model-routing.md#per-step-reviewer-groups) for valid lanes, fallback order, and review requirements.
 
-### Native model selection
+## Idea capture and session help
 
-On Codex, the separate `codex_reviewer_model` and `codex_implementer_model` settings select legacy reviewer and native implementation defaults. Replace the model placeholders with names supported by the current native subagent tool, then merge your existing branch and role settings. The implementer key selects native implementation subagents; at step 5 or in standalone execution, Codex asks for execution mode and implementation model together. An explicit `inline` choice runs in the session model, and `session` uses the selected native model. The confirmed choice is saved in the run state and reused on resume, with availability revalidated before each dispatch. Empty, malformed, unavailable, or rejected selections produce `BLOCKED` rather than a fallback.
+- In Claude Code, run `/new-idea <idea>` to discuss an idea and draft research, design, and planning docs. To build from them, point `/new-feature` at the resulting folder. See the [idea capture skill](skills/new-idea/SKILL.md).
+- Claude Code session help shows the current run in the status line and posts a toast when the step changes. Open **[ Flow ]** to view progress or resume an unfinished run. In the classic terminal renderer, run `/tui fullscreen` to enable button clicks.
 
-Claude Code ignores both legacy Codex model keys and routes implementation through `roles.implementer`; omitted reviewer steps keep the existing `roles.reviewer` precedence. On Codex, external CLI lanes (`cli:<tool>/<model>`) keep their behavior unchanged. Omitting `codex_implementer_model` selects its session default; `codex_reviewer_model` is the reviewer fallback only for steps without a `codex_reviewers` override. See [model routing](references/model-routing.md) for validation, host precedence, lane details, and isolated brief boundaries.
+## Contributing
 
-## The `dev-flow` workflow
+Run `bash tests/check.sh` after editing skills or commands. For hook changes, run `claude plugin validate .` and `claude plugin test .`.
 
-`dev-flow` guides a feature or fix through four phases:
-
-| Phase | Work |
-|-------|------|
-| Define | Brainstorm, approve a spec, plan the work, and create a GitHub issue |
-| Build | Execute the plan with TDD and per-task commits; repair known documentation only with confirmed in-flow context |
-| Verify | Run tests and review, then complete the required documentation-consistency checkpoint against current review evidence |
-| Deliver | Open or update the pull request, check readiness, wait for the user's manual merge, and close out the run |
-
-The hard gate keeps the workflow in order. Gitignored state files and an index track each run so work can resume. Specs, plans, and state are stored under `docs/features/` and are not committed. The plugin has no external plugin dependencies. The documentation-consistency checkpoint is owned by the orchestrator: only a complete matching `consistent` result or justified `N/A` advances; matching drift needs user-confirmed repair and a full build/test/review loop, while stale or unresolved evidence blocks. Relevant uncommitted changes leave the checkpoint pending while they are resolved. While the run is at `doc-fix`, resume revalidates Step 8 evidence without status or mirror writes, including after a pass before Step 9; only the explicit stale-evidence or confirmed-repair paths rewind. A review supplement is only for a missing documentation judgment on matching current test/review evidence and a clean relevant worktree.
-```mermaid
-flowchart TD
-    brainstorm[brainstorm] --> spec[approve spec] --> plan[approve plan]
-    plan --> issue[create issue] --> execute[execute with TDD]
-    execute -->|known docs, explicit in-flow context| docfix[guided documentation repair]
-    execute -->|build complete| test[test gate]
-    docfix --> test
-    test -- red --> execute
-    test -- green --> review[review gate]
-    review -- red --> execute
-    review -- blue --> bluechoice{Fix blue findings?}
-    bluechoice -- yes --> execute
-    bluechoice -- no, note in PR --> docscheck[documentation-consistency checkpoint]
-    review -- yellow --> choice{Fix findings now?}
-    choice -- yes --> execute
-    choice -- no, note in PR --> docscheck
-    review -->|green| docscheck
-    docscheck -->|missing docs judgment, matching tuple, clean tree| supplement[review docs evidence]
-    supplement --> docscheck
-    docscheck -->|matching consistent or justified N/A| pr[open PR]
-    docscheck -->|matching drift, confirm repair| execute
-    docscheck -->|stale or missing identity/full verification| execute
-    docscheck -->|unreadable, unresolved, or relevant dirty tree| blocked[stay at checkpoint]
-    pr --> check[PR readiness check]
-    check -->|pending: resolve unknown or wait, then recheck| check
-    check -->|needs-fix: repair| execute
-    check -->|passed| manual[User reviews and merges manually]
-    manual -->|remote MERGED confirmed| closeout[close-out]
-```
-
-For requests spanning independent subsystems, step 1 can create an overview spec that records the sub-projects, order, dependencies, and deferred work. Each sub-project gets its own `/new-feature` run. Close-out updates the overview and prints the next run's command only after required acceptance, task outcome recording, and other required close-out work are complete.
-
-### Workflow skills
-
-| Skill | Step | Purpose |
-|-------|------|---------|
-| `brainstorm` | 1 | Work through the design and write an approved spec |
-| `plan` | 3 | Turn the spec into a contract-first implementation plan, gated by a plan review pass — an independent reviewer for ordinary and high-risk work, a recorded author self-check for small low-risk plans (≤3 tasks, one existing behavior, shared context, no unresolved dependencies) |
-| `create-github-issue` | 4 | Draft and confirm an issue, then create a feature or fix branch off the state file's Target branch |
-| `execute-tasks` | 5 | Complete planned tasks with TDD and a commit per task; on Claude Code, dispatches per the Roles block lane (inline, session, claude:<name>, or cli:<tool>/<model>); on Codex, native `session` uses the saved `codex_implementer_model`. The step-5 ask also confirms the Implementer context — `shared` carries one worker across related tasks, `per-task` keeps the existing fresh-worker-per-task default, `not-used` is inline |
-| `tdd` | — | Test-first engine used by `execute-tasks` |
-| `test` | 6 | Fresh tester subagent (per the Roles block's Tester lane) runs the repo's test and lint commands and scans changed tests for honesty |
-| `review` | 7 | Fresh reviewer checks spec and plan coverage, obvious issues, and maintainability; high risk tiers (from the step-7 recheck) also get a focused category-matched reviewer |
-| `doc-fix` | 5 / standalone | Repair known documentation during build with explicit in-flow context, or run standalone |
-| `new-feature` checkpoint | 8 | Advance only on complete matching consistency/no-drift or justified N/A; repair matching drift through confirmation and full gates; supplement only a missing docs judgment on a matching clean tuple |
-| `open-pr` | 9 | Open or update the recorded pull request and sync the issue; never merges |
-| `new-feature` | 10 | Check remote PR state and readiness against matching test/review evidence; report readiness and wait for the user's manual merge |
-
-These skills can also run on their own. The test skill uses each target repository's test and lint commands; this repository's suite is `bash tests/check.sh` and it has no linter.
-
-### Standalone commands and skills
-
-| Piece | Purpose |
-|-------|---------|
-| `/new-feature` command | Claude Code workflow orchestrator; starts or resumes a feature or fix |
-| `new-feature` skill | Codex workflow orchestrator (`$dev-flow:new-feature`) |
-| `/new-idea` command | Discuss an idea, then scaffold its research and planning documents |
-| `commit` skill | Write Conventional Commit messages without AI attribution |
-| `document-structure` skill | Generate or update agent-facing documentation in a target repo's `docs/agents/` |
-| `whats-new` skill | Summarize recent work and check for documentation drift |
-| `standardize-prose` skill | Standardize spec/plan prose for human readers (adapted from ASD-STE100, guided, standalone; non-English docs supported — rare/translated terms cited, per-term) |
-
-## `/new-idea`: capture an idea before building
-
-Run `/new-idea <your idea>` in any repository. It asks whether the folder should be nested (`ideas/<project>/<slug>/`) or flat (`ideas/<slug>/`), and whether to include cost research.
-
-By default it creates five self-contained documents: `README.md`, `research.md`, `design.md`, `plan.md`, and `tl-dr.md`. If requested, it adds `cost.md` with pricing, quotas, and limits. The plan is a milestone draft that can seed `/new-feature` later.
-
-Before creating files, the command discusses and grills the idea, summarizes the decisions, and gets your explicit go-ahead. To build from the resulting folder, run `/new-feature ideas/<slug>`; the workflow uses the folder as its brief and links it from the GitHub issue.
-
-## Session help
-
-The plugin ships a hooks component (`hooks/` at the plugin root) that surfaces run state in your session, reading `docs/features/.feature-states/` live. Three behaviors:
-
-- **Status line (ambient):** `dev-flow: <feat> · verify · test · 45m` — the current run, its phase and status, and how long the status has been active. Updated at session start and after every turn; cleared when no run is active. Duration comes from the state file's `Status since:` field; state files written before that field existed show no duration.
-- **Band pane opener (always drawn):** the **`[ Flow ]` button** on the band row above the prompt opens a compact card of the current run — phase and status, a four-phase progress list rendered vertically (define, build, verify, deliver), tasks/issue/branch refs, and the next action. Documentation checkpoint recovery goes through the orchestrator. The press works mid-response too: the pane appears while Claude is still answering. In the classic terminal renderer mouse clicks don't register — run `/tui fullscreen`. **Resuming:** a Resume section lists the unfinished runs (active plus merged-with-close-out-pending; `done` never) — one `[ Resume ]` press submits the resume prompt and closes the pane; the run's own card carries its coverage, so it is not listed again. With nothing resumable the pane names the manual path: `/new-feature resume`. No active run → a hint to start one with `/new-feature <idea>`. `merged` remains resumable while close-out is pending; only the transition to `done` triggers the automatic final farewell.
-- **Step toast:** when a run's Goal status flips between turns — `dev-flow: <feat> execute → test (verify)`.
-
-**Closing the pane:** the pane carries its own **`[ Close ]` button** — the reliable path, and the one that works mid-response (the host's `Esc` interrupts a running response before it closes anything); the Resume section, when drawn, renders above it under a divider. `Esc` closes the pane when it holds focus, between turns; some hosts also offer the frame's close mark or `ctrl+x x`. The mod never opens a pane on its own. The band's `[-]` mark is the host engine's, not the plugin's: it collapses the whole band row — every mod's row in it, `[ Flow ]` included — and re-expanding brings the button back.
-
-**Placement** is the host surface's call, not the plugin's: in terminal hosts, a docked (right-side) pane needs **fullscreen rendering** — run `/tui fullscreen` to enable it (in the classic renderer the pane sits inline above the prompt, and mouse clicks on its buttons don't register). On other hosts the surface decides; the plugin has no placement setting.
-
-**Goal statuses by phase**, for reference. The interface presents the four phases; the state file keeps its existing status values:
-
-| Phase | Goal statuses |
-|-------|---------------|
-| Define | `fresh`, `brainstorm`, `spec`, `planning`, `issue` |
-| Build | `execute` |
-| Verify | `test`, `review`, `doc-fix` |
-| Deliver | `pr-review`, `merged`, `done` |
-
-The `doc-fix` status records the documentation-consistency checkpoint. The orchestrator validates the matching test/review identity and complete judgment. Only consistent/no-drift or justified N/A advances; matching drift follows confirmed repair and full gates, while stale identity or unresolved evidence blocks. Relevant uncommitted changes stay pending while resolved. The docs-only review supplement applies only when the judgment is missing and the tuple and relevant worktree are current and clean; `doc-fix` is not automatically invoked.
-
-A PR readiness check records `passed`, `pending`, or `needs-fix` against the current PR and matching test/review evidence. `pr-review → merged` occurs only after remote merge confirmation; the user reviews and merges manually.
-These statuses record different outcomes. Implementation complete means the planned changes exist; acceptance verified means agreed criteria have matching evidence; a required user confirmation may still be pending; PR ready means checks passed and the open PR awaits manual review and merge; merged requires remote confirmation; done requires all close-out work and required confirmation. A merge does not substitute for user confirmation. Missing UI evidence stays unverified, and a legacy spec with missing acceptance detail needs user input rather than an inferred approval. The overview entry is marked done and the next-run command is printed only after required confirmation, task outcome, and other required close-out work are complete.
-
-**Developing the hooks:** the authoritative gates are the host tools — `claude plugin validate .` and `claude plugin test .` (run both after touching `hooks/`). The bash suite (`bash tests/check.sh`) carries only thin structural guards (`tests/checks/07-hooks.sh`).
-
-## Repository guide
-
-- Repo root = plugin root: `skills/`, `commands/`, `hooks/`, `evals/` at the top level; host manifests in `.claude-plugin/` (Claude) and `.codex-plugin/` (Codex)
-- `.agents/plugins/marketplace.json` — repository-local Codex plugin catalog
-- `tests/check.sh` — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); run after editing skills or commands
-- `evals/` — behavioral evals for `brainstorm`, `plan`, `tdd`, `new-feature`, `review`, `context-efficiency`, and the risk-proportionate workflow; run with `claude plugin eval` after confirming model and judge selections
-- `AGENTS.md` — repository guidance; `CLAUDE.md` links to the same file
-- `docs/agents/INDEX.md` — starting point for the agent-facing architecture and dev-ops maps
+See the [repository guide](docs/agents/INDEX.md) for layout and development details and the [eval guide](evals/README.md) for behavioral checks.
 
 ## Acknowledgements
 
