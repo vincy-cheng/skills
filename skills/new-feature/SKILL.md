@@ -159,17 +159,17 @@ Field rules:
 
 | Feat-name | Kind | Status | Issue | Updated | Branch |
 |-----------|------|--------|-------|---------|--------|
-| <feat-name> | feature | execute | — | YYYY-MM-DD HH:MM±HH:MM | feat/42-x |
-| <feat-name> | fix | done | #17 | YYYY-MM-DD HH:MM±HH:MM | fix/17-y |
+| [<feat-name>](<feat-name>.state.md) | feature | execute | — | YYYY-MM-DD HH:MM±HH:MM | feat/42-x |
+| [<feat-name>](<feat-name>.state.md) | fix | done | #17 | YYYY-MM-DD HH:MM±HH:MM | fix/17-y |
 ```
 
-One row per feat; newest **Updated** first (re-sort on every write). The top non-`done` row is the current run; `done` rows stay as history — don't delete them. The **Issue** column is `—` until step 4 creates the issue, then `#NN` for the row's life (set in step 4's two-writes-in-one-breath, never changes after). Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
+One row per feat; newest **Updated** first (re-sort on every write). Link each feat name to its sibling `<feat-name>.state.md` file whenever creating, updating, or rebuilding a row. Keep all other row behavior. The top non-`done` row is the current run; `done` rows stay as history — don't delete them. The **Issue** column is `—` until step 4 creates the issue, then `#NN` for the row's life (set in step 4's two-writes-in-one-breath, never changes after). Maintained alongside the per-feature state file on every status change (and during execute on every task/test, via `execute-tasks`). Stale-row cleanup: if a feat's state file is gone, drop its row. Never invent rows — the state files are the source of truth; the index only mirrors them.
 
 ## Resume
 
 You may not remember the feat-name you were on. The index file records it — open `docs/features/.feature-states/.state.md` and the current/last run is the top non-`done` row.
 
-- **No feature brief in the user's message (or an explicit "resume"):** read the index; present the active rows numbered; resume the topmost unless the user picks another. Index missing → fall back to scanning `docs/features/.feature-states/*.state.md`, sort by **Updated**, rebuild the index. Zero state files → start fresh from step 1.
+- **No feature brief in the user's message (or an explicit "resume"):** read the index; present the active rows numbered; resume the topmost unless the user picks another. For a selected linked row, require its relative target to be exactly that feat-name's sibling `<feat-name>.state.md`, open the linked state file directly, and read **Goal status** from it. A valid linked row needs no directory scan. For a legacy plain-text row, use the existing `<feat-name>.state.md` filename convention and link the row on its next update. If a link is invalid or its target is missing, or the index is missing or stale, use the existing scan of `docs/features/.feature-states/*.state.md`, sort by **Updated**, and rebuild the index from valid state files. Zero state files → start fresh from step 1.
 - **Feat-name given in the user's message:** use it directly. State file missing for it → tell the user; don't silently start fresh.
 
 Then **run the gate check**: read that feat's state file, jump to the step matching **Goal status**, reload referenced spec/plan/issue, continue. Don't restart from brainstorm. `test` → re-run `dev-flow:test`. `review` → resume any recoverable batch through `dev-flow:review` under **Review batches** in the routing reference. `doc-fix` → run the Step 8 evidence decision. `pr-review` → use the recovery procedure below. `merged` → run step 11 (close-out).
