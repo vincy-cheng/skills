@@ -1,6 +1,6 @@
 # Dev-ops
 
-Local developer workflow for this plugin repo. There is no build step and no linter — the repo is Markdown consumed by AI agents. The test suite is `bash tests/check.sh` (bash consistency checks; exit 0 = green). Verification is the suite + human/agent read-through.
+Local developer workflow for this plugin repo. There is no build step or linter. The test suite is `bash tests/check.sh`. It combines Bash consistency checks and Python subprocess tests. Verification also includes a read-through.
 
 ## Setup
 
@@ -35,6 +35,7 @@ Never commit anything under `docs/features/` (specs, plans, state files, index) 
 ## Verification
 
 - **Run the suite**: `bash tests/check.sh` — consistency checks (frontmatter, package metadata, skill wiring, spec-path convention, gitignore, eval schema, plan mermaid blocks — file lists must sit inside node labels — and the bootstrap wiring guards: thin wrapper, branch-config read, no branch literals in derive-sites, AGENTS.md entry-point rule; cache freshness is a warning). The suite is a thin runner sourcing `tests/lib/` helpers and grouped fragments under `tests/checks/` — check numbers are counter-driven (never cited by number). Any FAIL names the exact drift.
+- **Custom CLI subprocess tests** run from the suite via Python 3. The real role permission checks use local fixtures and macOS `sandbox-exec`. These cases skip on other platforms or when an outer sandbox prevents a usable boundary. Verify the macOS cases ran without skips before reporting adapter permissions as tested.
 - **Risk-proportionate workflow cases**: `evals/risk-proportionate-workflow/` contains eight source-loaded behavior cases for workflow acceptance and recovery. Run matched baseline/candidate comparisons with the confirmed eval model and judge through the inspected `omnicc` wrapper; never accept its default judge implicitly. Preserve exact revisions, loaded-source identities, traces, failures, and limitations under the ignored `docs/features/.eval/` directory. A small narrated sample does not establish broad reliability or total cost savings.
 - After editing skill/command Markdown: read-through both orchestrators for internal consistency (gate table matches lifecycle, every status appears in the table, every step's incoming matches the prior step's set).
 - For YAML frontmatter: the `description` field drives skill triggering — keep it accurate, preserve the `---` fences exactly.

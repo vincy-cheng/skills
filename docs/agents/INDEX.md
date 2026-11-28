@@ -13,7 +13,7 @@ One plugin (`dev-flow`) with Claude Code and Codex packaging. No app code — Ma
 
 - **Plugin:** `dev-flow`, fully self-contained (no peer dependencies); packaged version numbers are owned by `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` (both packagers also ship `references/` — the per-skill reference docs).
 - **Orchestrator:** user-facing phases are define / build / verify / deliver; `skills/new-feature/SKILL.md` is their single source and contains the internal 11-step gate table. `commands/new-feature.md` (`/new-feature`) is a thin wrapper delegating to it.
-- **Test suite: `bash tests/check.sh`** (no build, no linter) — bash consistency checks (thin runner + grouped fragments under `tests/checks/`); verification is the suite + read-through; skill evals under `evals/` run manually.
+- **Test suite: `bash tests/check.sh`** (no build, no linter) — Bash consistency checks and Python subprocess tests. Sandbox cases require macOS with working `sandbox-exec`. Skill evals under `evals/` run manually.
 - **Repo setup:** `/bootstrap` prepares a repo for dev-flow in one idempotent pass; branch names come from `.dev-flow/config.json` (written by bootstrap, read by `new-feature` step 1), never from literals.
 - **Commits:** Conventional Commits, **no AI attribution**; in-flow build doc fixes stay in their task commit, while standalone doc updates use separate `docs:` commits. Details: DEVOPS.md.
 - **Pipeline, state files, the hard gate:** ARCHITECTURE.md.

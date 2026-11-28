@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Context reuse: load only each step’s required skills and references, reuse unchanged guidance, reload only on change, unavailability, compaction loss, or an unestablishable version; cached guidance never replaces live state, authorization, or evidence identity checks. Recommend inline execution for small, tightly coupled work through existing role selection and preserve saved roles, models, and execution modes.
-This repo publishes an AI coding-agent plugin (`dev-flow`). There is no application code and no build step; the test suite is `tests/check.sh` (bash consistency checks). Single-plugin repo: the repo root **is** the plugin root — components at the top level, host manifests in per-harness dot-dirs. `CLAUDE.md` is a symlink to this file so Claude Code, Codex, GitHub Copilot, and other agents all read the same guidance.
+This repo publishes the `dev-flow` coding-agent plugin. Run `bash tests/check.sh` for consistency checks and custom adapter subprocess tests. The repo root is the plugin root. `CLAUDE.md` links to this file.
 
 Agent-facing docs (progressive-disclosure tree): `docs/agents/INDEX.md` — start there.
 
@@ -12,12 +12,13 @@ The repo root follows the plugin format:
 - `.codex-plugin/plugin.json` — portable plugin identity and metadata for Codex, with an explicit `"skills": "./skills/"` pointer.
 - `commands/<name>.md` — slash commands, each with YAML frontmatter (`description`) and a Markdown body. `$ARGUMENTS` interpolates user input.
 - `skills/<name>/SKILL.md` — skills, each with YAML frontmatter (`name`, `description`) and a Markdown body that tells the agent how to run the skill.
+- `scripts/custom-cli-adapter.py` — custom external CLI launch and recovery. When changing role dispatch, permissions, or accepted evidence, read [model routing](references/model-routing.md#custom-cli-dispatch).
 - `hooks/` — the session-help hooks module (`register.tsx` + pure parser `state.ts` + `*.test.ts`): status line, band `[ Flow ]` pane opener, pane (run card + Resume section + close button), step toast — the pane opens from that button (no slash command), all reading `docs/features/.feature-states/` live. `claude plugin validate` / `plugin test` are its authoritative gates; `tests/checks/07-hooks.sh` carries thin structural guards.
 - `evals/` — behavioral evals per skill, run manually.
 
 The repository-level `.agents/plugins/marketplace.json` catalogs local Codex plugins; its path points at the repo root (`"./"`) — the repo root is the plugin root.
 
-These skill files are Markdown consumed by AI coding agents (Claude Code, Copilot, etc.), not application source.
+Coding agents consume the Markdown skills.
 
 ## Current plugin: `dev-flow`
 
