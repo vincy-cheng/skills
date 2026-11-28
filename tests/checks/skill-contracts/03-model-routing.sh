@@ -416,3 +416,65 @@ for key in ("codex_reviewers", "reviewers"):
 PY
 )
 [ -z "$reviewer_docs_errs" ] && ok "reviewer config example and bootstrap preservation are documented" || bad "reviewer docs contract missing:$reviewer_docs_errs"
+
+# External role entry points share the custom dispatch contract without routing native reviewers through it.
+if custom_dispatch_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+
+sites = (
+    ("new-feature", "Step 5"),
+    ("execute-tasks", "Model routing"),
+    ("test", "Model routing"),
+    ("brainstorm", "Model routing"),
+    ("plan", "Plan review pass"),
+    ("review", "Model routing"),
+    ("review", "Step 8 documentation-evidence supplement"),
+    ("review", "Focused review"),
+)
+for skill, heading in sites:
+    body = section(Path(f"skills/{skill}/SKILL.md").read_text(), heading)
+    if "#custom-cli-dispatch" not in body:
+        print(f"{skill}:{heading}:missing-custom-dispatch-pointer")
+
+routing = Path("references/model-routing.md").read_text()
+custom = section(routing, "Custom CLI dispatch")
+for fragment in ("Python 3", "macOS", "Claude Code", "native Codex", "one-shot",
+                 "bind-driver", "release-driver", "finalize --intent", "checkpoint"):
+    if fragment not in custom:
+        print(f"custom-dispatch:missing:{fragment}")
+if "codex exec --model" not in section(routing, "Thin-driver flow"):
+    print("built-in-dispatch:missing-original-command")
+
+task_loop = section(Path("skills/execute-tasks/SKILL.md").read_text(), "Subagent dispatch")
+review_step = task_loop.partition("\n5. **Review the task yourself**")[2].partition("\n6. **Commit**")[0]
+if "For a custom adapter" not in review_step or "#review-a-custom-implementer-result" not in review_step:
+    print("custom-implementer:missing-pre-commit-review-pointer")
+if not any("For other subagent lanes" in line and "git diff <BASE>..HEAD" in line
+           for line in review_step.splitlines()):
+    print("custom-implementer:committed-range-not-scoped-to-other-lanes")
+
+feature_execute = section(Path("skills/new-feature/SKILL.md").read_text(), "Step 5")
+if "committing each task through the selected route" not in feature_execute:
+    print("custom-implementer:orchestrator-ignores-commit-procedure")
+
+custom_review = custom.partition("\n### Review a custom implementer result\n")[2]
+for fragment in ("write_paths", "post_baseline", "index_entry", "git --no-pager --no-replace-objects cat-file blob",
+                 "new files", "before writing the finalization intent"):
+    if fragment not in custom_review:
+        print(f"custom-implementer:missing-review-evidence:{fragment}")
+PY
+); then
+  [ -z "$custom_dispatch_errs" ] && ok "external CLI role sites use the shared custom dispatch contract" || bad "custom dispatch contract missing:$custom_dispatch_errs"
+else
+  bad "custom dispatch contract check could not run:$custom_dispatch_errs"
+fi
+
+# Custom CLI adapter subprocess contracts.
+if python3 -B -m unittest discover -s tests -p test_custom_cli_adapter.py; then
+  ok "custom CLI adapter subprocess tests pass"
+else
+  bad "custom CLI adapter subprocess tests failed"
+fi

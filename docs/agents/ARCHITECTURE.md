@@ -1,6 +1,6 @@
 # Architecture
 
-One plugin — `dev-flow` — a workflow orchestrator driving a feat or fix end-to-end in Claude Code and Codex. No app code: every file is Markdown for AI agents. `CLAUDE.md` is a symlink to `AGENTS.md`.
+`dev-flow` orchestrates features and fixes in Claude Code and Codex. The Markdown skills own the workflow. The custom CLI helper runs and verifies explicitly selected external adapters. `CLAUDE.md` links to `AGENTS.md`.
 
 ## Plugin layout
 
@@ -12,6 +12,7 @@ Single-plugin repo: the repo root **is** the plugin root (official plugin-struct
 - `commands/` — Claude slash commands (YAML `description` + body, `$ARGUMENTS`): `new-feature.md` (`/new-feature`, the orchestrator), `new-idea.md` (`/new-idea`), `bootstrap.md` (`/bootstrap`, one-command repo setup).
 - `skills/` — shared skills (YAML `name`/`description` + body), including `new-feature/` (the orchestrator — single source of the gated workflow; `commands/new-feature.md` is a thin wrapper delegating to it), `commit/`, `create-github-issue/`, `execute-tasks/`, `plan/`, `tdd/`, `test/`, `review/`, `doc-fix/`, `open-pr/`, `document-structure/`, `whats-new/`, `standardize-prose/`, `bootstrap/`, and `new-idea/`. `doc-fix` repairs known docs during build with explicit in-flow context and also remains standalone.
 - `references/` — per-skill reference docs shared across skills: `model-routing.md` (the single source for Claude Code role lanes, optional per-step `reviewers`/`codex_reviewers` groups and Codex's legacy `codex_reviewer_model` and `codex_implementer_model`, dispatch shapes, validation, isolated-worker brief boundaries, and before-starting procedures — crash recovery, pre-Roles upgrade mapping — that `execute-tasks`/`test`/`review`/`plan`/`brainstorm` point at); packaged via the Codex manifest's `"references"` pointer.
+- `scripts/custom-cli-adapter.py` — packages with both hosts. It enforces sandbox permissions, checks model evidence, and owns custom attempt finalization. Skills approve role outcomes and provide the intent. See [custom CLI dispatch](../../references/model-routing.md#custom-cli-dispatch).
 - `evals/` — behavioral evals per skill, run manually with `claude plugin eval`.
 
 ## The pipeline

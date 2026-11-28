@@ -45,7 +45,8 @@ Spawn **one** fresh tester subagent on the Tester lane. Never run the gate inlin
 **Lane shapes:**
 
 - **`session` / `claude:<name>`** → Agent-tool dispatch, shape per `## Model routing`'s resolution rule.
-- **`cli:<tool>/<model>`** (v1: `cli:codex/<model>`) → thin-driver flow per `references/model-routing.md`: the driver composes the brief + report contract (copied **verbatim at runtime** from this skill's brief/report sections above) into `docs/features/.routing/<feat>/`, runs the CLI (`--sandbox workspace-write` per the routing doc's sandbox map), and the external model writes its full report to the same `docs/features/.test/<feat-name>/test-report.md` path. **Known limitation:** a suite needing network installs fails under the sandbox — a known BLOCKED with a resume hint, never a false red. Availability failures → BLOCKED stop-and-ask, never a silent downgrade.
+- **Built-in `cli:codex/<model>`** → thin-driver flow per `references/model-routing.md`: the driver composes the brief + report contract (copied **verbatim at runtime** from this skill's brief/report sections above) into `docs/features/.routing/<feat>/`, runs the CLI (`--sandbox workspace-write` per the routing doc's sandbox map), and the external model writes its full report to the same `docs/features/.test/<feat-name>/test-report.md` path. **Known limitation:** a suite needing network installs fails under the sandbox — a known BLOCKED with a resume hint, never a false red. Availability failures → BLOCKED stop-and-ask, never a silent downgrade.
+- **Configured `cli:<tool>/<model>`** → [Custom CLI dispatch](../../references/model-routing.md#custom-cli-dispatch) for the tester. The driver returns the accepted tester report to the existing test gate. The tester can write its report and any explicitly authorized test-output files.
 
 The brief gives the subagent:
 
@@ -65,6 +66,8 @@ For the Step 10 validation subflow, the orchestrator owns the CI wait budget: it
 ## Model routing
 
 Lane semantics, availability checks, and the thin-driver flow live in `references/model-routing.md` — the single source; this skill does not re-derive them. This skill's Tester line comes from the state file's Roles block (dev-flow mode) or the standalone ask. Roles block missing → stop per `## Before starting`; malformed lane → BLOCKED stop-and-ask; any lane unavailable → BLOCKED stop-and-ask, never a silent downgrade.
+
+On either host, when the selected Tester route uses a configured external executable, use [Custom CLI dispatch](../../references/model-routing.md#custom-cli-dispatch). Read the accepted report before returning the green or red gate verdict.
 
 ## The test gate (run by the tester subagent)
 

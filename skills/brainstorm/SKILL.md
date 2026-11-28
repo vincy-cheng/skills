@@ -133,7 +133,7 @@ Host selection, lane semantics, availability checks, and dispatch rules live in 
 For architectural red-team batches, use the `red_team` step key and the shared **Review batches** contract in `references/model-routing.md`.
 
 - **Codex:** resolve `red_team` first. When absent, use `codex_reviewer_model` per **Codex reviewer model** in that reference, then the session default. Ignore Claude lanes; invalid or unavailable selected routes → BLOCKED before dispatch. Record every route in the viability pass.
-- **Claude Code:** resolve `red_team` first; when absent, read `roles.reviewer` **silently** (config-only — no state-file line, no ask; unset → `session`). `session`/`claude:<name>` use the resolution rule; `cli:<tool>/<model>` uses the thin-driver flow (`--sandbox read-only`). Malformed or unavailable selected lanes → BLOCKED stop-and-ask, never a silent downgrade. A blocked red-team is surfaced to the user, not skipped.
+- **Claude Code:** resolve `red_team` first; when absent, read `roles.reviewer` **silently** (config-only — no state-file line, no ask; unset → `session`). `session`/`claude:<name>` use the resolution rule; The built-in `cli:codex/<model>` uses the thin-driver flow. A configured external reviewer uses [Custom CLI dispatch](../../references/model-routing.md#custom-cli-dispatch) in read-only mode. Malformed or unavailable selected lanes → BLOCKED stop-and-ask, never a silent downgrade. A blocked red-team is surfaced to the user, not skipped.
 
 ## Spec output
 

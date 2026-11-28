@@ -43,9 +43,110 @@ A lane value pins where a role's work executes. Four values:
 | `inline` | implementer only — the task runs in the current session, no subagent. TDD still applies. | no dispatch |
 | `session` | claude lane on the session's default model — today's default shape. | Agent tool, no model pin |
 | `claude:<name>` | claude lane on a named model — `<name>` is any name the session's model picker shows (`sonnet`-family names, gateway names like `github/gpt-5.4`, `github/claude-haiku-4.5-high`). | Agent tool via the resolution rule |
-| `cli:<tool>/<model>` | an external CLI's model. v1 tool: `codex` (e.g. `cli:codex/gpt-5.3-codex`). | thin-driver flow |
+| `cli:<tool>/<model>` | an external CLI's exact model ID. Built-in `codex` is native; configured custom tools use the adapter contract below. | thin-driver flow |
+
+Custom CLI tools can be configured in `.dev-flow/config.json` under `cli_adapters`. The resolver command is `python3 scripts/custom-cli-adapter.py resolve --config PATH --lane LANE`. For example:
+
+```json
+{
+  "cli_adapters": {
+    "local": "/absolute/path/to/agent-cli"
+  }
+}
+```
+
+For `cli:local/vendor/model/v2`, the resolver returns the canonical executable path, its SHA-256 digest, adapter name, and exact model ID `vendor/model/v2`. It splits the lane at the first slash and passes values as structured arguments; it does not evaluate a command string. Each configured value must be an absolute executable path, and only the selected entry is checked. Inactive lanes, including `cli:codex/<model>`, return `no-custom-adapter` without reading custom config. The built-in Codex driver keeps its original route. An invalid active custom route exits nonzero, reports the original route, and tells the user to correct `cli_adapters`. Missing config, invalid JSON or schema, an unknown adapter, and an invalid executable all block the route. `codex` is reserved; a same-name config entry cannot override it.
+
+The bridge invokes the executable in two stages, `probe` and `run`. Both use the role's enforced mode and exact selected model. The wrapper returns backend metadata through a separate pipe, and `run` must match a private probe receipt that pins the executable and effective non-secret settings. The driver blocks when it cannot verify the OS sandbox, the observed model, the permission mode, the settings identity, or the backend exit status. It keeps launcher credentials out of evidence and uses only declared environment names. See [Custom CLI adapters](custom-cli-adapters.md) for the schema-v1 metadata contract, wrapper example, permissions, and gateway connection guidance.
+
+## Durable custom CLI attempt interface
+
+The coordinator claims one role work item before launch. This captures the repository head and the exact authorized write paths, including each path's absence or content, Git index entry, and status. Use the saved route on every resume:
+
+```sh
+python3 scripts/custom-cli-adapter.py claim \
+  --config REPO/.dev-flow/config.json --repo REPO \
+  --role implementer --work-item TASK-ID \
+  --lane 'cli:adapter/exact-model-id' --write-path REPO/TASK-FILE
+```
+
+The command creates a per-work-item lock under `docs/features/.routing/locks/`, the current claim at `docs/features/.routing/claims/<role>/<work-item>.json`, and a private attempt directory at `docs/features/.routing/attempts/<claim-id>/`. It captures Git HEAD and each exact write path's presence, content digest, index entry, and status under the lock. A live or pending claim blocks another claim for the same role and work item. Retry a terminal `failed` claim only after the user authorizes it and the write scope is reconciled. Use `claim --retry-claim CLAIM-ID` with the same work item and route. If a failed Docker run saved changed files, inspect the private recovery manifest and the files it lists. After reconciliation, also pass `--reconciled-recovery SHA256` with the manifest digest recorded in the failed claim. Other terminal dispositions stop that work item. Reviewer claims omit `--write-path`; implementation and test claims list every exact writable task path.
+
+Each probe and run stage gets a separate, single-use authorization. Authorize the stage before starting its `driver` process:
+
+```sh
+python3 scripts/custom-cli-adapter.py authorize-stage \
+  --repo REPO --role implementer --work-item TASK-ID \
+  --claim-id CLAIM-ID --stage probe
+```
+
+Start the driver with the same claim, route, settings, role, sandbox, report, receipt, and write paths. Create a private `dev-flow-report-*` directory inside the attempt for the role output. `--stage` selects the fixed `probe` or `run` operation. A run also takes `--brief`. The driver prints a waiting record with its process ID on stderr, then waits at the launch barrier. The coordinator must persist that handle before it binds and releases the driver:
+
+```sh
+python3 scripts/custom-cli-adapter.py driver \
+  --config REPO/.dev-flow/config.json --lane 'cli:adapter/exact-model-id' \
+  --repo REPO --role implementer --sandbox workspace-write \
+  --report ATTEMPT-DIR/dev-flow-report-worker/worker-report.md \
+  --receipt ATTEMPT-DIR/probe-receipt.json \
+  --claim-id CLAIM-ID --work-item TASK-ID --stage probe \
+  --authorization-id AUTH-ID --write-path REPO/TASK-FILE
+```
+
+```sh
+python3 scripts/custom-cli-adapter.py bind-driver \
+  --repo REPO --role implementer --work-item TASK-ID \
+  --claim-id CLAIM-ID --stage probe --authorization-id AUTH-ID --handle PID
+python3 scripts/custom-cli-adapter.py release-driver \
+  --repo REPO --role implementer --work-item TASK-ID \
+  --claim-id CLAIM-ID --stage probe --authorization-id AUTH-ID --handle PID
+```
+
+The driver consumes its authorization under the work-item lock before it starts the adapter. It records the native process identity and verified single-process policy after launch, or records the container and local engine identities before starting that container. Direct `probe` and `run` calls fail. The driver checks that HEAD, route, executable and configuration, role, repository, and exact write scope still match the claim. It checks each file's content, absence, Git index entry, and status before launch. Probe must leave that scope unchanged before the coordinator authorizes `run`. A successful run records the authorized write scope and the actual report identity. Report or baseline validation failure still leaves terminal failure evidence when the driver can verify execution has ended. A consumed or stale authorization cannot start another wrapper.
+
+On interruption, use the original stage authorization to try `settle-stage`. A native stage requires the recorded single-process policy and confirmed absence of its driver and adapter. A container stage requires the recorded engine, container and an absent driver. The controller stops the exact recorded container if it is running. If the driver ended before starting it, the controller removes that unstarted container. It verifies the result before settlement. A write-enabled Docker run keeps its private staging while completion is pending. Settlement preserves its changed authorized files before it records a retryable failure. Missing or unverifiable isolation evidence leaves the claim pending.
+
+```sh
+python3 scripts/custom-cli-adapter.py settle-stage \
+  --repo REPO --role implementer --work-item TASK-ID \
+  --claim-id CLAIM-ID --stage run --authorization-id AUTH-ID
+```
+
+After the coordinator reviews the role report and outcome, write `finalization-intent.json` in the attempt directory. Schema v1 includes `claim_id`, `role`, `work_item`, `route`, `repo`, `expected_head`, `outcome`, `report` (`source`, `sha256`), `checkpoint` (`path`, `expected_sha256`, `content`, or null for standalone work), and `commit` (`enabled`, `message`, `paths`, with `path` and `sha256` for each entry). For a completed run with a validated report, use `accepted`, `worker_failed`, `needs_context`, or `rejected` according to the role's judgment. Use `failed` for a launch, transport, permission, identity, or evidence failure. A controller diagnostic in the attempt directory can supply the report for `failed`. Only an accepted implementer result can enable a commit. A checkpoint path must identify an existing workflow state file under `docs/features/.feature-states/`. Commit paths must be captured, clean at claim time, and match their reviewed content digests.
+
+Apply or resume that same intent with one command:
+
+```sh
+python3 scripts/custom-cli-adapter.py finalize --intent ATTEMPT-DIR/finalization-intent.json
+```
+
+The command takes the work-item lock and verifies the report and expected checkpoint before recording pending intent. All worker outcomes require a completed run with the same report and current write-scope evidence. Under the same lock, it cancels any unused stage authorization, commits only the exact approved task paths when authorized, promotes the report, updates the workflow checkpoint, and records a terminal disposition. It uses the normal Git commit path and preserves unrelated staged changes. It verifies the reviewed working-tree bytes and executable bit. Before staging, it records the expected Git entry for each approved path, including the Git mode and blob identity after content normalization. Both the index and committed tree must match those entries. Resuming the same intent recovers a matching commit or checkpoint without another launch or commit. If the observed effects do not match the intent, the claim remains pending.
 
 `session` is the claude lane's unpinned shorthand, not a separate lane. Tester/reviewer are separate picks — pre-filled identically at the combined ask, each line independently overridable by the user in that same turn.
+
+## Custom CLI dispatch
+
+Resolve the active host and role route first. Follow **Thin-driver flow** for `cli:codex/<model>`. For a selected `cli:<tool>/<model>` with a different tool name, use [Durable custom CLI attempt interface](#durable-custom-cli-attempt-interface).
+
+| Host | Roles that can select a custom route |
+|------|--------------------------------------|
+| Claude Code | Implementer, tester, and reviewers for red-team, plan, main, focused, and the Step 8 documentation supplement |
+| Codex | Implementer and tester. Reviewer selection stays native Codex. |
+
+Use a fresh isolated driver for the selected host. On Claude Code, use the session driver. On Codex, use a session-default native driver. The driver carries the role's verbatim report contract and the shared output style. Confirm the host can start a local process, read its waiting record, and let the coordinator bind and release that same process. A custom implementer is one-shot. Reject a saved `shared` context before launching and retain the user's pick.
+
+1. Resolve the helper at `scripts/custom-cli-adapter.py` relative to the installed plugin root. Use a compatible Python 3 interpreter. Verify the configured execution boundary before dispatch. The default native runtime uses macOS `sandbox-exec` and denies process creation. An adapter that needs subprocesses can opt into the [pinned Docker runtime](custom-cli-adapters.md#execution-isolation). If the host cannot establish its configured boundary, report the original blocker and keep the gate pending.
+2. Pin the repository, role, saved route, current options and exact write paths. Give each task, gate attempt, or review member its own stable work item. Use the target checkout's ignored routing directory. Reuse its current claim on resume. Create a new one only when its prior disposition permits it.
+3. Run the probe and role stages through the helper. For each stage, capture the waiting driver handle, use `bind-driver` to persist it, then use `release-driver`. Wait for the same process to finish. Keep the sandbox and scope fixed. Implementers get their authorized task files and report. Testers get the assigned report and any explicitly authorized workspace files. Reviewers return the full report on stdout, which the helper saves verbatim.
+4. The coordinator applies the role's existing judgment to the report. For an implementer, [review the pending task changes](#review-a-custom-implementer-result) before supplying the approved intent. Only an authorized implementer intent may commit. Use `finalize --intent` for first publication and interrupted recovery. For an in-flow run, supply the existing state file and the approved checkpoint content. The orchestrator still owns Goal status changes and index mirroring. For a standalone role with no state file, use a null checkpoint. Read the terminal disposition and use its accepted report as the source for the role's established report destination. Reuse a matching destination. Preserve a conflicting report for reconciliation.
+5. Preserve the selected route, evidence and changed files on failure. A missing tool, permission, exact model match or valid report blocks the selected route without fallback. Try `settle-stage` for an interrupted consumed launch with recorded process identity. Only an explicitly authorized and reconciled `failed` disposition allows a new attempt of the same work item and route. A completed worker's failure, context request, or rejection stops that work item.
+
+### Review a custom implementer result
+
+Before finalization, use the active claim and completed run to review the authorized working-tree changes. The helper disables Git replacement refs when it records the claim and verifies the commit.
+
+1. Verify HEAD equals the claim's `head_sha`. Match each authorized path in the claim's `write_paths` with its `stages.run.post_baseline` entry. Compare file presence, content digest and executable mode. Confirm the live files match the run evidence and each `index_entry` still matches the claim.
+2. Read each changed file directly. For a previously tracked file, compare it with the blob recorded in its baseline `committed_entry`. Read that exact blob with `git --no-pager --no-replace-objects cat-file blob <object-id>`. Read authorized new files in full. Review executable-mode changes even when the file bytes match.
+3. Apply the task's review criteria before writing the finalization intent. List only the exact reviewed paths and digests in the commit intent. Each commit path must have been clean at claim time. If the evidence differs from the live checkout or the result cannot be reviewed, keep acceptance pending and reconcile it. If the task review rejects a completed result, finalize it as `rejected` under the one-shot contract.
 
 ## Resolution rule (`claude:<name>`)
 
@@ -125,7 +226,11 @@ A review batch is the complete resolved route list for one step and round. Befor
 
 Each reviewer and driver uses a unique directory: `docs/features/.routing/<feat>/<step>/round-<N>/reviewer-<I>/`, where reviewer indices start at one. The orchestrator alone writes aggregate reports. Before accepting an aggregate, compare live source inputs and the pinned diff with the frozen batch inputs. Any substantive change invalidates the complete batch. Write generated pass sections only after this acceptance check; recording those results alone does not invalidate the accepted round.
 
-For CLI reviewer lanes, the external reviewer stays in the read-only sandbox and returns its complete report through output. Its driver captures and saves that report verbatim to the assigned report destination, without judging or summarizing findings. Briefs, captured output, and other transient files stay in that reviewer's unique directory. Keep existing implementer and tester writer contracts unchanged.
+For CLI reviewer lanes, the external reviewer stays in the read-only sandbox and returns its complete report through output. Its driver captures and saves that report verbatim to the assigned report destination, without judging or summarizing findings. For [custom CLI dispatch](#custom-cli-dispatch), bind each attempt to the step, round and member index. Briefs, captured output, and other transient files stay in that reviewer's unique directory. Keep existing implementer and tester writer contracts unchanged.
+
+Before the first dispatch in a batch that includes custom CLI reviewers, run the helper's `identify --config REPO/.dev-flow/config.json --lane 'cli:adapter/exact-model-id'` for each custom route from the same local environment used for execution. Save its exact route and `identity_sha256` by member index alongside the batch's frozen inputs. The identity covers the canonical executable path and content, selected route configuration, declared non-secret environment and files, and fixed runtime policy. Credential values are excluded. Pass that member's saved digest to `claim --expected-identity SHA256` for every custom reviewer claim. The helper checks it both when claiming and when starting each stage.
+
+On resume, before dispatching a queued member, and before accepting the aggregate, recheck every custom member with `identify --expected-identity SHA256` and its saved route. Verify that each completed custom member's claim carries the frozen digest for its index and binds the expected report. A missing digest, changed identity, or failed recheck invalidates the whole incomplete round. Preserve the old reports and handles for diagnosis and reconciliation. Once the old attempts are settled, a fresh round takes fresh identities and attempts on the saved routes.
 
 Use `docs/features/.review/<feat>/batches/<step>/round-<N>/reviewer-<I>.md` for individual reports, with one-based numeric indices and no model names in paths. Standalone mode uses the review skill's existing feature naming convention. Existing single-reviewer destinations remain compatible. Red-team and plan-review aggregates go in their existing pass sections. Main and focused review keep their existing aggregate report destinations and archives. Record each route, index, verdict, findings, reviewed material identity, round, and any adjudication exception.
 
@@ -220,4 +325,4 @@ All lanes, all roles:
 
 ## Scope
 
-The `roles` lanes apply to Claude Code; other hosts ignore that table. Codex additionally supports the optional native reviewer and implementation settings above. No scripts or hooks implement routing; the logic lives in skill text, and this doc is its single source.
+Claude Code uses the `roles` lanes. Codex uses its native reviewer and implementation settings where applicable and supports explicitly selected external lanes for implementers and testers. This reference owns role routing. The custom CLI helper applies the permission, evidence and recovery contract for the selected external lane.
