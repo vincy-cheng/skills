@@ -416,3 +416,47 @@ for key in ("codex_reviewers", "reviewers"):
 PY
 )
 [ -z "$reviewer_docs_errs" ] && ok "reviewer config example and bootstrap preservation are documented" || bad "reviewer docs contract missing:$reviewer_docs_errs"
+
+# External role entry points share the custom dispatch contract without routing native reviewers through it.
+if custom_dispatch_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0, "tests/lib")
+from sections import section
+
+sites = (
+    ("new-feature", "Step 5"),
+    ("execute-tasks", "Model routing"),
+    ("test", "Model routing"),
+    ("brainstorm", "Model routing"),
+    ("plan", "Plan review pass"),
+    ("review", "Model routing"),
+    ("review", "Step 8 documentation-evidence supplement"),
+    ("review", "Focused review"),
+)
+for skill, heading in sites:
+    body = section(Path(f"skills/{skill}/SKILL.md").read_text(), heading)
+    if "#custom-cli-dispatch" not in body:
+        print(f"{skill}:{heading}:missing-custom-dispatch-pointer")
+
+routing = Path("references/model-routing.md").read_text()
+custom = section(routing, "Custom CLI dispatch")
+for fragment in ("Python 3", "macOS", "Claude Code", "native Codex", "one-shot",
+                 "bind-driver", "release-driver", "finalize --intent", "checkpoint"):
+    if fragment not in custom:
+        print(f"custom-dispatch:missing:{fragment}")
+if "codex exec --model" not in section(routing, "Thin-driver flow"):
+    print("built-in-dispatch:missing-original-command")
+PY
+); then
+  [ -z "$custom_dispatch_errs" ] && ok "external CLI role sites use the shared custom dispatch contract" || bad "custom dispatch contract missing:$custom_dispatch_errs"
+else
+  bad "custom dispatch contract check could not run:$custom_dispatch_errs"
+fi
+
+# Custom CLI adapter subprocess contracts.
+if python3 -B -m unittest discover -s tests -p test_custom_cli_adapter.py; then
+  ok "custom CLI adapter subprocess tests pass"
+else
+  bad "custom CLI adapter subprocess tests failed"
+fi

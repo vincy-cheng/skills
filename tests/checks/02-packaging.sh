@@ -46,6 +46,29 @@ if [ -n "$lit_hits" ]; then
   bad "dev-flow/ path literal still present (unwrapped layout):"; printf '%s\n' "$lit_hits"
 else ok "no dev-flow/ path literals (unwrapped layout)"; fi
 
+if custom_package_errs=$(python3 -B - <<'PY'
+from pathlib import Path
+import subprocess
+import sys
+
+for host in ("codex", "claude"):
+    manifest = Path(f".{host}-plugin/plugin.json").resolve()
+    root = manifest.parent.parent
+    helper = root / "scripts/custom-cli-adapter.py"
+    if not helper.is_file() or not (root / "references/custom-cli-adapters.md").is_file():
+        print(f"{host}:missing-custom-adapter-resources")
+        continue
+    result = subprocess.run([sys.executable, "-B", str(helper), "--help"], cwd=root / "skills",
+                            capture_output=True, text=True, check=False)
+    if result.returncode or not all(command in result.stdout for command in ("claim", "driver", "finalize")):
+        print(f"{host}:custom-adapter-entry-point-unavailable")
+PY
+); then
+  [ -z "$custom_package_errs" ] && ok "both plugin roots expose the custom CLI helper" || bad "custom adapter packaging:$custom_package_errs"
+else
+  bad "custom adapter packaging check could not run:$custom_package_errs"
+fi
+
 # plugin.json valid JSON + fully self-contained: no peerDependencies key, no
 # superpowers:* invocations anywhere in dev-flow (guards the dependency creeping back).
 if python3 -c "import json;json.load(open('.claude-plugin/plugin.json'))" 2>/dev/null; then
