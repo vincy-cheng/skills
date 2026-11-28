@@ -447,6 +447,24 @@ for fragment in ("Python 3", "macOS", "Claude Code", "native Codex", "one-shot",
         print(f"custom-dispatch:missing:{fragment}")
 if "codex exec --model" not in section(routing, "Thin-driver flow"):
     print("built-in-dispatch:missing-original-command")
+
+task_loop = section(Path("skills/execute-tasks/SKILL.md").read_text(), "Subagent dispatch")
+review_step = task_loop.partition("\n5. **Review the task yourself**")[2].partition("\n6. **Commit**")[0]
+if "For a custom adapter" not in review_step or "#review-a-custom-implementer-result" not in review_step:
+    print("custom-implementer:missing-pre-commit-review-pointer")
+if not any("For other subagent lanes" in line and "git diff <BASE>..HEAD" in line
+           for line in review_step.splitlines()):
+    print("custom-implementer:committed-range-not-scoped-to-other-lanes")
+
+feature_execute = section(Path("skills/new-feature/SKILL.md").read_text(), "Step 5")
+if "committing each task through the selected route" not in feature_execute:
+    print("custom-implementer:orchestrator-ignores-commit-procedure")
+
+custom_review = custom.partition("\n### Review a custom implementer result\n")[2]
+for fragment in ("write_paths", "post_baseline", "index_entry", "git --no-pager cat-file blob",
+                 "new files", "before writing the finalization intent"):
+    if fragment not in custom_review:
+        print(f"custom-implementer:missing-review-evidence:{fragment}")
 PY
 ); then
   [ -z "$custom_dispatch_errs" ] && ok "external CLI role sites use the shared custom dispatch contract" || bad "custom dispatch contract missing:$custom_dispatch_errs"
