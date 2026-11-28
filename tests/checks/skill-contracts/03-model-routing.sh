@@ -461,7 +461,7 @@ if "committing each task through the selected route" not in feature_execute:
     print("custom-implementer:orchestrator-ignores-commit-procedure")
 
 custom_review = custom.partition("\n### Review a custom implementer result\n")[2]
-for fragment in ("write_paths", "post_baseline", "index_entry", "git --no-pager cat-file blob",
+for fragment in ("write_paths", "post_baseline", "index_entry", "git --no-pager --no-replace-objects cat-file blob",
                  "new files", "before writing the finalization intent"):
     if fragment not in custom_review:
         print(f"custom-implementer:missing-review-evidence:{fragment}")
