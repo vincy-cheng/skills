@@ -218,10 +218,14 @@ if args.action == "run" and mode in {"timeout-on-run", "lingering-child-on-run"}
     if mode == "timeout-on-run":
         time.sleep(30)
     else:
-        subprocess.Popen(
-            [sys.executable, "-c", "import time; time.sleep(30)"],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
+        try:
+            subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(30)"],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+        except PermissionError:
+            print("fixture subprocess denied", file=sys.stderr)
+            raise SystemExit(17)
 if mode == "nonzero":
     raise SystemExit(7)
 '''
@@ -348,6 +352,7 @@ if mode == "nonzero":
         task.write_text("before\n")
         (fixture / ".gitattributes").write_text("task.md text eol=lf\n")
         git("config", "core.filemode", "true")
+        git("config", "maintenance.auto", "true")
         unrelated.write_text("unrelated baseline\n")
         state.write_text("before checkpoint\n")
         git("add", ".gitattributes", "task.md", "unrelated.md", "docs/features/.feature-states/task.state.md")
@@ -391,9 +396,11 @@ if mode == "nonzero":
             ]},
         }
         arguments = [sys.executable, str(SCRIPT), "finalize", "--intent", str(intent)]
+        git_trace = self.root / "coordinator-git.jsonl"
 
         def finalize():
-            return subprocess.run(arguments, text=True, capture_output=True, check=False)
+            return subprocess.run(arguments, text=True, capture_output=True, check=False,
+                                  env={**os.environ, "GIT_TRACE2_EVENT": str(git_trace)})
 
         stale_report = intent.parent / "stale.md"
         stale_report.write_text("unrelated result\n")
@@ -406,6 +413,20 @@ if mode == "nonzero":
         self.assertIn("matching completed run", stale.stderr)
         self.assertFalse((intent.parent / "accepted-report.md").exists())
         intent.write_text(json.dumps(accepted_intent))
+
+        hook_dir = fixture / "fixture-hooks"
+        hook_dir.mkdir()
+        hook = hook_dir / "pre-commit"
+        hook.write_text("#!/bin/sh\nexit 0\n")
+        hook.chmod(0o700)
+        git("config", "core.hooksPath", str(hook_dir))
+        blocked_hook = finalize()
+        self.assertEqual(blocked_hook.returncode, 2, blocked_hook.stderr)
+        self.assertIn("automatic commit cannot run configured Git hooks", blocked_hook.stderr)
+        self.assertEqual(git("rev-parse", "HEAD"), baseline_head)
+        self.assertEqual(git("diff", "--cached", "--name-only"), "unrelated.md")
+        self.assertEqual(state.read_text(), "before checkpoint\n")
+        git("config", "--unset", "core.hooksPath")
 
         state.write_text("concurrent checkpoint change\n")
         blocked = finalize()
@@ -430,6 +451,11 @@ if mode == "nonzero":
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             first, second = list(pool.map(lambda _: finalize(), range(2)))
+        events = [json.loads(line) for line in git_trace.read_text().splitlines()]
+        self.assertTrue(any(event.get("event") == "cmd_name" and event.get("name") == "commit" for event in events))
+        automatic = [event for event in events if event.get("event") == "child_start"
+                     and "--auto" in event.get("argv", []) and {"maintenance", "gc"}.intersection(event["argv"])]
+        self.assertEqual(automatic, [])
         for finalized in (first, second):
             self.assertEqual(finalized.returncode, 0, finalized.stderr)
         self.assertEqual(sorted(json.loads(result.stdout)["recovered"] for result in (first, second)), [False, True])
@@ -528,6 +554,270 @@ if mode == "nonzero":
         self.assertIn("existing commit tree entry does not match", wrong_mode.stderr)
         self.assertEqual(git("rev-parse", "HEAD"), candidate_head)
         self.assertEqual(state.read_text(), "before checkpoint\n")
+
+    def test_container_contains_child_processes_and_imports_only_task_paths(self):
+        image = os.environ.get("DEV_FLOW_CONTAINER_TEST_IMAGE")
+        if not image:
+            self.skipTest("set DEV_FLOW_CONTAINER_TEST_IMAGE to a pinned local Python image")
+        launcher = """#!/usr/bin/env python3
+import argparse, json, os, subprocess
+from pathlib import Path
+p = argparse.ArgumentParser()
+p.add_argument('action')
+for key in ('model', 'repo', 'sandbox', 'role', 'settings-sha256', 'brief', 'report'):
+    p.add_argument('--' + key)
+p.add_argument('--metadata-fd', type=int)
+p.add_argument('--write-path', action='append')
+a = p.parse_args()
+assert Path(a.repo).is_dir()
+process = subprocess.run(['/bin/sh', '-c', 'printf child-ran'], capture_output=True, check=True)
+assert process.stdout == b'child-ran'
+if a.action == 'run':
+    Path(a.write_path[0]).write_text('container result\\n')
+    Path(a.write_path[1]).chmod(0o755)
+    Path(a.write_path[2]).write_text('#!/bin/sh\\n')
+    Path(a.write_path[2]).chmod(0o755)
+    (Path(a.repo) / 'unapproved.txt').write_text('guest scratch\\n')
+    Path(a.report).write_text('container report\\n')
+    subprocess.Popen(['/bin/sleep', '10'], stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print('container worker finished')
+with os.fdopen(a.metadata_fd, 'w') as metadata:
+    json.dump({'schema_version': 1, 'observed_model_id': a.model, 'role': a.role,
+               'permission_mode': a.sandbox, 'settings_sha256': a.settings_sha256,
+               'backend_id': 'container-fixture', 'model_id_source': 'backend-event'}, metadata)
+"""
+        self.executable.write_text(launcher)
+        configuration = json.loads(self.config_path.read_text())
+        configuration["cli_adapter_settings"]["fixture"] = {
+            "environment": [], "credentials": [], "forbidden_environment": [], "files": [],
+            "container_image": image,
+        }
+        self.config_path.write_text(json.dumps(configuration))
+        (self.root / "brief with spaces.md").write_text("Run the fixture task.")
+        mode_only = self.repo / "tool-existing.sh"
+        mode_only.write_text("#!/bin/sh\n")
+        mode_only.chmod(0o644)
+        new_tool = self.repo / "tool-new.sh"
+        paths = self.authorized_file, mode_only, new_tool
+        probe = self.invoke("probe", write_paths=paths)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        claim_path = Path(self.pending_claim["claim_path"])
+        run = self.invoke("run", write_paths=paths)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(run.stdout, "container worker finished\n")
+        self.assertEqual(self.authorized_file.read_text(), "container result\n")
+        self.assertEqual(mode_only.read_text(), "#!/bin/sh\n")
+        self.assertTrue(mode_only.stat().st_mode & 0o100)
+        self.assertTrue(new_tool.stat().st_mode & 0o100)
+        self.assertEqual(self.report.read_text(), "container report\n")
+        self.assertFalse((self.repo / "unapproved.txt").exists())
+        for stage in json.loads(claim_path.read_text())["stages"].values():
+            self.assertEqual(stage["status"], "complete")
+            self.assertEqual(stage["process_policy"], "docker-private-container-v1")
+            self.assertRegex(stage["container_id"], r"^[0-9a-f]{64}$")
+            active = subprocess.run(["docker", "ps", "-q", "--filter", f"id={stage['container_id']}"],
+                                    text=True, capture_output=True, check=True)
+            self.assertEqual(active.stdout, "")
+        probe = self.invoke("probe", write_paths=paths)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        changed_claim = Path(self.pending_claim["claim_path"])
+        changed_engine = self.root / "changed container engine.py"
+        changed_engine.write_text(f"""import runpy
+main = runpy.run_path({str(SCRIPT)!r})["main"]
+local_docker = main.__globals__["local_docker"]
+def another_engine(repo):
+    command, _ = local_docker(repo)
+    return command, "different-engine-id"
+main.__globals__["local_docker"] = another_engine
+raise SystemExit(main())
+""")
+        run = self.invoke("run", write_paths=paths, driver_entry=changed_engine)
+        self.assertEqual(run.returncode, 2, run.stderr)
+        self.assertIn("effective settings changed after probe", run.stderr)
+        changed_stage = json.loads(changed_claim.read_text())["stages"]["run"]
+        self.assertEqual(changed_stage["status"], "failed")
+        self.assertNotIn("container_id", changed_stage)
+        self.assertFalse(self.report.exists())
+        wrong_model = launcher.replace("'observed_model_id': a.model", "'observed_model_id': a.model if a.action == 'probe' else 'other/model'")
+        self.executable.write_text(wrong_model.replace("container result", "mismatched container result"))
+        probe = self.invoke("probe", write_paths=paths)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        mismatched_attempt = Path(self.pending_claim["attempt_dir"])
+        mismatched_claim = Path(self.pending_claim["claim_path"])
+        run = self.invoke("run", write_paths=paths)
+        self.assertEqual(run.returncode, 2, run.stderr)
+        self.assertIn("metadata mismatch for observed_model_id", run.stderr)
+        self.assertEqual(self.authorized_file.read_text(), "container result\n")
+        self.assertFalse(self.report.exists())
+        recovered = mismatched_attempt / "docker-recovery"
+        evidence = json.loads((recovered / "changes.json").read_text())
+        change = next(item for item in evidence if item["path"] == self.authorized_file.name)
+        self.assertEqual((recovered / change["source"]).read_text(), "mismatched container result\n")
+        self.assertEqual((recovered / "worker-report.md").read_text(), "container report\n")
+        self.assertNotIn("unapproved.txt", {item["path"] for item in evidence})
+        claim = json.loads(mismatched_claim.read_text())
+        recovery = claim["stages"]["run"]["docker_recovery"]
+        self.assertTrue(recovery["has_changes"])
+        digest = hashlib.sha256((recovered / "changes.json").read_bytes()).hexdigest()
+        self.assertEqual(recovery["sha256"], digest)
+        diagnostic = mismatched_attempt / "diagnostic.md"
+        diagnostic.write_text("Model metadata mismatch.\n")
+        intent = mismatched_attempt / "finalization-intent.json"
+        intent.write_text(json.dumps({
+            "schema_version": 1, "outcome": "failed", "claim_id": claim["claim_id"],
+            "role": claim["role"], "work_item": claim["work_item"], "route": claim["route"],
+            "repo": claim["repo"], "expected_head": claim["head_sha"],
+            "report": {"source": str(diagnostic), "sha256": hashlib.sha256(diagnostic.read_bytes()).hexdigest()},
+            "checkpoint": None, "commit": {"enabled": False, "message": "", "paths": []},
+        }))
+        final = subprocess.run([sys.executable, str(SCRIPT), "finalize", "--intent", str(intent)],
+                               capture_output=True, text=True, check=False)
+        self.assertEqual(final.returncode, 0, final.stderr)
+        retry = [sys.executable, str(SCRIPT), "claim", "--config", str(self.config_path), "--repo", claim["repo"],
+                 "--role", claim["role"], "--work-item", claim["work_item"], "--lane", claim["route"],
+                 "--retry-claim", claim["claim_id"]]
+        for path in paths:
+            retry.extend(("--write-path", str(path)))
+        denied = subprocess.run(retry, capture_output=True, text=True, check=False)
+        self.assertEqual(denied.returncode, 2, denied.stderr)
+        self.assertIn("--reconciled-recovery", denied.stderr)
+        retried = subprocess.run([*retry, "--reconciled-recovery", digest], capture_output=True, text=True, check=False)
+        self.assertEqual(retried.returncode, 0, retried.stderr)
+        self.assertEqual(json.loads(retried.stdout)["route"], claim["route"])
+        self.assertEqual((recovered / change["source"]).read_text(), "mismatched container result\n")
+        slow_launcher = launcher.replace("container result", "unaccepted container result").replace(
+            "print('container worker finished')",
+            "print('container worker waiting', flush=True)\n    __import__('time').sleep(30)",
+        )
+        self.executable.write_text(slow_launcher)
+        probe = self.invoke("probe", write_paths=paths)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        timed_claim = Path(self.pending_claim["claim_path"])
+        timed_attempt = Path(self.pending_claim["attempt_dir"])
+        driver = self.root / "short container deadline.py"
+        driver.write_text(f"""import runpy
+main = runpy.run_path({str(SCRIPT)!r})["main"]
+main.__globals__["INVOCATION_TIMEOUT_SECONDS"] = 2
+raise SystemExit(main())
+""")
+        run = self.invoke("run", write_paths=paths, driver_entry=driver)
+        self.assertEqual(run.returncode, 124, run.stderr)
+        self.assertEqual(run.stdout, "container worker waiting\n")
+        self.assertEqual(self.authorized_file.read_text(), "container result\n")
+        self.assertFalse(self.report.exists())
+        stage = json.loads(timed_claim.read_text())["stages"]["run"]
+        self.assertEqual(stage["status"], "failed")
+        self.assertEqual(stage["exit_status"], 124)
+        recovered = timed_attempt / "docker-recovery"
+        evidence = json.loads((recovered / "changes.json").read_text())
+        change = next(item for item in evidence if item["path"] == self.authorized_file.name)
+        self.assertEqual((recovered / change["source"]).read_text(), "unaccepted container result\n")
+        self.executable.write_text(wrong_model.replace("container result", "restored container result"))
+        probe = self.invoke("probe", write_paths=paths)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        interrupted_claim = Path(self.pending_claim["claim_path"])
+        interrupted_attempt = Path(self.pending_claim["attempt_dir"])
+        storage_error = self.root / "failed recovery storage.py"
+        storage_error.write_text(f"""import runpy
+main = runpy.run_path({str(SCRIPT)!r})["main"]
+def store_failed(*args):
+    raise OSError("fixture recovery storage failure")
+main.__globals__["preserve_container_changes"] = store_failed
+raise SystemExit(main())
+""")
+        run = self.invoke("run", write_paths=paths, driver_entry=storage_error)
+        self.assertEqual(run.returncode, 2, run.stderr)
+        self.assertIn("keep the claim pending", run.stderr)
+        claim = json.loads(interrupted_claim.read_text())
+        stage = claim["stages"]["run"]
+        self.assertEqual(stage["status"], "consumed")
+        settle = subprocess.run(
+            [sys.executable, str(SCRIPT), "settle-stage", "--repo", claim["repo"], "--role", claim["role"],
+             "--work-item", claim["work_item"], "--claim-id", claim["claim_id"], "--stage", "run",
+             "--authorization-id", stage["authorization_id"]],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(settle.returncode, 0, settle.stderr)
+        claim = json.loads(interrupted_claim.read_text())
+        self.assertEqual(claim["stages"]["run"]["status"], "failed")
+        self.assertIsNone(claim["stages"]["run"]["docker_staging"])
+        recovered = interrupted_attempt / "docker-recovery"
+        evidence = json.loads((recovered / "changes.json").read_text())
+        change = next(item for item in evidence if item["path"] == self.authorized_file.name)
+        self.assertEqual((recovered / change["source"]).read_text(), "restored container result\n")
+        self.assertEqual(self.authorized_file.read_text(), "container result\n")
+        probe = self.invoke("probe", write_paths=paths)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        unstarted_claim = Path(self.pending_claim["claim_path"])
+        before_start = self.root / "interrupted container start.py"
+        before_start.write_text(f"""import runpy
+main = runpy.run_path({str(SCRIPT)!r})["main"]
+docker = main.__globals__["subprocess"]
+real_popen = docker.Popen
+def stop_before_start(argv, *args, **kwargs):
+    if argv[3:5] == ["start", "--attach"]:
+        raise OSError("fixture interrupted before starting Docker")
+    return real_popen(argv, *args, **kwargs)
+docker.Popen = stop_before_start
+raise SystemExit(main())
+""")
+        run = self.invoke("run", write_paths=paths, driver_entry=before_start)
+        self.assertEqual(run.returncode, 2, run.stderr)
+        claim = json.loads(unstarted_claim.read_text())
+        stage = claim["stages"]["run"]
+        self.assertEqual(stage["status"], "consumed")
+        self.assertNotIn("adapter_process_group", stage)
+        command = stage["docker_command"]
+        container = stage["container_id"]
+        try:
+            created = subprocess.check_output([*command, "inspect", "--format", "{{.State.Status}}", container], text=True)
+            self.assertEqual(created.strip(), "created")
+            settle = subprocess.run(
+                [sys.executable, str(SCRIPT), "settle-stage", "--repo", claim["repo"], "--role", claim["role"],
+                 "--work-item", claim["work_item"], "--claim-id", claim["claim_id"], "--stage", "run",
+                 "--authorization-id", stage["authorization_id"]],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(settle.returncode, 0, settle.stderr)
+            self.assertEqual(json.loads(unstarted_claim.read_text())["stages"]["run"]["status"], "failed")
+            remaining = subprocess.check_output([*command, "ps", "--all", "-q", "--filter", f"id={container}"], text=True)
+            self.assertEqual(remaining, "")
+        finally:
+            subprocess.run([*command, "container", "remove", container], capture_output=True, check=False)
+
+    def test_claim_refuses_active_git_extensions_before_capturing_baseline(self):
+        fixture = self.root / "git preflight checkout"
+        (fixture / "docs/features/.routing").mkdir(parents=True)
+        task = fixture / "task.txt"
+        task.write_text("fixture input\n")
+
+        def git(*arguments):
+            subprocess.run(["git", "-C", str(fixture), *arguments], check=True, capture_output=True)
+
+        git("init", "-q")
+        git("config", "user.name", "Task Fixture")
+        git("config", "user.email", "task-fixture@example.invalid")
+        git("add", "task.txt")
+        git("commit", "-qm", "fixture baseline")
+        git("config", "filter.fixture.clean", "/bin/cat")
+        arguments = [sys.executable, str(SCRIPT), "claim", "--config", str(self.config_path),
+                     "--repo", str(fixture), "--role", "implementer", "--lane", "cli:fixture/model/v1",
+                     "--write-path", str(task), "--work-item"]
+        inactive = subprocess.run([*arguments, "unused-filter"], text=True, capture_output=True, check=False)
+        self.assertEqual(inactive.returncode, 0, inactive.stderr)
+
+        attributes = fixture / ".gitattributes"
+        attributes.write_text("task.txt filter=fixture\n")
+        filtered = subprocess.run([*arguments, "active-filter"], text=True, capture_output=True, check=False)
+        self.assertEqual(filtered.returncode, 2, filtered.stderr)
+        self.assertIn("active Git filter", filtered.stderr)
+        attributes.write_text("\n")
+
+        git("config", "core.fsmonitor", "./missing-fixture-monitor")
+        monitor = subprocess.run([*arguments, "active-monitor"], text=True, capture_output=True, check=False)
+        self.assertEqual(monitor.returncode, 2, monitor.stderr)
+        self.assertIn("core.fsmonitor", monitor.stderr)
 
     def test_report_only_terminal_stops_survive_resume(self):
         self.assert_sandbox_available()
@@ -1131,6 +1421,7 @@ raise SystemExit(main())
                 self.assertEqual(unknown.returncode, 2, unknown.stderr)
                 self.assertIn("never recorded", unknown.stderr)
                 stage["adapter_process_group"] = adapter.pid
+                stage["process_policy"] = "macos-single-process-v1"
                 claim_path.write_text(json.dumps(claim))
                 driver.terminate()
                 driver.wait(timeout=5)
@@ -1441,7 +1732,7 @@ raise SystemExit(main())
 """)
         for mode, exit_code, diagnostic in (
             ("timeout-on-run", 124, "exceeded its time limit"),
-            ("lingering-child-on-run", 2, "left a child process running"),
+            ("lingering-child-on-run", 17, "fixture subprocess denied"),
         ):
             with self.subTest(mode=mode):
                 options = {"role": "reviewer", "sandbox": "read-only",

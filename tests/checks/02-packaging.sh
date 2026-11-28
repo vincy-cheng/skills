@@ -55,7 +55,9 @@ for host in ("codex", "claude"):
     manifest = Path(f".{host}-plugin/plugin.json").resolve()
     root = manifest.parent.parent
     helper = root / "scripts/custom-cli-adapter.py"
-    if not helper.is_file() or not (root / "references/custom-cli-adapters.md").is_file():
+    if not all(path.is_file() for path in (
+        helper, root / "scripts/custom-cli-container-entry.py", root / "references/custom-cli-adapters.md",
+    )):
         print(f"{host}:missing-custom-adapter-resources")
         continue
     result = subprocess.run([sys.executable, "-B", str(helper), "--help"], cwd=root / "skills",

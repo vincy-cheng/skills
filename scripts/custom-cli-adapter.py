@@ -2,6 +2,7 @@
 """Resolve a custom CLI lane to an executable and an exact model ID."""
 
 import argparse
+import base64
 from contextlib import contextmanager
 import fcntl
 import hashlib
@@ -9,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import signal
 import stat
 import subprocess
@@ -29,6 +31,9 @@ SECRET_SETTING = re.compile(r"(TOKEN|KEY|PASSWORD|SECRET|CREDENTIAL)", re.I)
 SANDBOX_EXEC = Path("/usr/bin/sandbox-exec")
 MAX_METADATA_BYTES = 65536
 INVOCATION_TIMEOUT_SECONDS = 3600
+NATIVE_PROCESS_POLICY = "macos-single-process-v1"
+CONTAINER_PROCESS_POLICY = "docker-private-container-v1"
+GIT_COMMAND = ("git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "--literal-pathspecs")
 
 
 def parse_custom_lane(lane):
@@ -211,7 +216,7 @@ def work_item_lock(routing_root, role, work_item):
 def git_output(repo, *arguments, env=None, check=True):
     try:
         result = subprocess.run(
-            ["git", "--literal-pathspecs", "-C", str(repo), *arguments], capture_output=True, text=True,
+            [*GIT_COMMAND, "-C", str(repo), *arguments], capture_output=True, text=True,
             check=False, env=env,
         )
     except OSError as error:
@@ -224,7 +229,7 @@ def git_output(repo, *arguments, env=None, check=True):
 def git_output_bytes(repo, *arguments, input_bytes):
     try:
         result = subprocess.run(
-            ["git", "--literal-pathspecs", "-C", str(repo), *arguments], capture_output=True, check=False,
+            [*GIT_COMMAND, "-C", str(repo), *arguments], capture_output=True, check=False,
             input=input_bytes,
         )
     except OSError as error:
@@ -233,6 +238,60 @@ def git_output_bytes(repo, *arguments, input_bytes):
         detail = result.stderr.decode(errors="replace").strip()
         raise RouteError(f"Git operation failed: {detail or result.returncode}")
     return result
+
+
+def git_config_setting(repo, *arguments):
+    value = git_output(repo, "config", *arguments, check=False)
+    if value.returncode not in (0, 1):
+        raise RouteError(f"cannot verify automatic Git execution policy for {arguments[-1]}")
+    return value.stdout
+
+
+def verify_git_filters(repo, paths):
+    configured = git_config_setting(repo, "--null", "--name-only", "--get-regexp",
+                                    r"^filter\..+\.(clean|process|smudge)$")
+    drivers = {os.fsencode(key[len("filter."):key.rfind(".")]) for key in configured.rstrip("\0").split("\0") if key}
+    if not drivers or not paths:
+        return
+    names = b"\0".join(os.fsencode(path) for path in paths) + b"\0"
+    attributes = git_output_bytes(repo, "check-attr", "-z", "--stdin", "filter", input_bytes=names).stdout.split(b"\0")
+    if len(attributes) != 3 * len(paths) + 1:
+        raise RouteError("cannot verify Git filter attributes")
+    if drivers.intersection(attributes[2::3]):
+        raise RouteError("active Git filter prevents automatic task processing")
+
+
+def verify_git_execution(repo, paths, *, commit=False):
+    if git_config_setting(repo, "--type=bool", "--default=false", "--get", "core.fsmonitor").strip() != "false":
+        raise RouteError("active core.fsmonitor prevents automatic task processing")
+    if commit:
+        if git_config_setting(repo, "--type=bool", "--default=false", "--get", "commit.gpgsign").strip() != "false":
+            raise RouteError("automatic commit cannot execute a Git signing program")
+        configured = git_config_setting(repo, "--null", "--path", "--get", "core.hooksPath")
+        hooks = (repo / configured.removesuffix("\0")) if configured else Path(
+            git_output(repo, "rev-parse", "--path-format=absolute", "--git-path", "hooks").stdout.rstrip("\n")
+        )
+        for name in ("pre-commit", "prepare-commit-msg", "commit-msg", "post-commit", "post-index-change", "reference-transaction"):
+            try:
+                mode = (hooks / name).stat().st_mode
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            except OSError as error:
+                raise RouteError(f"cannot verify configured Git hooks: {error}") from error
+            if stat.S_ISREG(mode) and mode & 0o111:
+                raise RouteError("automatic commit cannot run configured Git hooks")
+        if git_config_setting(repo, "--name-only", "--get-regexp", r"^hook\..+\.command$"):
+            raise RouteError("automatic commit cannot run configured Git hooks")
+        tracked = git_output_bytes(repo, "ls-files", "-z", "--cached", input_bytes=b"").stdout.rstrip(b"\0")
+        if tracked:
+            paths = {*paths, *map(os.fsdecode, tracked.split(b"\0"))}
+    verify_git_filters(repo, paths)
+
+
+def git_status(repo, relative):
+    verify_git_execution(repo, (relative,))
+    return git_output(repo, "status", "--porcelain=v1", "--ignore-submodules=all", "--", relative,
+                      env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"}).stdout.strip()
 
 
 def repo_file(repo, value, label, allow_missing=False):
@@ -260,7 +319,7 @@ def file_state(repo, value):
     executable = bool(path.stat().st_mode & stat.S_IXUSR) if exists else None
     index = git_output(repo, "ls-files", "--stage", "--", relative).stdout.strip()
     committed = git_output(repo, "ls-tree", "HEAD", "--", relative).stdout.strip()
-    status = git_output(repo, "status", "--porcelain=v1", "--", relative).stdout.strip()
+    status = git_status(repo, relative)
     index_blob = index.split()[1] if index else None
     committed_blob = committed.split()[2] if committed else None
     clean = (exists and not status and index_blob is not None and index_blob == committed_blob) or (
@@ -303,7 +362,7 @@ def claim_attempt(args):
     adapter = resolution["adapter"]
     config_digest = configuration_identity(config, adapter)
     if args.expected_identity is not None:
-        _, settings = effective_settings(config, adapter)
+        _, settings = effective_settings(config, adapter, repo)
         require_adapter_identity(args.expected_identity, adapter_identity(resolution, config_digest, settings))
     if args.role == "implementer" and not args.write_path:
         raise RouteError("a claim must capture at least one exact authorized write path")
@@ -314,6 +373,8 @@ def claim_attempt(args):
     attempt_root = ensure_private_directory(routing_root / "attempts", "attempt directory root", routing_root)
     claim_path = claim_directory / f"{args.work_item}.json"
     with work_item_lock(routing_root, args.role, args.work_item):
+        if args.reconciled_recovery and not args.retry_claim:
+            raise RouteError("a reconciliation digest requires the matching failed retry claim")
         previous = None
         if claim_path.exists():
             if claim_path.is_symlink():
@@ -331,6 +392,14 @@ def claim_attempt(args):
                 raise RouteError("a failed work item requires an explicit retry of its recorded claim")
             if previous.get("route") != args.lane:
                 raise RouteError("saved route changed; reconcile the prior disposition before starting a claim")
+            verify_saved_execution_boundaries(previous)
+            recovery = previous.get("stages", {}).get("run", {}).get("docker_recovery")
+            if recovery and recovery["has_changes"]:
+                manifest = canonical_file(recovery["manifest"], "private Docker recovery manifest")
+                if sha256_bytes(manifest.read_bytes()) != recovery["sha256"]:
+                    raise RouteError("Docker recovery evidence changed; preserve the failed attempt")
+                if args.reconciled_recovery != recovery["sha256"]:
+                    raise RouteError("reconcile the saved Docker changes and confirm the manifest with --reconciled-recovery")
             previous_checkpoint = previous.get("checkpoint_path")
             previous_digest = previous.get("checkpoint_sha256")
             if previous_checkpoint and previous_digest:
@@ -495,6 +564,7 @@ def settle_stage(args):
     repo = canonical_directory(args.repo, "repository")
     routing_root = routing_root_for(repo)
     claim_path = claim_file_for(routing_root, args.role, args.work_item)
+    cleanup = []
 
     def update(claim):
         stage = claim.get("stages", {}).get(args.stage)
@@ -502,16 +572,36 @@ def settle_stage(args):
                 or not stage or stage.get("authorization_id") != args.authorization_id
                 or stage.get("status") != "consumed"):
             raise RouteError("settlement requires the matching consumed stage of an active claim")
-        if not stage.get("adapter_process_group"):
-            raise RouteError("adapter process group was never recorded; keep the claim pending")
-        if (not process_is_gone(stage.get("driver_handle"))
-                or not process_is_gone(stage["adapter_process_group"], group=True)):
-            raise RouteError("driver and adapter process-group absence must both be verified; keep the claim pending")
+        if stage.get("process_policy") == CONTAINER_PROCESS_POLICY:
+            if not process_is_gone(stage.get("driver_handle")):
+                raise RouteError("container driver must be absent before settlement")
+            if not container_execution_stopped(stage, stop=True):
+                raise RouteError("container termination cannot be verified; keep the claim pending")
+            if stage.get("docker_staging"):
+                staging = canonical_directory(stage["docker_staging"], "private Docker staging area")
+                attempt = canonical_directory(claim["attempt_dir"], "attempt directory")
+                if str(staging) != stage["docker_staging"] or staging.name != "docker-staging" or not is_within(staging, attempt):
+                    raise RouteError("Docker recovery source is outside its attempt; keep the claim pending")
+                stage["docker_recovery"] = preserve_container_changes(
+                    staging.parent / "docker-recovery", staging / "workspace", staging / "container-output", stage["baseline"],
+                )
+                stage["docker_staging"] = None
+                cleanup.append(staging)
+        else:
+            if not stage.get("adapter_process_group"):
+                raise RouteError("adapter process group was never recorded; keep the claim pending")
+            if stage.get("process_policy") != NATIVE_PROCESS_POLICY:
+                raise RouteError("adapter termination boundary was never recorded; keep the claim pending")
+            if (not process_is_gone(stage.get("driver_handle"))
+                    or not process_is_gone(stage["adapter_process_group"], group=True)):
+                raise RouteError("driver and adapter process-group absence must both be verified; keep the claim pending")
         stage["status"] = "failed"
         stage["execution_recorded"] = True
-        stage["failure"] = "driver and adapter process group absent after interruption; exit status unknown"
+        stage["failure"] = "recorded adapter boundary has stopped after interruption; exit status unknown"
 
     update_claim_locked(claim_path, routing_root, args.role, args.work_item, update)
+    for staging in cleanup:
+        shutil.rmtree(staging, ignore_errors=True)
     print(json.dumps({"status": "failed", "stage": args.stage, "claim_id": args.claim_id}))
     return 0
 
@@ -587,7 +677,7 @@ def run_claimed_driver(args):
 
     claim = update_claim_locked(claim_path, routing_root, args.role, args.work_item, consume)
     args.command = args.stage
-    process_group = None
+    execution = {}
 
     def launched_stage(claim):
         stage = claim.get("stages", {}).get(args.stage)
@@ -597,24 +687,33 @@ def run_claimed_driver(args):
             raise RouteError("launch evidence does not match the consumed authorization")
         return stage
 
-    def record_launch(group_id):
-        nonlocal process_group
-        process_group = group_id
+    def record_launch(group_id=None, **boundary):
+        execution.update(boundary)
+        if group_id is not None:
+            execution["adapter_process_group"] = group_id
 
         def update(claim):
-            launched_stage(claim)["adapter_process_group"] = group_id
+            launched_stage(claim).update(execution)
 
         update_claim_locked(claim_path, routing_root, args.role, args.work_item, update)
 
     error = None
     result = None
     try:
-        result = invoke_adapter(args.stage, args, record_launch, claim.get("adapter_identity_sha256"))
+        result = invoke_adapter(args.stage, args, record_launch, claim.get("adapter_identity_sha256"),
+                                claim["stages"][args.stage]["baseline"])
     except (RouteError, OSError) as invocation_error:
         error = str(invocation_error)
-    if process_group is not None and not process_is_gone(process_group, group=True):
+    if execution.get("process_policy") == CONTAINER_PROCESS_POLICY:
+        stopped = container_execution_stopped(execution)
+    else:
+        stopped = not execution or process_is_gone(execution.get("adapter_process_group"), group=True)
+    if not stopped:
         detail = f"{error}. " if error else ""
-        raise RouteError(f"{detail}adapter process-group absence could not be verified; keep the claim pending")
+        raise RouteError(f"{detail}adapter termination could not be verified; keep the claim pending")
+    if execution.get("docker_staging"):
+        detail = f"{error}. " if error else ""
+        raise RouteError(f"{detail}Docker recovery is incomplete; keep the claim pending and settle the original stage")
 
     def record_execution(claim):
         stage = launched_stage(claim)
@@ -730,6 +829,7 @@ def approved_commit_entries(repo, claim, commit):
         if relative in entries:
             raise RouteError("approved commit paths must be unique")
         if saved_entries is None:
+            verify_git_execution(repo, (relative,))
             blob = git_output_bytes(repo, "hash-object", f"--path={relative}", "--stdin", input_bytes=content)
             index_entry = baseline[relative]["index_entry"]
             if check_filemode or not index_entry:
@@ -754,6 +854,7 @@ def stage_approved_commit(repo, entries, message, expected_head):
     if current_head != expected_head:
         return recover_commit(repo, expected_head, entries)
     paths_only = sorted(entries)
+    verify_git_execution(repo, paths_only, commit=True)
     git_output(repo, "add", "--", *paths_only)
     for relative, entry in entries.items():
         if not index_matches_commit_entry(repo, relative, entry):
@@ -776,9 +877,7 @@ def recover_commit(repo, expected_head, entries):
         tree = git_output(repo, "ls-tree", "-z", current_head, "--", relative).stdout
         if tree.partition("\t")[0] != f"{entry['mode']} blob {entry['oid']}":
             raise RouteError("existing commit tree entry does not match the pending finalization intent")
-        if not index_matches_commit_entry(repo, relative, entry) or git_output(
-            repo, "status", "--porcelain=v1", "--", relative,
-        ).stdout.strip():
+        if not index_matches_commit_entry(repo, relative, entry) or git_status(repo, relative):
             raise RouteError("existing commit is not reflected in the task index and worktree")
     return current_head
 
@@ -862,6 +961,13 @@ def validate_run_evidence(repo, claim, report_source, report_digest, entries, pe
                 raise RouteError("task index differs from the pending commit intent")
 
 
+def verify_saved_execution_boundaries(claim):
+    for stage in claim.get("stages", {}).values():
+        started = stage.get("exit_status") is not None or stage.get("adapter_process_group") or stage.get("container_id")
+        if started and stage.get("process_policy") not in {NATIVE_PROCESS_POLICY, CONTAINER_PROCESS_POLICY}:
+            raise RouteError("recorded execution lacks verified termination isolation; keep the claim pending")
+
+
 def finalize_attempt(intent_path):
     intent = load_intent(intent_path)
     validate_finalization_intent(intent)
@@ -897,6 +1003,7 @@ def finalize_attempt(intent_path):
             return 0
         if any(stage.get("status") == "consumed" for stage in claim.get("stages", {}).values()):
             raise RouteError("a consumed launch lacks terminal evidence; keep the claim pending")
+        verify_saved_execution_boundaries(claim)
         report_source, report_digest = inspect_report(attempt_dir, intent["report"])
         checkpoint = intent["checkpoint"]
         if checkpoint is not None:
@@ -908,6 +1015,7 @@ def finalize_attempt(intent_path):
                 raise RouteError("only an implementer finalization can commit task paths")
             if not commit_intent["message"].strip() or len(commit_intent["message"]) > 500:
                 raise RouteError("approved commit message must be a non-empty string of at most 500 characters")
+            verify_git_execution(repo, (), commit=True)
             run = claim.get("stages", {}).get("run", {})
             if run.get("status") == "complete":
                 entries = approved_commit_entries(repo, claim, commit_intent)
@@ -1042,14 +1150,17 @@ def sha256_bytes(value):
     return hashlib.sha256(value).hexdigest()
 
 
-def effective_settings(config, adapter, runtime_home="", runtime_tmp=""):
-    _, names, credentials, files = declared_environment(config, adapter)
+def effective_settings(config, adapter, repo, runtime_home="", runtime_tmp=""):
+    declaration, names, credentials, files = declared_environment(config, adapter)
+    image = declaration.get("container_image")
+    if "container_image" in declaration and (not isinstance(image, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", image)):
+        raise RouteError("container_image must be an exact local Docker image ID")
     environment_identity = {}
-    fixed_path = f"{Path(sys.executable).parent}:/usr/bin:/bin:/usr/sbin:/sbin"
+    fixed_path = "/usr/local/bin:/usr/bin:/bin" if image else f"{Path(sys.executable).parent}:/usr/bin:/bin:/usr/sbin:/sbin"
     child_environment = {
         "PATH": fixed_path,
-        "HOME": str(runtime_home),
-        "TMPDIR": str(runtime_tmp),
+        "HOME": "/tmp" if image else str(runtime_home),
+        "TMPDIR": "/tmp" if image else str(runtime_tmp),
         "LANG": "C.UTF-8",
     }
     for name in (*names, *credentials):
@@ -1070,12 +1181,20 @@ def effective_settings(config, adapter, runtime_home="", runtime_tmp=""):
             file_identity[str(path)] = sha256_bytes(path.read_bytes())
         except OSError as error:
             raise RouteError(f"cannot read declared setting file {path}: {error}") from error
-    return child_environment, {
+    identity = {
         "environment": environment_identity,
         "files": file_identity,
-        "runtime_policy": "isolated-home-temp-v1",
+        "runtime_policy": CONTAINER_PROCESS_POLICY if image else NATIVE_PROCESS_POLICY,
         "path": sha256_bytes(child_environment["PATH"].encode()),
     }
+    if image:
+        command, engine = local_docker(repo)
+        identity["container_image"] = image
+        identity["container_entry_sha256"] = sha256_bytes(Path(__file__).with_name("custom-cli-container-entry.py").read_bytes())
+        identity["docker_command"] = command
+        identity["docker_engine"] = engine
+        identity["docker_cli_sha256"] = sha256_bytes(Path(command[0]).read_bytes())
+    return child_environment, identity
 
 
 def configuration_identity(config, adapter):
@@ -1109,7 +1228,9 @@ def identify_adapter(args):
         raise RouteError("adapter identity requires a configured custom CLI route")
     config = read_config(args.config)
     resolution = resolve_custom_route(config, args.lane, *lane)
-    _, settings = effective_settings(config, lane[0])
+    config_dir = Path(args.config).resolve().parent
+    repo = config_dir.parent if config_dir.name == ".dev-flow" else Path.cwd().resolve()
+    _, settings = effective_settings(config, lane[0], repo)
     digest = adapter_identity(resolution, configuration_identity(config, lane[0]), settings)
     require_adapter_identity(args.expected_identity, digest)
     return {"route": args.lane, "identity_sha256": digest}
@@ -1126,6 +1247,7 @@ def sandbox_profile(writable_paths, report_dir, runtime_tmp, protected_paths, ro
         '(import "system.sb")',
         "(deny default)",
         "(allow process*)",
+        "(deny process-fork)",
         "(allow file-read*)",
         "(allow sysctl-read)",
         "(allow network-outbound)",
@@ -1172,6 +1294,27 @@ def verify_sandbox(routing_root):
         if result.returncode != 0 or allowed.read_text() != "changed" or protected.read_text() != "protected\n" or not (report_dir / "check.md").is_file():
             detail = result.stderr.decode(errors="replace").strip() or f"sandbox fixture exited {result.returncode}"
             raise RouteError(f"sandbox enforcement verification failed; refusing adapter launch: {detail}")
+        process_probe = """import os, subprocess
+try:
+    child = os.fork()
+except PermissionError:
+    pass
+else:
+    if child == 0:
+        os._exit(0)
+    os.waitpid(child, 0)
+    raise SystemExit(8)
+try:
+    subprocess.run(['/usr/bin/true'], check=True)
+except PermissionError:
+    pass
+else:
+    raise SystemExit(9)
+"""
+        result = subprocess.run([str(SANDBOX_EXEC), "-f", str(profile_path), sys.executable, "-B", "-c", process_probe],
+                                capture_output=True, timeout=5, check=False)
+        if result.returncode != 0:
+            raise RouteError("sandbox could not verify adapter process creation is denied")
         termination = subprocess.Popen(["/bin/sleep", "30"], start_new_session=True)
         try:
             os.killpg(termination.pid, signal.SIGTERM)
@@ -1263,8 +1406,13 @@ def read_metadata(reader):
         raise RouteError("adapter left the metadata channel open after exit")
     if reader.error:
         raise RouteError(f"cannot read backend metadata: {reader.error}")
-    content = reader.content
-    if not content or reader.overflow:
+    if reader.overflow:
+        raise RouteError("adapter did not return bounded schema-v1 backend metadata")
+    return decode_metadata(reader.content)
+
+
+def decode_metadata(content):
+    if not content or len(content) > MAX_METADATA_BYTES:
         raise RouteError("adapter did not return bounded schema-v1 backend metadata")
     try:
         metadata = json.loads(content)
@@ -1317,7 +1465,287 @@ def validate_metadata(metadata, resolution, args, mode, settings_digest, expecte
     return metadata
 
 
-def invoke_adapter(action, args, record_launch, expected_identity):
+def docker_call(arguments, *, allow_failure=False):
+    try:
+        result = subprocess.run(arguments, capture_output=True, text=True, timeout=15, check=False,
+                                env=docker_environment(arguments))
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise RouteError(f"local Docker command failed: {error}") from error
+    if result.returncode and not allow_failure:
+        raise RouteError(f"local Docker command failed: {result.stderr.strip()}")
+    return result
+
+
+def docker_environment(arguments):
+    if arguments[1:2] == ["--host"]:
+        return {name: value for name, value in os.environ.items() if name not in {"DOCKER_HOST", "DOCKER_CONTEXT"}}
+    return None
+
+
+def local_docker(repo):
+    executable = shutil.which("docker")
+    if not executable or is_within(Path(executable).resolve(), repo):
+        raise RouteError("a trusted local Docker executable is required for container isolation")
+    executable = str(Path(executable).resolve())
+    host = docker_call([executable, "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"]).stdout.strip()
+    if not host.startswith("unix:///"):
+        raise RouteError("container isolation requires a local Docker Unix socket")
+    command = [executable, "--host", host]
+    identity = docker_call([*command, "info", "--format", "{{.ID}} {{.OSType}}"]).stdout.strip().split()
+    if len(identity) != 2 or identity[1] != "linux":
+        raise RouteError("container isolation requires an identifiable local Linux Docker engine")
+    return command, identity[0]
+
+
+def docker_container_state(command, container_id):
+    if not isinstance(container_id, str) or not re.fullmatch(r"[0-9a-f]{64}", container_id):
+        raise RouteError("container identity is missing or invalid")
+    result = docker_call([*command, "inspect", "--type", "container", "--format", "{{json .State}}", container_id],
+                         allow_failure=True)
+    if result.returncode:
+        current = docker_call([*command, "ps", "--all", "--no-trunc", "--filter", f"id={container_id}",
+                               "--format", "{{.ID}}"]).stdout.splitlines()
+        if not current:
+            return None
+        raise RouteError("could not verify Docker container state")
+    try:
+        state = json.loads(result.stdout)
+    except ValueError as error:
+        raise RouteError("Docker returned invalid container state") from error
+    if not isinstance(state, dict):
+        raise RouteError("Docker returned invalid container state")
+    return state
+
+
+def container_execution_stopped(execution, *, stop=False):
+    command = execution["docker_command"]
+    executable = Path(command[0])
+    if (executable.resolve() != executable
+            or sha256_bytes(executable.read_bytes()) != execution.get("docker_cli_sha256")):
+        raise RouteError("Docker executable changed; keep the container claim pending")
+    if docker_call([*command, "info", "--format", "{{.ID}}"]).stdout.strip() != execution["docker_engine"]:
+        raise RouteError("Docker engine changed; keep the container claim pending")
+    container_id = execution["container_id"]
+    state = docker_container_state(command, container_id)
+    if stop and state and state.get("Running") is True:
+        docker_call([*command, "stop", "--time", "2", container_id], allow_failure=True)
+        state = docker_container_state(command, container_id)
+    elif (stop and state and state.get("Status") == "created"
+          and state.get("Running") is False and state.get("Pid") == 0):
+        docker_call([*command, "container", "remove", container_id], allow_failure=True)
+        state = docker_container_state(command, container_id)
+    group = execution.get("adapter_process_group")
+    return (group is None or process_is_gone(group, group=True)) and (
+        state is None or (state.get("Status") == "exited" and state.get("Running") is False and state.get("Pid") == 0)
+    )
+
+
+def container_workspace(repo, runtime_root):
+    if not (repo / ".git").is_dir() or (repo / ".git").is_symlink():
+        raise RouteError("container isolation requires a checkout with its own Git directory")
+
+    def ignore(path, names):
+        path = Path(path)
+        excluded = {
+            repo: {".dev-flow"},
+            repo / "docs/features": set(names),
+            repo / ".git": {"config", "config.worktree", "hooks", "worktrees"},
+            repo / ".git/objects/info": {"alternates", "http-alternates"},
+        }
+        return excluded.get(path, set()) & set(names)
+
+    workspace = runtime_root / "workspace"
+    try:
+        shutil.copytree(repo, workspace, symlinks=True, ignore=ignore)
+    except OSError as error:
+        raise RouteError(f"cannot create private adapter workspace: {error}") from error
+    if git_output(repo, "rev-parse", "--show-object-format").stdout.strip() == "sha256":
+        (workspace / ".git/config").write_text("[core]\n\trepositoryformatversion = 1\n[extensions]\n\tobjectformat = sha256\n")
+    return workspace
+
+
+def container_mount(source, destination, *, readonly=True):
+    if any(character in str(source) for character in (",", '"', "\n", "\r")):
+        raise RouteError("Docker mount path contains an unsupported separator")
+    mount = f"type=bind,source={source},target={destination}"
+    return mount + ",readonly" if readonly else mount
+
+
+def run_container(action, args, repo, runtime_root, resolution, mode, write_paths, settings_digest,
+                  environment, settings, record_launch, verify_current_launch):
+    command, engine = settings["docker_command"], settings["docker_engine"]
+    image = settings["container_image"]
+    if docker_call([*command, "image", "inspect", "--format", "{{.Id}}", image]).stdout.strip() != image:
+        raise RouteError("pinned Docker image is unavailable locally")
+    writable = action == "run" and mode == "workspace-write"
+    staging = runtime_root
+    if writable:
+        staging = Path(args.receipt).parent.resolve() / "docker-staging"
+        staging.mkdir(mode=0o700)
+    workspace = container_workspace(repo, staging)
+    control, output = runtime_root / "container-control", staging / "container-output"
+    control.mkdir()
+    output.mkdir()
+    entry = Path(__file__).with_name("custom-cli-container-entry.py")
+    shutil.copy2(entry, control / "entry.py")
+    shutil.copy2(resolution["executable"], control / "launcher")
+    if (sha256_bytes((control / "launcher").read_bytes()) != resolution["sha256"]
+            or sha256_bytes((control / "entry.py").read_bytes()) != settings["container_entry_sha256"]):
+        raise RouteError("adapter or container entry program changed during container setup")
+    guest = argparse.Namespace(**vars(args))
+    guest.repo = Path("/dev-flow-work")
+    guest.report = Path("/dev-flow-output/report.md")
+    if action == "run":
+        shutil.copy2(args.brief, control / "brief")
+        guest.brief = Path("/dev-flow-control/brief")
+    guest_paths = [guest.repo / path.relative_to(repo) for path in write_paths]
+    argv = launch_argv(action, {**resolution, "executable": "/dev-flow-control/launcher"}, guest,
+                       mode, settings_digest, -1, guest_paths)
+    verify_current_launch()
+    container_id = docker_call([
+        *command, "create", "--pull=never", "--rm", "--init", "--interactive", "--read-only", "--network", "bridge",
+        "--user", f"{os.getuid()}:{os.getgid()}", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+        "--pids-limit", "128", "--tmpfs", "/tmp:rw,nosuid,nodev",
+        "--mount", container_mount(workspace, guest.repo, readonly=not writable),
+        "--mount", container_mount(control, "/dev-flow-control"),
+        "--mount", container_mount(output, "/dev-flow-output", readonly=not writable),
+        "--workdir", str(guest.repo), "--entrypoint", "python3", image, "-I", "-B", "/dev-flow-control/entry.py", *argv,
+    ]).stdout.strip()
+    if not re.fullmatch(r"[0-9a-f]{64}", container_id):
+        raise RouteError("Docker did not return an exact container identity")
+    execution = {"process_policy": CONTAINER_PROCESS_POLICY, "docker_command": command,
+                 "docker_engine": engine, "docker_cli_sha256": settings["docker_cli_sha256"],
+                 "container_id": container_id}
+    if writable:
+        execution["docker_staging"] = str(staging)
+    record_launch(**execution)
+    arguments = [*command, "start", "--attach", "--interactive", container_id]
+    timed_out = False
+    with subprocess.Popen(arguments, env=docker_environment(arguments), start_new_session=True,
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+        try:
+            record_launch(process.pid)
+            execution["adapter_process_group"] = process.pid
+            stdout, stderr = process.communicate(json.dumps(environment).encode(), timeout=INVOCATION_TIMEOUT_SECONDS)
+        except (RouteError, OSError, subprocess.TimeoutExpired) as error:
+            try:
+                docker_call([*command, "stop", "--time", "2", container_id], allow_failure=True)
+            finally:
+                process.kill()
+                stdout, stderr = process.communicate(timeout=5)
+            if not isinstance(error, subprocess.TimeoutExpired):
+                raise RouteError(f"container adapter did not complete: {type(error).__name__}") from error
+            timed_out = True
+    if not container_execution_stopped(execution, stop=True):
+        raise RouteError("could not verify complete Docker container termination")
+    return process.returncode, timed_out, stdout, stderr, workspace, output
+
+
+def container_output(stream, *, partial):
+    channels = {"stdout": bytearray(), "stderr": bytearray()}
+    status, metadata = None, b""
+    try:
+        for line in stream.splitlines(keepends=True):
+            if partial and not line.endswith(b"\n"):
+                break
+            if status is not None:
+                raise ValueError("output after final result")
+            frame = json.loads(line)
+            if "channel" in frame:
+                channels[frame["channel"]].extend(base64.b64decode(frame["content"], validate=True))
+            else:
+                status = frame["exit"]
+                if type(status) is not int:
+                    raise ValueError("invalid exit status")
+                metadata = base64.b64decode(frame["metadata"], validate=True)
+        if status is None and not partial:
+            raise ValueError("missing final result")
+    except (KeyError, TypeError, ValueError) as error:
+        raise RouteError("container adapter returned invalid output framing") from error
+    return status, bytes(channels["stdout"]), bytes(channels["stderr"]), metadata
+
+
+def import_container_result(repo, workspace, staged_report, report, write_paths, baseline):
+    if [file_state(repo, item["path"]) for item in baseline] != baseline:
+        raise RouteError("host task paths changed while the container was running; reconcile before importing")
+    updates = []
+    for destination in write_paths:
+        candidate = workspace / destination.relative_to(repo)
+        if not candidate.exists() and not candidate.is_symlink() and not destination.exists():
+            continue
+        if canonical_file(candidate, "container task result") != candidate:
+            raise RouteError("container task result must be a regular file at the exact private path")
+        previous_mode = destination.stat().st_mode & 0o777 if destination.exists() else 0o644
+        executable = candidate.stat().st_mode & stat.S_IXUSR
+        mode = (previous_mode & ~stat.S_IXUSR) | executable
+        data = candidate.read_bytes()
+        if not destination.exists() or previous_mode != mode or destination.read_bytes() != data:
+            updates.append((destination, data, mode))
+    if staged_report is not None:
+        if canonical_file(staged_report, "container worker report") != staged_report or report.exists() or report.is_symlink():
+            raise RouteError("container worker report must be a fresh regular file")
+        updates.append((report, staged_report.read_bytes(), 0o600))
+    for destination, data, mode in updates:
+        atomic_write(destination, data, mode)
+
+
+def preserve_container_changes(directory, workspace, output, baseline):
+    if not directory.exists():
+        with tempfile.TemporaryDirectory(prefix="docker-recovery-", dir=directory.parent) as temporary:
+            staged = Path(temporary) / "archive"
+            staged.mkdir(mode=0o700)
+            changes = []
+            for original in baseline:
+                path = original["path"]
+                candidate = workspace / path
+                try:
+                    exact = not candidate.is_symlink() and candidate.resolve() == candidate
+                except (OSError, RuntimeError):
+                    exact = False
+                if not exact or (candidate.exists() and not candidate.is_file()):
+                    changes.append({"path": path, "change": "unsupported-file-type"})
+                elif not candidate.exists():
+                    if original["exists"]:
+                        changes.append({"path": path, "change": "removed"})
+                else:
+                    data = candidate.read_bytes()
+                    digest = sha256_bytes(data)
+                    executable = bool(candidate.stat().st_mode & stat.S_IXUSR)
+                    if (digest, executable) != (original["content_sha256"], original["worktree_executable"]):
+                        source = f"task-{len(changes) + 1}.data"
+                        atomic_write(staged / source, data)
+                        changes.append({"path": path, "change": "modified" if original["exists"] else "created",
+                                        "source": source, "sha256": digest, "executable": executable})
+            staged_report = output / "report.md"
+            if staged_report.is_file() and not staged_report.is_symlink() and staged_report.resolve() == staged_report:
+                atomic_write(staged / "worker-report.md", staged_report.read_bytes())
+            write_json(staged / "changes.json", changes)
+            os.replace(staged, directory)
+    manifest = canonical_file(directory / "changes.json", "private Docker recovery manifest")
+    if manifest.parent != directory:
+        raise RouteError("Docker recovery manifest is outside its private directory")
+    recorded = manifest.read_bytes()
+    changes = json.loads(recorded)
+    print(f"Private container recovery evidence: {directory}", file=sys.stderr)
+    return {"manifest": str(manifest), "sha256": sha256_bytes(recorded), "has_changes": bool(changes)}
+
+
+def accept_adapter_result(action, args, receipt, receipt_path, metadata, stdout):
+    if action == "probe":
+        receipt["model_id_source"] = metadata["model_id_source"]
+        receipt["backend_id"] = metadata["backend_id"]
+        descriptor = os.open(receipt_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w") as output:
+            json.dump(receipt, output, sort_keys=True)
+        print(json.dumps({"status": "probed", "model": metadata["observed_model_id"], "receipt": str(receipt_path)}))
+    elif args.role == "reviewer":
+        if args.report.exists() or args.report.is_symlink() or not stdout.strip():
+            raise RouteError("reviewer requires fresh report output captured by the controller")
+        atomic_write(args.report, stdout)
+    return 0
+
+
+def invoke_adapter(action, args, record_launch, expected_identity, baseline):
     lane = parse_custom_lane(args.lane)
     if lane is None:
         raise RouteError("custom adapter invocation requires cli:<adapter>/<model>")
@@ -1341,15 +1769,13 @@ def invoke_adapter(action, args, record_launch, expected_identity):
     if report.exists():
         raise RouteError("worker report destination already exists; use a fresh dedicated report path")
     config_hash = configuration_identity(config, adapter)
-    if sys.platform != "darwin" or not routing_root.is_dir():
-        raise RouteError("the supported macOS sandbox boundary and docs/features/.routing are required")
     with tempfile.TemporaryDirectory(prefix="dev-flow-adapter-", dir=str(routing_root)) as runtime_dir:
         runtime_root = Path(runtime_dir)
         runtime_home = runtime_root / "home"
         runtime_tmp = runtime_root / "tmp"
         runtime_home.mkdir()
         runtime_tmp.mkdir()
-        environment, settings = effective_settings(config, adapter, runtime_home, runtime_tmp)
+        environment, settings = effective_settings(config, adapter, repo, runtime_home, runtime_tmp)
         if expected_identity is not None:
             require_adapter_identity(expected_identity, adapter_identity(resolution, config_hash, settings))
         settings_digest = sha256_bytes(json.dumps(settings, sort_keys=True, separators=(",", ":")).encode())
@@ -1375,10 +1801,65 @@ def invoke_adapter(action, args, record_launch, expected_identity):
                 previous = json.loads(receipt_path.read_text())
             except (OSError, UnicodeError, json.JSONDecodeError) as error:
                 raise RouteError(f"cannot read valid probe receipt: {error}") from error
+            if not isinstance(previous, dict):
+                raise RouteError("probe receipt must be an object")
             provenance = {"model_id_source": previous.get("model_id_source"), "backend_id": previous.get("backend_id")}
             previous_identity = {key: value for key, value in previous.items() if key not in provenance}
             if previous_identity != receipt or not all(provenance.values()):
                 raise RouteError("adapter, model, or effective settings changed after probe")
+
+        def verify_current_launch():
+            latest_config = read_config(args.config)
+            if configuration_identity(latest_config, adapter) != config_hash:
+                raise RouteError("adapter settings changed before launch")
+            if sha256_bytes(executable.read_bytes()) != resolution["sha256"]:
+                raise RouteError("adapter executable changed before launch")
+            _, latest_settings = effective_settings(latest_config, adapter, repo, runtime_home, runtime_tmp)
+            if latest_settings != settings:
+                raise RouteError("adapter effective settings changed before launch")
+
+        if "container_image" in settings:
+            transport_status, timed_out, raw_stdout, raw_stderr, workspace, output = run_container(
+                action, args, repo, runtime_root, resolution, mode, write_paths, settings_digest, environment, settings,
+                record_launch, verify_current_launch,
+            )
+            writable_run = action == "run" and mode == "workspace-write"
+            accepted = False
+            try:
+                status, stdout, diagnostics, content = container_output(raw_stdout, partial=timed_out or bool(transport_status))
+                if timed_out:
+                    status = 124
+                    raw_stderr += b"Container adapter invocation exceeded its time limit and was stopped.\n"
+                elif transport_status:
+                    status = 2
+                    raw_stderr += f"Container adapter transport exited with status {transport_status}.\n".encode()
+                if stdout:
+                    (sys.stderr if action == "probe" else sys.stdout).buffer.write(stdout)
+                if diagnostics or raw_stderr:
+                    sys.stderr.buffer.write(diagnostics + raw_stderr)
+                if status != 0:
+                    print(f"Adapter exited with status {status}; backend result is not accepted.", file=sys.stderr)
+                    return status if 1 <= status <= 255 else 1
+                metadata = decode_metadata(content)
+                validate_metadata(
+                    metadata, resolution, args, mode, settings_digest,
+                    expected_source=previous.get("model_id_source") if previous else None,
+                    expected_backend=previous.get("backend_id") if previous else None,
+                )
+                if writable_run:
+                    import_container_result(repo, workspace, output / "report.md", report, write_paths, baseline)
+                result = accept_adapter_result(action, args, receipt, receipt_path, metadata, stdout)
+                accepted = True
+                return result
+            finally:
+                if writable_run:
+                    if accepted:
+                        record_launch(docker_staging=None)
+                    else:
+                        recovery = preserve_container_changes(receipt_path.parent / "docker-recovery", workspace, output, baseline)
+                        record_launch(docker_staging=None, docker_recovery=recovery)
+                    shutil.rmtree(workspace.parent, ignore_errors=True)
+
         writable_paths = write_paths
         writable_report_dir = report_dir if action == "run" and args.role != "reviewer" else None
         profile = sandbox_profile(writable_paths, writable_report_dir, runtime_tmp, protected_paths, routing_root)
@@ -1387,14 +1868,7 @@ def invoke_adapter(action, args, record_launch, expected_identity):
         with tempfile.NamedTemporaryFile("w", suffix=".sb", encoding="utf-8", dir=str(runtime_root)) as profile_file:
             profile_file.write(profile)
             profile_file.flush()
-            latest_config = read_config(args.config)
-            if configuration_identity(latest_config, adapter) != config_hash:
-                raise RouteError("adapter settings changed before launch")
-            if sha256_bytes(executable.read_bytes()) != resolution["sha256"]:
-                raise RouteError("adapter executable changed before launch")
-            _, latest_settings = effective_settings(latest_config, adapter, runtime_home, runtime_tmp)
-            if latest_settings != settings:
-                raise RouteError("adapter effective settings changed before launch")
+            verify_current_launch()
             read_fd, write_fd = os.pipe()
             argv = launch_argv(action, resolution, args, mode, settings_digest, write_fd, write_paths)
             try:
@@ -1413,7 +1887,7 @@ def invoke_adapter(action, args, record_launch, expected_identity):
                 raise RouteError(f"cannot start the sandboxed adapter: {error}") from error
             os.close(write_fd)
             try:
-                record_launch(process.pid)
+                record_launch(process.pid, process_policy=NATIVE_PROCESS_POLICY)
             except (RouteError, OSError):
                 os.close(read_fd)
                 try:
@@ -1466,19 +1940,7 @@ def invoke_adapter(action, args, record_launch, expected_identity):
         except RouteError as error:
             print(f"Cannot accept adapter metadata: {error}.", file=sys.stderr)
             return 2
-        if action == "probe":
-            receipt["model_id_source"] = metadata["model_id_source"]
-            receipt["backend_id"] = metadata["backend_id"]
-            descriptor = os.open(receipt_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(descriptor, "w") as output:
-                json.dump(receipt, output, sort_keys=True)
-            print(json.dumps({"status": "probed", "model": metadata["observed_model_id"], "receipt": str(receipt_path)}))
-            return 0
-        if args.role == "reviewer":
-            if args.report.exists() or args.report.is_symlink() or not stdout.strip():
-                raise RouteError("reviewer requires fresh report output captured by the controller")
-            atomic_write(args.report, stdout)
-        return 0
+        return accept_adapter_result(action, args, receipt, receipt_path, metadata, stdout)
 
 
 def main(argv=None):
@@ -1499,6 +1961,7 @@ def main(argv=None):
     claim_parser.add_argument("--lane", required=True)
     claim_parser.add_argument("--write-path", action="append", default=[])
     claim_parser.add_argument("--retry-claim", help="explicitly retry a reconciled failed claim on its saved route")
+    claim_parser.add_argument("--reconciled-recovery", help="SHA-256 of the reconciled private Docker recovery manifest")
     claim_parser.add_argument("--expected-identity", help="pin the reviewer claim to the saved review batch identity")
     finalize_parser = subparsers.add_parser("finalize", help="apply or recover one approved attempt disposition")
     finalize_parser.add_argument("--intent", required=True)

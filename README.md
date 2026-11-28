@@ -77,7 +77,7 @@ See [model routing](references/model-routing.md#per-step-reviewer-groups) for va
 
 Register the absolute path to a local executable with `cli_adapters` in the target repo's `.dev-flow/config.json`. Select `cli:<adapter>/<exact-model-id>` for a supported role. Both hosts support custom implementers and testers. Claude Code can also use custom reviewers.
 
-The current adapter helper requires Python 3 and a host that can apply the macOS sandbox. The wrapper supplies backend model evidence, and its credential names are local configuration. See [custom CLI adapters](references/custom-cli-adapters.md).
+The adapter helper requires Python 3. Use native macOS isolation for single-process adapters or a pinned local Docker image for launchers that need subprocesses. The wrapper supplies backend model evidence, and its credential names are local configuration. See [custom CLI adapters](references/custom-cli-adapters.md).
 
 ## Idea capture and session help
 
