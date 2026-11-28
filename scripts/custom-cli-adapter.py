@@ -33,7 +33,7 @@ MAX_METADATA_BYTES = 65536
 INVOCATION_TIMEOUT_SECONDS = 3600
 NATIVE_PROCESS_POLICY = "macos-single-process-v1"
 CONTAINER_PROCESS_POLICY = "docker-private-container-v1"
-GIT_COMMAND = ("git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "--literal-pathspecs")
+GIT_COMMAND = ("git", "--no-replace-objects", "-c", "maintenance.auto=false", "-c", "gc.auto=0", "--literal-pathspecs")
 
 
 def parse_custom_lane(lane):
@@ -1093,7 +1093,7 @@ def git_admin_paths(repo):
     for option in ("--absolute-git-dir", "--git-common-dir"):
         try:
             result = subprocess.run(
-                ["git", "-C", str(repo), "rev-parse", "--path-format=absolute", option],
+                [*GIT_COMMAND, "-C", str(repo), "rev-parse", "--path-format=absolute", option],
                 capture_output=True,
                 text=True,
                 check=False,

@@ -456,6 +456,12 @@ if mode == "nonzero":
         automatic = [event for event in events if event.get("event") == "child_start"
                      and "--auto" in event.get("argv", []) and {"maintenance", "gc"}.intersection(event["argv"])]
         self.assertEqual(automatic, [])
+        for command in ("ls-tree", "rev-list"):
+            queries = [event["argv"] for event in events
+                       if event.get("event") == "start" and command in event.get("argv", [])]
+            self.assertTrue(queries, command)
+            for query in queries:
+                self.assertIn("--no-replace-objects", query)
         for finalized in (first, second):
             self.assertEqual(finalized.returncode, 0, finalized.stderr)
         self.assertEqual(sorted(json.loads(result.stdout)["recovered"] for result in (first, second)), [False, True])

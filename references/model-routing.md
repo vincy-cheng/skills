@@ -142,7 +142,7 @@ Use a fresh isolated driver for the selected host. On Claude Code, use the sessi
 
 ### Review a custom implementer result
 
-Before finalization, use the active claim and completed run to review the authorized working-tree changes.
+Before finalization, use the active claim and completed run to review the authorized working-tree changes. The helper disables Git replacement refs when it records the claim and verifies the commit.
 
 1. Verify HEAD equals the claim's `head_sha`. Match each authorized path in the claim's `write_paths` with its `stages.run.post_baseline` entry. Compare file presence, content digest and executable mode. Confirm the live files match the run evidence and each `index_entry` still matches the claim.
 2. Read each changed file directly. For a previously tracked file, compare it with the blob recorded in its baseline `committed_entry`. Read that exact blob with `git --no-pager --no-replace-objects cat-file blob <object-id>`. Read authorized new files in full. Review executable-mode changes even when the file bytes match.
